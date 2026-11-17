@@ -430,7 +430,7 @@ export async function handler(event, context) {
       source: 'Foggy Atmospheric Simulation Model (Realistic Fallback)',
       note: isKeyConfigured
         ? 'Live station temporarily unreachable; using high-fidelity regional simulation.'
-        : 'Using realistic simulated data. Add your free WAQI API key in Netlify Environment Variables for live sensors.'
+        : 'Using realistic simulated data. Add your free WAQI API key in .env for live sensors.'
     })
   };
 }

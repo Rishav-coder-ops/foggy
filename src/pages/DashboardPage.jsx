@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Flame, Bus, Wind, Sun, AlertTriangle, ShieldCheck, ArrowRight, Sparkles, Check, Users } from 'lucide-react';
+import { MessageSquare, Flame, Bus, Wind, Sun, AlertTriangle, ShieldCheck, ArrowRight, Sparkles, Check, Users, Bot } from 'lucide-react';
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
@@ -9,10 +9,12 @@ import MascotAvatar from '../components/MascotAvatar';
 import { fetchAQIData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
+import { useChat } from '../context/ChatContext';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { profile, familyMembers, updateProfile } = useProfile();
+  const { openChat } = useChat();
 
   const [currentCity, setCurrentCity] = useState(profile?.location || 'Salt Lake City');
   const [aqiData, setAqiData] = useState(null);
@@ -65,14 +67,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <Link
-          to="/chat"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all transform hover:-translate-y-0.5 shrink-0"
+        <button
+          type="button"
+          onClick={openChat}
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all transform hover:-translate-y-0.5 shrink-0 cursor-pointer"
         >
           <MessageSquare className="w-4 h-4" />
           <span>Ask Foggy About Today</span>
           <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        </button>
       </div>
 
       {/* Main AQI Widget */}
@@ -127,6 +130,37 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Prominent Foggy Assistant Card */}
+      <div className="interactive-card rounded-3xl bg-gradient-to-br from-white via-sky-50/50 to-amber-50/30 dark:from-slate-900 dark:via-slate-850 dark:to-sky-950/30 border border-sky-300/80 dark:border-sky-800/80 p-6 sm:p-8 shadow-soft dark:shadow-soft-dark flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+            <MascotAvatar size="md" mood="happy" />
+          </div>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300/60 dark:border-sky-800 mb-1.5">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>AI Air Companion Active</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+              Have Questions About Today's Smog?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl leading-relaxed">
+              Foggy remembers your household health profiles and today's AQI. Ask about kid playtime safety, commute alternatives, or how to seal drafts.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={openChat}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md hover:shadow-glow-ozone transition-all transform hover:-translate-y-0.5 shrink-0 cursor-pointer"
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>Chat with Foggy</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Low-Emission Daily Routine Plan */}
       <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
@@ -255,13 +289,14 @@ export default function DashboardPage() {
         {/* Ask Foggy Card Footer */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
           <span>Need custom changes for shifts, kids, or pets?</span>
-          <Link
-            to="/chat"
-            className="font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1"
+          <button
+            type="button"
+            onClick={openChat}
+            className="font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
           >
             <span>Ask Foggy to adapt this routine</span>
             <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          </button>
         </div>
       </div>
     </div>

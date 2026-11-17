@@ -5,9 +5,11 @@ import { MessageSquare, Wind, Shield, Users, Leaf, ArrowRight, Sparkles, CheckCi
 import MascotAvatar from '../components/MascotAvatar';
 import ImpactBadge from '../components/ImpactBadge';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../context/ChatContext';
 
 export default function LandingPage() {
   const { isAuthenticated, loginAsDemo } = useAuth();
+  const { openChat } = useChat();
 
   return (
     <div className="relative overflow-hidden">
@@ -49,14 +51,15 @@ export default function LandingPage() {
           {/* CTA Buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
             {isAuthenticated ? (
-              <Link
-                to="/chat"
-                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl text-sm font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5"
+              <button
+                type="button"
+                onClick={openChat}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl text-sm font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>Chat with Foggy</span>
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </button>
             ) : (
               <>
                 <Link

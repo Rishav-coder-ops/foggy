@@ -252,16 +252,16 @@ ${householdDetails}
             body: JSON.stringify({
               reply: rawReply,
               extractedFacts,
-              provider: 'Google Gemini 1.5 Flash (via Netlify Functions)'
+              provider: 'Google Gemini 1.5 Flash'
             })
           };
         }
       } else {
         const errorText = await apiRes.text();
-        console.warn('[Netlify Chat Function Gemini Error]', apiRes.status, errorText);
+        console.warn('[Chat Function Gemini Error]', apiRes.status, errorText);
       }
     } catch (err) {
-      console.warn('[Netlify Chat Function Gemini Exception, falling back]:', err.message);
+      console.warn('[Chat Function Gemini Exception, falling back]:', err.message);
     }
   }
 
@@ -282,7 +282,7 @@ ${householdDetails}
       extractedFacts: fallback.extractedFacts,
       provider: isKeyConfigured
         ? 'Foggy Atmospheric Core (Gemini API fallback active)'
-        : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in Netlify Environment Variables)'
+        : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in .env for live Gemini)'
     })
   };
 }
