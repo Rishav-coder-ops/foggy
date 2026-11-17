@@ -133,13 +133,9 @@ button:active, a:active {
   transform: scale(0.97) !important;
 }
 
-/* Ensure no platform badges, HUD, or drawer overlays appear on screen */
-#netlify-hud,
-.netlify-hud,
-[data-netlify-hud],
-iframe[id*="netlify"],
-div[id*="netlify-feedback"],
-div[class*="netlify-drawer"] {
+/* Ensure no third-party feedback drawers or badges overlay the UI */
+[data-feedback-hud],
+.feedback-drawer-overlay {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

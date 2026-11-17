@@ -1,5 +1,30 @@
-// netlify/functions/chat.js
-// Netlify Function for Gemini GenAI Chat Proxy with Persistent Memory & Fallback Core
+// api/chat.js
+// Vercel Serverless Function for Gemini GenAI Chat Proxy with Memory Extraction, Rate Limiting & Input Validation
+
+// In-memory sliding window rate limiter per client IP
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute
+const rateLimitMap = new Map();
+
+function checkRateLimit(clientIp) {
+  const now = Date.now();
+  let clientRecord = rateLimitMap.get(clientIp);
+
+  if (!clientRecord || now > clientRecord.resetTime) {
+    clientRecord = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
+    rateLimitMap.set(clientIp, clientRecord);
+    return { allowed: true, count: 1, remaining: MAX_REQUESTS_PER_WINDOW - 1, reset: clientRecord.resetTime };
+  }
+
+  clientRecord.count += 1;
+  const remaining = Math.max(0, MAX_REQUESTS_PER_WINDOW - clientRecord.count);
+  return {
+    allowed: clientRecord.count <= MAX_REQUESTS_PER_WINDOW,
+    count: clientRecord.count,
+    remaining,
+    reset: clientRecord.resetTime
+  };
+}
 
 function generateSmartFallbackResponse({ message, user, aqiData, profile, history }) {
   const q = message.toLowerCase();
@@ -58,93 +83,109 @@ function generateSmartFallbackResponse({ message, user, aqiData, profile, histor
       `3. **Ventilation Timing**:\n` +
       `   * Never air out your home before 10 AM or after 6 PM during smog season. Ventilate for 10-15 minutes strictly between 1:30 PM and 3:30 PM if needed, then re-seal.\n` +
       `4. **Cooktop Safety**:\n` +
-      `   * Turn on exhaust hoods or use back burners whenever cooking; switch to electric kettles and induction burners to prevent indoor NO2 spikes.\n\n` +
-      `Would you like step-by-step instructions for building a DIY box-fan filter?`;
-  } else if (q.includes('mask') || q.includes('n95') || q.includes('cloth') || q.includes('kn95') || q.includes('wear')) {
-    text = `Hey ${userName}, let's talk masks! When the AQI in ${cityName} is ${aqi}, standard cloth masks and loose surgical masks unfortunately leak >70% of dangerous PM2.5 around the edges.\n\n` +
-      `### 😷 Mask Guide for Today's Air:\n` +
-      `* **Recommended**: **N95, FFP2, or KF94 with headbands** (or ear loops with a tightening clip).\n` +
-      `* **Fit Test**: When you inhale sharply, the mask should collapse slightly inwards; no air should blow upward into your eyes.\n` +
-      `* **Health Impact**: A well-fitted N95 filters **>95% of fine particulate matter (PM2.5)**, lowering your inflammatory respiratory burden by ~**80%** during a 30-minute outdoor transit.\n` +
-      `* **Budget Tip**: You can safely rotate 3-4 N95 masks in breathable paper bags (labeling them Mon/Tue/Wed), reusing each up to 40 hours as long as straps remain elastic and dry.\n\n` +
-      (sensitiveMembers.length ? `Since your household has sensitive members, consider child-sized KF94 masks designed specifically for small face contours.` : '');
-  } else if (q.includes('kid') || q.includes('child') || q.includes('asthma') || q.includes('elderly') || q.includes('senior') || q.includes('pet')) {
-    text = `Protecting vulnerable loved ones is our top priority, ${userName}.\n\n` +
-      `### 🛡️ Vulnerable Group Protocol for AQI ${aqi}:\n` +
-      `* **Children**: Kids breathe ~50% more air per pound of body weight than adults, and their lungs are still developing. Cancel outdoor sports when AQI exceeds 150. Encourage indoor active play away from open windows.\n` +
-      `* **Asthma / Respiratory Conditions**: Keep peak-flow meters and prescribed controller inhalers on schedule. Smog causes bronchial spasms. Inhaling steam or warm water helps soothe airway irritation.\n` +
-      `* **Seniors & Heart Patients**: Fine PM2.5 can cross the lung barrier into the bloodstream, triggering vascular stress. Avoid any strenuous lifting outdoors.\n` +
-      `* **Pets**: Dogs also inhale ground-level smog heavily. Keep walks brief and wipe their paws and coat with a moist cloth after returning.\n\n` +
-      `> 🩺 *Safety reminder: Foggy provides lifestyle exposure mitigation advice. For asthma action plans or medication adjustments, please consult your physician.*`;
-  } else if (q.includes('plant') || q.includes('indoor plant')) {
-    text = `Indoor plants are a wonderful addition to any home, ${userName}! While they don't replace active HEPA filtration for dense PM2.5 smog, they enhance indoor humidity and absorb volatile organic compounds (VOCs).\n\n` +
-      `### 🌿 Top Air-Friendly Companions:\n` +
-      `1. **Snake Plant (Mother-in-law's Tongue)**: Unique because it releases oxygen and absorbs CO2 *at night*, making it ideal for bedrooms.\n` +
-      `2. **Spider Plant**: Resilient, non-toxic to pets, and filters formaldehyde and xylene.\n` +
-      `3. **Areca Palm**: Natural humidifier that counteracts dry, scratchy winter air.\n\n` +
-      `*Pair plants with a DIY filter or HEPA unit for the ultimate clean air combination!*`;
+      `   * If you have a gas stove, run your range hood or switch portable cooking to an electric induction plate to eliminate indoor NO2 spikes.\n\n` +
+      `> 🩺 *Medical note: Clean air reduces airway inflammation, but does not replace prescribed respiratory medications. Consult your physician for personalized medical advice.*`;
+  } else if (q.includes('mask') || q.includes('n95') || q.includes('outside') || q.includes('walk')) {
+    text = `Heading outside in ${cityName} (AQI: ${aqi}) requires smart physical barriers, ${userName}.\n\n` +
+      `### 😷 Mask & Outdoor Protection Guide:\n` +
+      `* **N95 or FFP2 Masks**: Certified N95 respirators filter **95%+ of PM2.5**. Cloth masks or loose surgical masks only block ~20-30% of fine particles.\n` +
+      `* **Fit Matters**: Pinch the nose wire firmly against the bridge of your nose. If air leaks around your cheeks, tighten the straps.\n` +
+      `* **Timing**: Conduct all walking, grocery runs, or errands between **1:00 PM and 3:30 PM** when the sun has broken the overnight inversion lid.\n` +
+      `* **Low-Cost Reuse**: Keep 3-4 N95 masks in labelled paper bags; rotate them daily to let moisture dissipate naturally without losing filtration efficiency.\n\n` +
+      `> 🩺 *Friendly reminder: I am Foggy, your air quality companion, not a medical professional. If breathing feels labored while wearing a mask, step into a clean indoor area and rest.*`;
   } else {
-    text = `Hello ${userName}! I'm **Foggy**, your air quality guide. Right now in **${cityName}**, the AQI is **${aqi} (${aqiCat})**.\n\n` +
-      `Every action you take can both reduce your exposure and lower your community's pollution footprint. For example:\n` +
-      `* **Action**: Keeping windows sealed during morning inversion hours cuts indoor PM2.5 infiltration by **~40%**.\n` +
-      `* **Swap**: Using an electric or induction kettle instead of an open flame saves **~0.4 kg CO2** daily and prevents indoor NO2 buildup.\n` +
-      `* **Protection**: Wearing a fitted N95 outdoors removes **>95%** of microscopic toxic soot from reaching your alveoli.\n\n` +
-      (familyList.length > 0 ? `I'm keeping your family profile in mind (${familyList.map(f => f.name).join(', ')}). ` : '') +
-      `What would you like to focus on today? We can plan your low-pollution daily routine, explore budget DIY air filters, or check family safety tips!`;
+    text = `Hello ${userName}! I'm Foggy, your air quality companion.\n\n` +
+      `In **${cityName}** today, the AQI is **${aqi} (${aqiCat})**.\n\n` +
+      `Here is how I can help your household navigate this smog season:\n` +
+      `* 📅 **Low-Emission Routines**: Get an hour-by-hour plan for clean commute swaps and optimal outdoor windows.\n` +
+      `* 🏡 **Indoor Protection**: Learn budget-friendly filtration hacks like the DIY Corsi-Rosenthal box fan.\n` +
+      `* 👨‍👩‍👧 **Family Shield**: Set up profiles for children, seniors, or pets with sensitive respiratory needs.\n` +
+      `* 🌱 **Impact Tracking**: See direct CO2 and PM2.5 reduction metrics for every sustainable habit.\n\n` +
+      `What would you like to focus on first?\n\n` +
+      `> 🩺 *Safety disclaimer: I provide air quality and exposure prevention guidance, not medical diagnosis. Please consult a doctor for health concerns.*`;
   }
 
-  return {
-    reply: text,
-    extractedFacts,
-    provider: 'Foggy Atmospheric Core (Built-in Assistant)'
-  };
+  return { text, extractedFacts };
 }
 
-export async function handler(event, context) {
-  // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
-    };
+export default async function handler(req, res) {
+  // CORS & Security Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Method Not Allowed. Use POST.' })
-    };
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
   }
 
-  let requestBody = {};
-  try {
-    requestBody = JSON.parse(event.body || '{}');
-  } catch (err) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Invalid JSON payload' })
-    };
+  // Rate Limiting
+  const clientIp = req.headers['x-forwarded-for']
+    ? req.headers['x-forwarded-for'].split(',')[0].trim()
+    : req.headers['x-real-ip'] || req.socket?.remoteAddress || '127.0.0.1';
+
+  const rateCheck = checkRateLimit(clientIp);
+  res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
+  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining.toString());
+  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.reset / 1000).toString());
+
+  if (!rateCheck.allowed) {
+    return res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Foggy rate limit reached. Please wait a moment before sending more messages to protect API quotas.',
+      retryAfterSeconds: Math.ceil((rateCheck.reset - Date.now()) / 1000)
+    });
+  }
+
+  // Input Validation
+  let requestBody = req.body;
+  if (typeof requestBody === 'string') {
+    try {
+      requestBody = JSON.parse(requestBody);
+    } catch (err) {
+      return res.status(400).json({ error: 'Invalid JSON payload in request body.' });
+    }
+  }
+
+  if (!requestBody || typeof requestBody !== 'object') {
+    return res.status(400).json({ error: 'Request body must be a valid JSON object.' });
   }
 
   const { message, history = [], user, aqiData, profile } = requestBody;
 
-  if (!message || typeof message !== 'string') {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Message is required' })
-    };
+  // Validate message
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required and must be a non-empty string.' });
+  }
+
+  if (message.length > 4000) {
+    return res.status(400).json({ error: 'Message exceeds maximum allowed length of 4000 characters.' });
+  }
+
+  // Validate history
+  if (history && !Array.isArray(history)) {
+    return res.status(400).json({ error: 'History must be an array of messages.' });
+  }
+
+  // Validate profile & aqiData if present
+  if (profile && typeof profile !== 'object') {
+    return res.status(400).json({ error: 'Profile must be an object.' });
+  }
+  if (aqiData && typeof aqiData !== 'object') {
+    return res.status(400).json({ error: 'aqiData must be an object.' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
-  const isKeyConfigured = apiKey && apiKey !== 'your_gemini_api_key_here' && apiKey.length > 15;
+  const isKeyConfigured = Boolean(
+    apiKey &&
+    apiKey !== 'your_gemini_api_key_here' &&
+    apiKey.trim().length > 15
+  );
 
   const userName = user?.name || 'Friend';
   const cityName = aqiData?.city || profile?.location || 'Unknown City';
@@ -189,42 +230,42 @@ CURRENT CONTEXT:
 ${householdDetails}
 `;
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*'
-  };
-
   if (isKeyConfigured) {
     try {
       const contents = [];
 
-      const recentHistory = history.slice(-6);
-      for (const turn of recentHistory) {
-        if (turn.sender === 'user') {
-          contents.push({ role: 'user', parts: [{ text: turn.text }] });
-        } else if (turn.sender === 'foggy') {
-          contents.push({ role: 'model', parts: [{ text: turn.text }] });
+      // Add recent history (up to last 6 messages)
+      const recentHistory = Array.isArray(history) ? history.slice(-6) : [];
+      for (const item of recentHistory) {
+        if (item.text || item.content) {
+          contents.push({
+            role: item.role === 'user' ? 'user' : 'model',
+            parts: [{ text: item.text || item.content }]
+          });
         }
       }
 
-      contents.push({ role: 'user', parts: [{ text: message }] });
+      // Add current message
+      contents.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
       const apiRes = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          systemInstruction: {
+          system_instruction: {
             parts: [{ text: systemPrompt }]
           },
           contents,
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.6,
             maxOutputTokens: 1000
           }
         }),
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(9000)
       });
 
       if (apiRes.ok) {
@@ -232,40 +273,39 @@ ${householdDetails}
         let rawReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
         if (rawReply) {
+          // Parse out memory extraction block if present
           let extractedFacts = [];
-          const memoryRegex = /\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/;
-          const match = rawReply.match(memoryRegex);
-
+          const match = rawReply.match(/\[FOGGY_MEMORY_EXTRACTION:\s*(\{.*?\})\]/s);
           if (match && match[1]) {
             try {
               const parsed = JSON.parse(match[1]);
-              extractedFacts = parsed.facts || [];
+              if (Array.isArray(parsed.facts)) {
+                extractedFacts = parsed.facts;
+              }
+              rawReply = rawReply.replace(/\[FOGGY_MEMORY_EXTRACTION:\s*(\{.*?\})\]/s, '').trim();
             } catch (e) {
-              console.warn('Could not parse memory extraction block:', e);
+              console.warn('[Memory Parse Warning]:', e.message);
             }
-            rawReply = rawReply.replace(memoryRegex, '').trim();
           }
 
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              reply: rawReply,
-              extractedFacts,
-              provider: 'Google Gemini 1.5 Flash'
-            })
-          };
+          return res.status(200).json({
+            reply: rawReply,
+            extractedFacts,
+            provider: 'Google Gemini 1.5 Flash'
+          });
         }
       } else {
         const errorText = await apiRes.text();
-        console.warn('[Chat Function Gemini Error]', apiRes.status, errorText);
+        console.error('[Chat Service Error] Gemini API returned error:', apiRes.status, errorText);
       }
     } catch (err) {
-      console.warn('[Chat Function Gemini Exception, falling back]:', err.message);
+      console.error('[Chat Service Error] Exception during Gemini API call, using smart fallback:', err.message);
     }
+  } else {
+    console.error('[Chat Service Error] GEMINI_API_KEY is missing or invalid in environment. Falling back to intelligent Foggy Atmospheric Core.');
   }
 
-  // Fallback to resilient built-in engine
+  // High-fidelity fallback core if Gemini is unreachable or key is missing
   const fallback = generateSmartFallbackResponse({
     message,
     user,
@@ -274,15 +314,11 @@ ${householdDetails}
     history
   });
 
-  return {
-    statusCode: 200,
-    headers,
-    body: JSON.stringify({
-      reply: fallback.reply,
-      extractedFacts: fallback.extractedFacts,
-      provider: isKeyConfigured
-        ? 'Foggy Atmospheric Core (Gemini API fallback active)'
-        : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in .env for live Gemini)'
-    })
-  };
+  return res.status(200).json({
+    reply: fallback.text,
+    extractedFacts: fallback.extractedFacts,
+    provider: isKeyConfigured
+      ? 'Foggy Atmospheric Core (Gemini API fallback active)'
+      : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in Vercel Environment Variables)'
+  });
 }

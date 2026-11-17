@@ -23,7 +23,7 @@
 - [System Architecture](#-system-architecture)
 - [Folder Structure](#-folder-structure)
 - [Getting Started & Local Setup](#-getting-started--local-setup)
-- [Netlify Deployment Guide](#-netlify-deployment-guide)
+- [Deploy to Vercel](#-deploy-to-vercel)
 - [API Keys Setup Guide](#-api-keys-setup-guide)
 - [Light & Dark Mode Palettes](#-light--dark-mode-palettes)
 - [Authentication & Memory Architecture](#-authentication--memory-architecture)
@@ -178,29 +178,25 @@ flowchart TD
 ```
 challenge6/
 ├── .env.example               # Environment variable templates
-├── .gitignore                  # Git ignore rules (node_modules, .env, dist)
-├── netlify.toml                # Netlify deployment build, redirects, & functions config
-├── package.json                # Project dependencies and npm scripts
+├── .gitignore                  # Git ignore rules (node_modules, .env, dist, .vercel)
+├── vercel.json                 # Vercel deployment configuration (SPA rewrite, headers, Vite preset)
+├── package.json                # Project dependencies, Node 20 engine, and npm scripts
 ├── postcss.config.js           # PostCSS configuration
 ├── tailwind.config.js          # Tailwind CSS theme configuration
 ├── vite.config.js              # Vite bundler & API proxy configuration
 ├── README.md                   # Complete documentation
 │
-├── netlify/                    # Netlify Serverless Functions (Production Cloud)
-│   └── functions/
-│       ├── aqi.js              # Serverless WAQI API proxy & fallback
-│       └── chat.js             # Serverless Gemini GenAI proxy & persistent memory
+├── api/                        # Vercel Serverless Functions (Production Cloud & Vercel CLI)
+│   ├── aqi.js                  # Serverless WAQI API proxy with live sensors, rate limiting & validation
+│   └── chat.js                 # Serverless Gemini GenAI proxy with memory extraction & rate limiting
 │
-├── public/
-│   └── _redirects              # Netlify SPA fallback & API proxy rules
-│
-├── server/                     # Local Backend proxy (Express.js)
+├── server/                     # Local Backend Proxy (Express.js)
 │   ├── index.js                # Express app entry, static serving & routes
 │   ├── middleware/
 │   │   └── rateLimiter.js      # Sliding-window IP rate limiting
 │   └── routes/
-│       ├── aqi.js              # WAQI API proxy with simulation fallback
-│       └── chat.js             # Gemini API proxy with memory extractor & smart core
+│       ├── aqi.js              # Route mounted to /api/aqi (delegates to api/aqi.js)
+│       └── chat.js             # Route mounted to /api/chat (delegates to api/chat.js)
 │
 └── src/                        # Frontend source code (React)
     ├── main.jsx                # App initialization & Context mounting
@@ -214,7 +210,7 @@ challenge6/
     │   ├── ProfileContext.jsx  # Family members, memory facts, profile attributes
     │   └── ChatContext.jsx     # Shared conversational state & modal controls
     ├── services/
-    │   └── api.js              # Resilient fetch clients (calls /api/* or /.netlify/functions/*)
+    │   └── api.js              # Resilient fetch clients (calls /api/aqi and /api/chat)
     ├── components/
     │   ├── Navbar.jsx          # Responsive header, theme switch, user profile
     │   ├── MobileBottomNav.jsx # Native thumb-friendly bottom navigation bar
@@ -291,57 +287,81 @@ Visit `http://localhost:3001` in your browser.
 
 ---
 
-## 🌐 Netlify Deployment Guide
+## 🚀 Deploy to Vercel
 
-Foggy is fully optimized for continuous deployment on **Netlify** with zero configuration required beyond your standard repository push.
+Foggy is fully optimized for one-click continuous deployment on **Vercel** as a modern Single Page Application (SPA) backed by Vercel Serverless Functions in `/api/`.
 
-### Architecture on Netlify
-* **Static Assets**: Pre-compiled with Vite into `dist/` and distributed via Netlify's high-speed global Edge CDN.
-* **Serverless Functions**: Located in `netlify/functions/`:
-  - `netlify/functions/chat.js` handles Google Gemini GenAI interactions.
-  - `netlify/functions/aqi.js` handles World Air Quality Index sensor queries and inversion curves.
-* **Security**: API keys are stored strictly server-side in Netlify Environment Variables (`process.env.GEMINI_API_KEY` and `process.env.AQI_API_KEY`). **No secret keys use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring they are never bundled into client JavaScript.
-* **SPA Routing**: `netlify.toml` and `public/_redirects` contain fallback rules (`/* -> /index.html 200`) so refreshing `/dashboard`, `/family`, or `/memory` routes never yields a 404 error.
+### Architecture on Vercel
+* **Frontend SPA**: Pre-compiled with Vite into `dist/` and served with low latency via Vercel's Global Edge Network.
+* **Serverless Functions**: Located in the `/api/` folder:
+  - `/api/chat.js` handles Google Gemini GenAI interactions, safety disclaimers, rate limiting, and dynamic profile memory extraction.
+  - `/api/aqi.js` handles World Air Quality Index (WAQI) live station data, key pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$), rate limiting, input validation, and inversion curve modeling.
+* **Zero Secret Leakage**: API keys are stored strictly server-side in Vercel Environment Variables (`process.env.GEMINI_API_KEY` and `process.env.AQI_API_KEY`). **No secret keys use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring credentials are never exposed in client bundles.
+* **SPA Routing & Security**: `vercel.json` contains route rewrites ensuring all non-API paths (`/dashboard`, `/family`, `/memory`, `/indoor-hacks`, `/about`, `/auth`) fall back to `/index.html` with HTTP 200, alongside enterprise security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`).
+
+---
+
+### Confirmed Vercel Build Settings
+When importing into Vercel, verify that the project settings match:
+
+| Setting | Value | Notes |
+| :--- | :--- | :--- |
+| **Framework Preset** | `Vite` | Detected automatically |
+| **Build Command** | `npm run build` (or `pnpm run build`) | Produces optimized production bundle in `dist/` |
+| **Output Directory** | `dist` | Static asset output directory |
+| **Node.js Version** | `20.x` | Configured in `package.json` (`"engines": { "node": ">=20.0.0" }`) |
+
+---
 
 ### Step-by-Step Deployment Instructions
 
-#### Option A: Deploy via GitHub / GitLab / Bitbucket (Recommended)
-1. Push your repository to GitHub:
+#### 1. Import GitHub Repository
+1. Push your Foggy codebase to GitHub:
    ```bash
    git add .
-   git commit -m "feat: prepare project for Netlify deployment"
+   git commit -m "feat: migrate backend functions & config to Vercel"
    git push origin main
    ```
-2. Log in to [Netlify](https://app.netlify.com).
-3. Click **"Add new site"** > **"Import an existing project"**.
-4. Select **GitHub** and choose your `foggy` repository.
-5. Netlify will automatically detect settings from `netlify.toml`:
-   - **Build command**: `pnpm run build`
-   - **Publish directory**: `dist`
-   - **Functions directory**: `netlify/functions`
-   - **Node version**: `20`
-6. Click **"Deploy site"**.
+2. Navigate to [Vercel Dashboard](https://vercel.com/new).
+3. Under **"Import Git Repository"**, select your `foggy` repo and click **"Import"**.
 
-#### Option B: Configure Environment Variables in Netlify
-To connect live AI and real-time sensor feeds in production:
-1. In the Netlify site dashboard, navigate to **Site configuration** > **Environment variables**.
-2. Click **"Add a variable"** and input:
-   - `GEMINI_API_KEY`: Your Google AI Studio API key (e.g. `AIzaSy...`)
-   - `AQI_API_KEY`: Your WAQI API platform token (e.g. `67a5...`)
-3. Trigger a redeploy (**Deploys** > **Trigger deploy** > **Clear cache and deploy site**).
+#### 2. Configure Environment Variables
+Under the **Environment Variables** section in the Vercel project configuration, add your secret keys:
 
-#### Option C: Deploy via Netlify CLI
-If you have the Netlify CLI installed:
+| Key | Example Value | Description |
+| :--- | :--- | :--- |
+| `GEMINI_API_KEY` | `AIzaSy...` | Google AI Studio Gemini API key for live GenAI assistant responses |
+| `AQI_API_KEY` | `67a5...` | World Air Quality Index platform token for live station sensor feeds |
+
+> 🔒 **Security Notice**: Never prefix these keys with `VITE_` or `NEXT_PUBLIC_`. Vercel injects them only into the secure Serverless Function runtime (`/api/*`).
+
+#### 3. Deploy
+1. Click **"Deploy"**. Vercel will install dependencies, compile the Vite frontend into `dist/`, provision `/api/chat` and `/api/aqi`, and deploy the site.
+2. Once the build completes, your production URL (e.g. `https://your-project.vercel.app`) is live!
+
+#### 4. Updating Variables & Redeploying
+If you update or add `GEMINI_API_KEY` or `AQI_API_KEY` after the initial deploy:
+1. Go to your project in the Vercel Dashboard > **Settings** > **Environment Variables**.
+2. Update the variable values.
+3. Redeploy your project so the new environment variables take effect:
+   - Navigate to the **Deployments** tab.
+   - Click the three dots `...` on the latest deployment and select **"Redeploy"**.
+
+---
+
+### 💻 Running Functions & App Locally with Vercel CLI
+You can test the entire production Vercel runtime locally (including the serverless `/api` functions):
+
 ```bash
-# Install Netlify CLI globally
-npm install -g netlify-cli
+# Option 1: Run with Vercel CLI
+pnpm dlx vercel dev
+# or if installed globally:
+vercel dev
 
-# Test Netlify functions & site locally
-netlify dev
-
-# Build and deploy to production
-netlify deploy --prod --build
+# Option 2: Run with local Express & Vite dev servers concurrently
+pnpm run dev
 ```
+Both options expose `/api/aqi` and `/api/chat` on `http://localhost:5173` (or `http://localhost:3000`).
 
 ---
 

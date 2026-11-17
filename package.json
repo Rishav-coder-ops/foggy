@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"node server/index.js\" \"vite\"",
+    "dev:vercel": "vercel dev",
     "server": "node server/index.js",
     "client": "vite",
     "build": "vite build",
@@ -36,5 +37,8 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

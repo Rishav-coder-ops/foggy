@@ -1,14 +1,9 @@
 // src/services/api.js
+// Client API Service for Foggy communicating with /api/ Serverless Endpoints
 
 export async function fetchAQIData(city = 'Salt Lake City') {
   try {
-    // Primary path: /api/aqi (rewritten by Netlify redirects or Vite local proxy)
-    let res = await fetch(`/api/aqi?city=${encodeURIComponent(city)}`);
-    
-    // Fallback directly to Netlify Function if /api redirect isn't active
-    if (res.status === 404) {
-      res = await fetch(`/.netlify/functions/aqi?city=${encodeURIComponent(city)}`);
-    }
+    const res = await fetch(`/api/aqi?city=${encodeURIComponent(city)}`);
 
     if (!res.ok) {
       throw new Error(`Failed to load AQI data (Status ${res.status})`);
@@ -47,25 +42,15 @@ export async function sendChatMessage({ message, history = [], user, aqiData, pr
       profile
     });
 
-    // Primary path: /api/chat (rewritten by Netlify redirects or Vite local proxy)
-    let res = await fetch('/api/chat', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload
     });
 
-    // Fallback directly to Netlify Function if /api redirect isn't active
-    if (res.status === 404) {
-      res = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload
-      });
-    }
-
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `Chat service unavailable (Status ${res.status})`);
+      throw new Error(errorData.message || errorData.error || `Chat service unavailable (Status ${res.status})`);
     }
 
     return await res.json();
