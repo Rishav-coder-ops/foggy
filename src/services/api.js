@@ -2,7 +2,14 @@
 
 export async function fetchAQIData(city = 'Salt Lake City') {
   try {
-    const res = await fetch(`/api/aqi?city=${encodeURIComponent(city)}`);
+    // Primary path: /api/aqi (rewritten by Netlify redirects or Vite local proxy)
+    let res = await fetch(`/api/aqi?city=${encodeURIComponent(city)}`);
+    
+    // Fallback directly to Netlify Function if /api redirect isn't active
+    if (res.status === 404) {
+      res = await fetch(`/.netlify/functions/aqi?city=${encodeURIComponent(city)}`);
+    }
+
     if (!res.ok) {
       throw new Error(`Failed to load AQI data (Status ${res.status})`);
     }
@@ -32,19 +39,29 @@ export async function fetchAQIData(city = 'Salt Lake City') {
 
 export async function sendChatMessage({ message, history = [], user, aqiData, profile }) {
   try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message,
-        history,
-        user,
-        aqiData,
-        profile
-      })
+    const payload = JSON.stringify({
+      message,
+      history,
+      user,
+      aqiData,
+      profile
     });
+
+    // Primary path: /api/chat (rewritten by Netlify redirects or Vite local proxy)
+    let res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    });
+
+    // Fallback directly to Netlify Function if /api redirect isn't active
+    if (res.status === 404) {
+      res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+    }
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));

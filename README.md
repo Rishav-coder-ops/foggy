@@ -1,6 +1,7 @@
 # 🌫️ Foggy — GenAI Winter Smog & Urban Air Quality Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
+[![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7.svg?logo=netlify)](https://www.netlify.com/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com/)
@@ -23,6 +24,7 @@
 - [System Architecture](#-system-architecture)
 - [Folder Structure](#-folder-structure)
 - [Getting Started & Local Setup](#-getting-started--local-setup)
+- [Netlify Deployment Guide](#-netlify-deployment-guide)
 - [API Keys Setup Guide](#-api-keys-setup-guide)
 - [Light & Dark Mode Palettes](#-light--dark-mode-palettes)
 - [Authentication & Memory Architecture](#-authentication--memory-architecture)
@@ -178,13 +180,22 @@ flowchart TD
 challenge6/
 ├── .env.example               # Environment variable templates
 ├── .gitignore                  # Git ignore rules (node_modules, .env, dist)
+├── netlify.toml                # Netlify deployment build, redirects, & functions config
 ├── package.json                # Project dependencies and npm scripts
 ├── postcss.config.js           # PostCSS configuration
 ├── tailwind.config.js          # Tailwind CSS theme configuration
 ├── vite.config.js              # Vite bundler & API proxy configuration
 ├── README.md                   # Complete documentation
 │
-├── server/                     # Backend proxy (Express.js)
+├── netlify/                    # Netlify Serverless Functions (Production Cloud)
+│   └── functions/
+│       ├── aqi.js              # Serverless WAQI API proxy & fallback
+│       └── chat.js             # Serverless Gemini GenAI proxy & persistent memory
+│
+├── public/
+│   └── _redirects              # Netlify SPA fallback & API proxy rules
+│
+├── server/                     # Local Backend proxy (Express.js)
 │   ├── index.js                # Express app entry, static serving & routes
 │   ├── middleware/
 │   │   └── rateLimiter.js      # Sliding-window IP rate limiting
@@ -201,11 +212,16 @@ challenge6/
     ├── context/
     │   ├── AuthContext.jsx     # User session, login, signup, demo login
     │   ├── ThemeContext.jsx    # Light (#F1F5F9) & Dark (#0F172A) toggle
-    │   └── ProfileContext.jsx  # Family members, memory facts, profile attributes
+    │   ├── ProfileContext.jsx  # Family members, memory facts, profile attributes
+    │   └── ChatContext.jsx     # Shared conversational state & modal controls
     ├── services/
-    │   └── api.js              # Resilient fetch clients for chat & AQI
+    │   └── api.js              # Resilient fetch clients (calls /api/* or /.netlify/functions/*)
     ├── components/
     │   ├── Navbar.jsx          # Responsive header, theme switch, user profile
+    │   ├── MobileBottomNav.jsx # Native thumb-friendly bottom navigation bar
+    │   ├── CompactChatModal.jsx # Floating compact chat window with bottom-sheet mobile docking
+    │   ├── FloatingChatButton.jsx # Circular assistant launcher button
+    │   ├── CursorAtmosphere.jsx # Interactive particulate physics & clean air torch
     │   ├── Footer.jsx          # Legal notices, medical disclaimer, links
     │   ├── MascotAvatar.jsx    # Foggy cloud mascot SVG with emotion states
     │   ├── ThemeToggle.jsx     # Sun/Moon accessible switcher
@@ -218,7 +234,7 @@ challenge6/
         ├── LandingPage.jsx     # Hero, value props, live preview
         ├── AuthPage.jsx        # Sign In / Sign Up with validation & 1-click demo
         ├── DashboardPage.jsx   # AQI card, daily routine, family alert
-        ├── ChatPage.jsx        # Full GenAI conversation with starter pills
+        ├── ChatPage.jsx        # Focused consultation view with compact messenger
         ├── IndoorHacksPage.jsx # Budget DIY filters, sealing, plants, masks
         ├── FamilyProfilesPage.jsx # Household health management
         ├── MemoryPage.jsx      # "What Foggy Knows" privacy inspector
@@ -273,6 +289,60 @@ pnpm run build
 pnpm start
 ```
 Visit `http://localhost:3001` in your browser.
+
+---
+
+## 🌐 Netlify Deployment Guide
+
+Foggy is fully optimized for continuous deployment on **Netlify** with zero configuration required beyond your standard repository push.
+
+### Architecture on Netlify
+* **Static Assets**: Pre-compiled with Vite into `dist/` and distributed via Netlify's high-speed global Edge CDN.
+* **Serverless Functions**: Located in `netlify/functions/`:
+  - `netlify/functions/chat.js` handles Google Gemini GenAI interactions.
+  - `netlify/functions/aqi.js` handles World Air Quality Index sensor queries and inversion curves.
+* **Security**: API keys are stored strictly server-side in Netlify Environment Variables (`process.env.GEMINI_API_KEY` and `process.env.AQI_API_KEY`). **No secret keys use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring they are never bundled into client JavaScript.
+* **SPA Routing**: `netlify.toml` and `public/_redirects` contain fallback rules (`/* -> /index.html 200`) so refreshing `/dashboard`, `/family`, or `/memory` routes never yields a 404 error.
+
+### Step-by-Step Deployment Instructions
+
+#### Option A: Deploy via GitHub / GitLab / Bitbucket (Recommended)
+1. Push your repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "feat: prepare project for Netlify deployment"
+   git push origin main
+   ```
+2. Log in to [Netlify](https://app.netlify.com).
+3. Click **"Add new site"** > **"Import an existing project"**.
+4. Select **GitHub** and choose your `foggy` repository.
+5. Netlify will automatically detect settings from `netlify.toml`:
+   - **Build command**: `pnpm run build`
+   - **Publish directory**: `dist`
+   - **Functions directory**: `netlify/functions`
+   - **Node version**: `20`
+6. Click **"Deploy site"**.
+
+#### Option B: Configure Environment Variables in Netlify
+To connect live AI and real-time sensor feeds in production:
+1. In the Netlify site dashboard, navigate to **Site configuration** > **Environment variables**.
+2. Click **"Add a variable"** and input:
+   - `GEMINI_API_KEY`: Your Google AI Studio API key (e.g. `AIzaSy...`)
+   - `AQI_API_KEY`: Your WAQI API platform token (e.g. `67a5...`)
+3. Trigger a redeploy (**Deploys** > **Trigger deploy** > **Clear cache and deploy site**).
+
+#### Option C: Deploy via Netlify CLI
+If you have the Netlify CLI installed:
+```bash
+# Install Netlify CLI globally
+npm install -g netlify-cli
+
+# Test Netlify functions & site locally
+netlify dev
+
+# Build and deploy to production
+netlify deploy --prod --build
+```
 
 ---
 
