@@ -4,6 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MemoryNotification from './components/MemoryNotification';
+import FloatingChatButton from './components/FloatingChatButton';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -70,6 +71,7 @@ export default function App() {
         </Routes>
       </main>
 
+      <FloatingChatButton />
       <MemoryNotification />
       <Footer />
     </div>

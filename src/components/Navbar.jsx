@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { MessageSquare, LayoutDashboard, Shield, Users, Brain, Info, LogOut, LogIn, Menu, X, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Shield, Users, Brain, Info, LogOut, LogIn, Menu, X, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import MascotAvatar from './MascotAvatar';
@@ -19,7 +19,6 @@ export default function Navbar() {
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/chat', label: 'Chat with Foggy', icon: MessageSquare, highlight: true },
     { to: '/indoor-hacks', label: 'Indoor Hacks', icon: Shield },
     { to: '/family', label: 'Family Profiles', icon: Users },
     { to: '/memory', label: 'What Foggy Knows', icon: Brain },
@@ -62,7 +61,7 @@ export default function Navbar() {
                     isActive
                       ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80 shadow-xs'
                       : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
-                  } ${item.highlight ? 'text-amber-800 dark:text-sky-300' : ''}`
+                  }`
                 }
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -72,8 +71,31 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Right Section: Theme Toggle & User Auth */}
+        {/* Right Section: Assistant Round Logo, Theme Toggle & User Auth */}
         <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Round Icon Button with Assistant's Mascot Logo to Chat with Foggy */}
+          <Link
+            to="/chat"
+            className="relative group p-0.5 rounded-full bg-gradient-to-tr from-sky-400 via-teal-300 to-amber-300 hover:scale-105 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 flex items-center justify-center"
+            aria-label="Chat with Foggy AI Assistant"
+            title="Chat with Foggy"
+          >
+            <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+              <MascotAvatar size="sm" className="pointer-events-none scale-105" />
+            </div>
+
+            {/* Hover Tooltip */}
+            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-slate-900 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-md">
+              Chat with Foggy
+            </span>
+
+            {/* Online Pulse Dot */}
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500 border border-white dark:border-slate-900"></span>
+            </span>
+          </Link>
+
           <ThemeToggle />
 
           {isAuthenticated ? (
@@ -128,6 +150,18 @@ export default function Navbar() {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-2 pb-6 space-y-1 shadow-lg">
+          {/* Quick Chat with Foggy option with round icon */}
+          <Link
+            to="/chat"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-sky-50 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 mb-2"
+          >
+            <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+              <MascotAvatar size="sm" className="scale-90" />
+            </div>
+            <span>Chat with Foggy (Assistant)</span>
+          </Link>
+
           {navLinks.map((item) => {
             const Icon = item.icon;
             return (
