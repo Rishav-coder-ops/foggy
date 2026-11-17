@@ -132,7 +132,7 @@ export default function FamilyProfilesPage() {
             return (
               <div
                 key={member.id}
-                className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 shadow-soft dark:shadow-soft-dark flex flex-col justify-between space-y-4 hover:border-sky-300 dark:hover:border-sky-700 transition-all"
+                className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 shadow-soft dark:shadow-soft-dark flex flex-col justify-between space-y-4 hover:border-sky-300 dark:hover:border-sky-700 transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between">

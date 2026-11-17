@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MemoryNotification from './components/MemoryNotification';
 import FloatingChatButton from './components/FloatingChatButton';
+import CursorAtmosphere from './components/CursorAtmosphere';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
@@ -19,10 +20,13 @@ import AboutPage from './pages/AboutPage';
 
 export default function App() {
   return (
-    <div className="flex flex-col min-h-screen transition-colors duration-200">
+    <div className="flex flex-col min-h-screen transition-colors duration-200 relative">
+      {/* Interactive Cursor Atmosphere & Particulate Physics System */}
+      <CursorAtmosphere />
+
       <Navbar />
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-20">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />

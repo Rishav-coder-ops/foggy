@@ -52,6 +52,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  cursor: default;
 }
 
 /* Custom scrollbars */
@@ -89,4 +90,31 @@ body {
 
 .animate-aqi-pulse {
   animation: aqi-pulse 3s ease-in-out infinite;
+}
+
+/* Cursor-reactive Card Illumination & Lift */
+.interactive-card {
+  position: relative;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-2.5px);
+}
+
+.dark .interactive-card:hover {
+  box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.15), 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+.light .interactive-card:hover {
+  box-shadow: 0 10px 25px -4px rgba(217, 119, 6, 0.12), 0 0 0 1px rgba(217, 119, 6, 0.2);
+}
+
+/* Cursor-interactive button micro-bounce */
+button, a {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+button:active, a:active {
+  transform: scale(0.97) !important;
 }
