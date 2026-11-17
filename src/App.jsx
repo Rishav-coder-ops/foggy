@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MemoryNotification from './components/MemoryNotification';
 import FloatingChatButton from './components/FloatingChatButton';
+import CompactChatModal from './components/CompactChatModal';
 import CursorAtmosphere from './components/CursorAtmosphere';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -75,6 +76,7 @@ export default function App() {
         </Routes>
       </main>
 
+      <CompactChatModal />
       <FloatingChatButton />
       <MemoryNotification />
       <Footer />

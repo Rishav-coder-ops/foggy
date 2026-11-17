@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Shield, Users, Brain, Info, LogOut, LogIn, Menu, X, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChat } from '../context/ChatContext';
 import ThemeToggle from './ThemeToggle';
 import MascotAvatar from './MascotAvatar';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { openChat } = useChat();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -74,9 +76,10 @@ export default function Navbar() {
         {/* Right Section: Assistant Round Logo, Theme Toggle & User Auth */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           {/* Round Icon Button with Assistant's Mascot Logo to Chat with Foggy */}
-          <Link
-            to="/chat"
-            className="relative group p-0.5 rounded-full bg-gradient-to-tr from-sky-400 via-teal-300 to-amber-300 hover:scale-105 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 flex items-center justify-center"
+          <button
+            type="button"
+            onClick={openChat}
+            className="relative group p-0.5 rounded-full bg-gradient-to-tr from-sky-400 via-teal-300 to-amber-300 hover:scale-105 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 flex items-center justify-center cursor-pointer"
             aria-label="Chat with Foggy AI Assistant"
             title="Chat with Foggy"
           >
@@ -94,7 +97,7 @@ export default function Navbar() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500 border border-white dark:border-slate-900"></span>
             </span>
-          </Link>
+          </button>
 
           <ThemeToggle />
 
@@ -151,16 +154,19 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-2 pb-6 space-y-1 shadow-lg">
           {/* Quick Chat with Foggy option with round icon */}
-          <Link
-            to="/chat"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-sky-50 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 mb-2"
+          <button
+            type="button"
+            onClick={() => {
+              openChat();
+              setMobileMenuOpen(false);
+            }}
+            className="w-full text-left flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-sky-50 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 mb-2 cursor-pointer"
           >
             <div className="w-7 h-7 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
               <MascotAvatar size="sm" className="scale-90" />
             </div>
             <span>Chat with Foggy (Assistant)</span>
-          </Link>
+          </button>
 
           {navLinks.map((item) => {
             const Icon = item.icon;
