@@ -1,7 +1,6 @@
 # 🌫️ Foggy — GenAI Winter Smog & Urban Air Quality Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
-[![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7.svg?logo=netlify)](https://www.netlify.com/)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com/)
