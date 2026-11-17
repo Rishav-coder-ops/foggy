@@ -5,7 +5,7 @@ import MascotAvatar from './MascotAvatar';
 
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-slate-200/90 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 py-10 transition-colors">
+    <footer className="mt-16 mb-20 lg:mb-0 border-t border-slate-200/90 dark:border-slate-800 bg-slate-100/60 dark:bg-slate-900/60 py-10 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Col */}

@@ -95,14 +95,14 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-          <span className="font-medium mr-1">Quick Picks:</span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 overflow-x-auto sm:flex-wrap pb-1 scrollbar-none">
+          <span className="font-medium mr-1 shrink-0">Quick Picks:</span>
           {PRESET_CITIES.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => onCityChange(c)}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
+              className={`px-2.5 py-1 rounded-lg shrink-0 transition-all ${
                 aqiData?.city?.toLowerCase().includes(c.toLowerCase())
                   ? 'bg-sky-500 text-white font-semibold shadow-xs'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'

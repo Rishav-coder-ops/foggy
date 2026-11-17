@@ -109,53 +109,68 @@ export default function CompactChatModal({ isEmbedded = false }) {
   };
 
   const containerClasses = isEmbedded
-    ? 'w-full max-w-lg mx-auto h-[580px] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xl flex flex-col overflow-hidden'
-    : 'fixed bottom-5 right-5 z-50 w-[92vw] sm:w-[410px] h-[580px] max-h-[85vh] rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-sky-400/40 dark:border-sky-500/40 shadow-2xl dark:shadow-soft-dark flex flex-col overflow-hidden animate-fade-in transition-all';
+    ? 'w-full max-w-lg mx-auto h-[580px] max-h-[85vh] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xl flex flex-col overflow-hidden'
+    : 'fixed inset-x-0 bottom-0 sm:bottom-5 sm:right-5 sm:inset-x-auto z-50 w-full sm:w-[410px] h-[85vh] sm:h-[580px] max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t sm:border border-sky-400/40 dark:border-sky-500/40 shadow-2xl dark:shadow-soft-dark flex flex-col overflow-hidden animate-fade-in transition-all';
 
   return (
-    <div className={containerClasses}>
-      {/* Compact Header */}
-      <div className="p-3.5 bg-slate-50/90 dark:bg-slate-850 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <MascotAvatar size="sm" mood={isTyping ? 'thinking' : 'happy'} />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-slate-800 dark:text-white">
-                Foggy AI Assistant
-              </span>
-              <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.2 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
-              </span>
+    <>
+      {/* Mobile Backdrop Blur Overlay */}
+      {isOpen && !isEmbedded && (
+        <div
+          onClick={closeChat}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 sm:hidden animate-fade-in"
+          aria-hidden="true"
+        />
+      )}
+
+      <div className={containerClasses}>
+        {/* Mobile Pull-down indicator bar */}
+        {!isEmbedded && (
+          <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-1.5 shrink-0 sm:hidden" />
+        )}
+
+        {/* Compact Header */}
+        <div className="p-3.5 bg-slate-50/90 dark:bg-slate-850 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <MascotAvatar size="sm" mood={isTyping ? 'thinking' : 'happy'} />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-800 dark:text-white">
+                  Foggy AI Assistant
+                </span>
+                <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-1.5 py-0.2 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-0.5">
+                {aqiData?.city || profile?.location || 'Salt Lake City'} • AQI {aqiData?.aqi || 125}
+              </p>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-0.5">
-              {aqiData?.city || profile?.location || 'Salt Lake City'} • AQI {aqiData?.aqi || 125}
-            </p>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={clearChatHistory}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors"
-            title="Clear Chat History"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-
-          {!isEmbedded && (
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={closeChat}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors"
-              title="Close Chat"
-              aria-label="Close Chat"
+              onClick={clearChatHistory}
+              className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors"
+              title="Clear Chat History"
             >
-              <X className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
             </button>
-          )}
+
+            {!isEmbedded && (
+              <button
+                type="button"
+                onClick={closeChat}
+                className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors"
+                title="Close Chat"
+                aria-label="Close Chat"
+              >
+                <X className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
       {/* Memory extraction notification chip if pending */}
       {pendingFacts && pendingFacts.length > 0 && (
@@ -267,18 +282,19 @@ export default function CompactChatModal({ isEmbedded = false }) {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Ask Foggy (e.g. 'Can kids play outside today?')..."
-            className="w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
+            className="w-full pl-3.5 pr-10 py-2.5 text-sm sm:text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
           />
           <button
             type="submit"
             disabled={!inputMessage.trim() || isTyping}
-            className="absolute right-1.5 p-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 disabled:opacity-40 text-white shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="absolute right-1.5 p-2 sm:p-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 disabled:opacity-40 text-white shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-sky-400"
             aria-label="Send message"
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           </button>
         </div>
       </form>
     </div>
+    </>
   );
 }

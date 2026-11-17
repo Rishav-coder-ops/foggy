@@ -13,10 +13,10 @@ export default function CursorAtmosphere() {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
-    // Detect touch device
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    // Check if device supports coarse pointer / touch
+    const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (hasCoarsePointer) {
       setIsTouchDevice(true);
-      return;
     }
 
     const canvas = canvasRef.current;
@@ -34,7 +34,7 @@ export default function CursorAtmosphere() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Mouse coordinates & velocity
+    // Mouse / Touch coordinates & velocity
     const mouse = {
       x: width / 2,
       y: height / 2,
@@ -44,7 +44,7 @@ export default function CursorAtmosphere() {
       prevY: height / 2,
       vx: 0,
       vy: 0,
-      radius: 125,
+      radius: hasCoarsePointer ? 90 : 125,
       isActive: false
     };
 
@@ -57,7 +57,10 @@ export default function CursorAtmosphere() {
     };
 
     // Particle system (Simulating PM2.5, mist droplets, and clean air ions)
-    const particleCount = Math.min(85, Math.floor((width * height) / 16000));
+    // Fewer particles on mobile for high battery efficiency & smooth 60fps
+    const particleCount = hasCoarsePointer
+      ? 28
+      : Math.min(85, Math.floor((width * height) / 16000));
     const particles = [];
 
     class Particle {
@@ -213,10 +216,43 @@ export default function CursorAtmosphere() {
       setIsHoveringClickable(false);
     };
 
+    // Mobile / Touchscreen drag physics
+    const handleTouchStart = (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      mouse.isActive = true;
+      mouse.x = t.clientX;
+      mouse.y = t.clientY;
+      mouse.targetX = t.clientX;
+      mouse.targetY = t.clientY;
+      document.documentElement.style.setProperty('--cursor-x', `${t.clientX}px`);
+      document.documentElement.style.setProperty('--cursor-y', `${t.clientY}px`);
+    };
+
+    const handleTouchMove = (e) => {
+      if (!e.touches || e.touches.length === 0) return;
+      const t = e.touches[0];
+      mouse.isActive = true;
+      mouse.targetX = t.clientX;
+      mouse.targetY = t.clientY;
+      document.documentElement.style.setProperty('--cursor-x', `${t.clientX}px`);
+      document.documentElement.style.setProperty('--cursor-y', `${t.clientY}px`);
+    };
+
+    const handleTouchEnd = () => {
+      setTimeout(() => {
+        mouse.isActive = false;
+      }, 600);
+    };
+
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mouseleave', handleMouseLeave);
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     // Animation Loop
     let lastTime = performance.now();
@@ -306,13 +342,12 @@ export default function CursorAtmosphere() {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       cancelAnimationFrame(animationFrameId);
     };
   }, [isDark]);
-
-  if (isTouchDevice) {
-    return null;
-  }
 
   return (
     <>
@@ -323,10 +358,10 @@ export default function CursorAtmosphere() {
         style={{ opacity: 0.95 }}
       />
 
-      {/* Atmospheric Cursor Spotlight (Illuminating the fog wherever cursor moves) */}
+      {/* Atmospheric Cursor / Touch Spotlight */}
       <div
         ref={spotlightRef}
-        className="fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 w-[650px] h-[650px] rounded-full transition-opacity duration-500 will-change-transform"
+        className="fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 w-[500px] sm:w-[650px] h-[500px] sm:h-[650px] rounded-full transition-opacity duration-500 will-change-transform"
         style={{
           background: isDark
             ? 'radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.02) 40%, transparent 70%)'
@@ -334,43 +369,45 @@ export default function CursorAtmosphere() {
         }}
       />
 
-      {/* Interactive Cursor Aura Ring */}
-      <div
-        ref={auraRef}
-        className="fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 will-change-transform transition-[width,height,border-color,background-color] duration-150 ease-out"
-        style={{
-          width: isClicking ? '20px' : isHoveringClickable ? '44px' : '26px',
-          height: isClicking ? '20px' : isHoveringClickable ? '44px' : '26px',
-          borderRadius: '9999px',
-          border: isHoveringClickable
-            ? isDark
-              ? '2px solid rgba(56, 189, 248, 0.85)'
-              : '2px solid rgba(217, 119, 6, 0.85)'
-            : isDark
-            ? '1.5px solid rgba(248, 250, 252, 0.45)'
-            : '1.5px solid rgba(51, 65, 85, 0.45)',
-          backgroundColor: isHoveringClickable
-            ? isDark
-              ? 'rgba(56, 189, 248, 0.12)'
-              : 'rgba(217, 119, 6, 0.12)'
-            : 'transparent',
-          boxShadow: isHoveringClickable
-            ? isDark
-              ? '0 0 16px rgba(56, 189, 248, 0.45)'
-              : '0 0 16px rgba(217, 119, 6, 0.35)'
-            : 'none'
-        }}
-      >
-        {/* Center dot in cursor */}
+      {/* Interactive Cursor Aura Ring (Desktop / Mouse only) */}
+      {!isTouchDevice && (
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-150"
+          ref={auraRef}
+          className="fixed top-0 left-0 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-50 will-change-transform transition-[width,height,border-color,background-color] duration-150 ease-out"
           style={{
-            width: isHoveringClickable ? '6px' : '4px',
-            height: isHoveringClickable ? '6px' : '4px',
-            backgroundColor: isDark ? '#38BDF8' : '#D97706'
+            width: isClicking ? '20px' : isHoveringClickable ? '44px' : '26px',
+            height: isClicking ? '20px' : isHoveringClickable ? '44px' : '26px',
+            borderRadius: '9999px',
+            border: isHoveringClickable
+              ? isDark
+                ? '2px solid rgba(56, 189, 248, 0.85)'
+                : '2px solid rgba(217, 119, 6, 0.85)'
+              : isDark
+              ? '1.5px solid rgba(248, 250, 252, 0.45)'
+              : '1.5px solid rgba(51, 65, 85, 0.45)',
+            backgroundColor: isHoveringClickable
+              ? isDark
+                ? 'rgba(56, 189, 248, 0.12)'
+                : 'rgba(217, 119, 6, 0.12)'
+              : 'transparent',
+            boxShadow: isHoveringClickable
+              ? isDark
+                ? '0 0 16px rgba(56, 189, 248, 0.45)'
+                : '0 0 16px rgba(217, 119, 6, 0.35)'
+              : 'none'
           }}
-        />
-      </div>
+        >
+          {/* Center dot in cursor */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-150"
+            style={{
+              width: isHoveringClickable ? '6px' : '4px',
+              height: isHoveringClickable ? '6px' : '4px',
+              backgroundColor: isDark ? '#38BDF8' : '#D97706'
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }

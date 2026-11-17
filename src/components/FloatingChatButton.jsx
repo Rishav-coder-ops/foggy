@@ -9,7 +9,7 @@ export default function FloatingChatButton() {
   const [showTeaser, setShowTeaser] = useState(true);
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+    <div className="hidden lg:flex fixed bottom-6 right-6 z-40 items-center gap-3">
       {/* Speech bubble teaser */}
       {showTeaser && !isOpen && (
         <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 text-slate-800 dark:text-slate-100 shadow-xl text-xs font-semibold animate-fade-in">

@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MemoryNotification from './components/MemoryNotification';
 import FloatingChatButton from './components/FloatingChatButton';
+import MobileBottomNav from './components/MobileBottomNav';
 import CompactChatModal from './components/CompactChatModal';
 import CursorAtmosphere from './components/CursorAtmosphere';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,7 +28,7 @@ export default function App() {
 
       <Navbar />
 
-      <main className="flex-1 relative z-20">
+      <main className="flex-1 relative z-20 pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -77,6 +78,7 @@ export default function App() {
       </main>
 
       <CompactChatModal />
+      <MobileBottomNav />
       <FloatingChatButton />
       <MemoryNotification />
       <Footer />

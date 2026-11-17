@@ -53,6 +53,17 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Mobile Safe-Area Utilities */
+.pb-safe {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Custom scrollbars */
@@ -92,27 +103,30 @@ body {
   animation: aqi-pulse 3s ease-in-out infinite;
 }
 
-/* Cursor-reactive Card Illumination & Lift */
+/* Cursor-reactive Card Illumination & Lift (Desktop / fine pointer only) */
 .interactive-card {
   position: relative;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease;
 }
 
-.interactive-card:hover {
-  transform: translateY(-2.5px);
+@media (hover: hover) and (pointer: fine) {
+  .interactive-card:hover {
+    transform: translateY(-2.5px);
+  }
+
+  .dark .interactive-card:hover {
+    box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.15), 0 0 0 1px rgba(56, 189, 248, 0.2);
+  }
+
+  .light .interactive-card:hover {
+    box-shadow: 0 10px 25px -4px rgba(217, 119, 6, 0.12), 0 0 0 1px rgba(217, 119, 6, 0.2);
+  }
 }
 
-.dark .interactive-card:hover {
-  box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.15), 0 0 0 1px rgba(56, 189, 248, 0.2);
-}
-
-.light .interactive-card:hover {
-  box-shadow: 0 10px 25px -4px rgba(217, 119, 6, 0.12), 0 0 0 1px rgba(217, 119, 6, 0.2);
-}
-
-/* Cursor-interactive button micro-bounce */
+/* Button micro-bounce for responsive feel on both touch and mouse */
 button, a {
   transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  touch-action: manipulation;
 }
 
 button:active, a:active {

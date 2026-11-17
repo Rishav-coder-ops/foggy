@@ -280,8 +280,8 @@ export default function MemoryPage() {
 
       {/* Clear Data Modal */}
       {clearModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="max-w-md w-full rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="max-w-md w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
               <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950/80">
                 <AlertTriangle className="w-5 h-5" />
