@@ -55,7 +55,7 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white">
-                Good day, {user?.name ? user.name.split(' ')[0] : 'friend'}!
+                Good day, {user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}!
               </h1>
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
                 Personalized

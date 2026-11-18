@@ -83,12 +83,13 @@ export default function Navbar() {
                 title="View what Foggy knows about you"
               >
                 <img
-                  src={user.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
-                  alt={user.name}
+                  src={user?.photoURL || user?.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                  alt={user?.displayName || user?.name || 'User profile'}
+                  referrerPolicy="no-referrer"
                   className="w-8 h-8 rounded-full border border-sky-400/50 object-cover shadow-xs"
                 />
                 <span className="hidden sm:inline font-bold">
-                  {user.name ? user.name.split(' ')[0] : 'User'}
+                  {user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'User'}
                 </span>
               </Link>
 
@@ -152,12 +153,13 @@ export default function Navbar() {
             <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full border border-sky-400/50"
+                  src={user?.photoURL || user?.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
+                  alt={user?.displayName || user?.name || 'User profile'}
+                  referrerPolicy="no-referrer"
+                  className="w-8 h-8 rounded-full border border-sky-400/50 object-cover shadow-xs"
                 />
                 <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  {user.name}
+                  {user?.displayName || user?.name || 'User'}
                 </span>
               </div>
               <button

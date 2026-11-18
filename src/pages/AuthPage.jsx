@@ -1,7 +1,7 @@
 // src/pages/AuthPage.jsx
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MascotAvatar from '../components/MascotAvatar';
 
@@ -14,8 +14,20 @@ export default function AuthPage() {
   const [forgotModal, setForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
-  const { login, signup, loginWithGoogle, loginAsDemo, loading } = useAuth();
+  const {
+    login,
+    signup,
+    loginWithGoogle,
+    sendPasswordReset,
+    loginAsDemo,
+    loading,
+    isFirebaseConfigured,
+    missingFirebaseVars
+  } = useAuth();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,17 +37,11 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
 
-    const cleanEmail = email.trim();
-    if (!cleanEmail) {
-      setError('Please enter your email address (e.g. yourname@example.com).');
-      return;
-    }
-
     try {
       if (isSignUp) {
-        await signup(name, cleanEmail, password);
+        await signup(name, email, password);
       } else {
-        await login(cleanEmail, password);
+        await login(email, password);
       }
       navigate(from, { replace: true });
     } catch (err) {
@@ -46,10 +52,10 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setError('');
     try {
-      await loginWithGoogle(email.trim());
+      await loginWithGoogle();
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Google sign-in failed.');
+      setError(err.message || 'Google sign-in failed. Please try again.');
     }
   };
 
@@ -59,19 +65,27 @@ export default function AuthPage() {
       await loginAsDemo();
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Could not load demo session.');
     }
   };
 
-  const handleForgotSubmit = (e) => {
+  const handleForgotSubmit = async (e) => {
     e.preventDefault();
-    if (forgotEmail.includes('@')) {
+    setForgotError('');
+    setForgotLoading(true);
+
+    try {
+      await sendPasswordReset(forgotEmail);
       setForgotSent(true);
       setTimeout(() => {
         setForgotSent(false);
         setForgotModal(false);
         setForgotEmail('');
-      }, 2500);
+      }, 3000);
+    } catch (err) {
+      setForgotError(err.message || 'Failed to send password reset email.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -91,12 +105,33 @@ export default function AuthPage() {
           </p>
         </div>
 
+        {/* Missing Firebase configuration banner */}
+        {!isFirebaseConfigured && (
+          <div className="mb-5 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-2 font-bold mb-1">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Firebase Configuration Notice</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+              Firebase environment variables are missing or unconfigured. Real Firebase Authentication requires the following variables in your <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 font-mono text-[10px]">.env</code> or Cloudflare Pages settings:
+            </p>
+            <ul className="mt-2 list-disc list-inside font-mono text-[10px] text-amber-700 dark:text-amber-400 space-y-0.5">
+              {missingFirebaseVars.map((v) => (
+                <li key={v}>{v}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800 text-xs font-bold mb-6">
           <button
             type="button"
-            onClick={() => { setIsSignUp(false); setError(''); }}
-            className={`py-2 rounded-xl transition-all ${
+            onClick={() => {
+              setIsSignUp(false);
+              setError('');
+            }}
+            className={`py-2 rounded-xl transition-all cursor-pointer ${
               !isSignUp
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -106,8 +141,11 @@ export default function AuthPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setIsSignUp(true); setError(''); }}
-            className={`py-2 rounded-xl transition-all ${
+            onClick={() => {
+              setIsSignUp(true);
+              setError('');
+            }}
+            className={`py-2 rounded-xl transition-all cursor-pointer ${
               isSignUp
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -125,23 +163,12 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* 1-Click Demo Shortcut */}
-        <button
-          type="button"
-          onClick={handleDemoLogin}
-          disabled={loading}
-          className="w-full mb-4 py-2.5 px-4 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-2 transition-all shadow-xs"
-        >
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Quick 1-Click Demo Login (Maya Chen)</span>
-        </button>
-
         {/* Google OAuth Button */}
         <button
           type="button"
           onClick={handleGoogleLogin}
           disabled={loading}
-          className="w-full mb-5 py-2.5 px-4 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 transition-all shadow-xs"
+          className="w-full mb-5 py-2.5 px-4 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-50"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -171,8 +198,8 @@ export default function AuthPage() {
           </span>
         </div>
 
-        {/* Standard Form */}
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {/* Standard Email/Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           {isSignUp && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -182,6 +209,7 @@ export default function AuthPage() {
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  required
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value);
@@ -203,20 +231,18 @@ export default function AuthPage() {
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (error) setError('');
                 }}
                 onBlur={(e) => setEmail(e.target.value.trim())}
-                placeholder="yourname@gmail.com"
+                placeholder="name@example.com"
                 autoComplete="email"
                 className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
               />
             </div>
-            <p className="mt-1 text-[10px] text-slate-600 dark:text-slate-400">
-              Any valid email address is accepted to access your account.
-            </p>
           </div>
 
           <div>
@@ -227,8 +253,13 @@ export default function AuthPage() {
               {!isSignUp && (
                 <button
                   type="button"
-                  onClick={() => setForgotModal(true)}
-                  className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline"
+                  onClick={() => {
+                    setForgotEmail(email.trim());
+                    setForgotModal(true);
+                    setForgotError('');
+                    setForgotSent(false);
+                  }}
+                  className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -238,12 +269,13 @@ export default function AuthPage() {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
+                required
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (error) setError('');
                 }}
-                placeholder={isSignUp ? 'Password (min 3 chars)' : 'Password (optional for demo)'}
+                placeholder={isSignUp ? 'Password (minimum 6 characters)' : '••••••••'}
                 autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
               />
@@ -253,17 +285,38 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
+            className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer disabled:opacity-50"
           >
-            <span>{isSignUp ? 'Create Account & Continue' : 'Sign In with Email'}</span>
+            <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
+        {/* Separated & Clearly Labeled Demo Account Option */}
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
+          <div className="text-center mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              Demo Mode Only
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading}
+            className="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-900 dark:text-amber-300 border border-dashed border-amber-300 dark:border-amber-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Quick 1-Click Demo Account (Offline Sandbox)</span>
+          </button>
+          <p className="mt-1 text-[10px] text-center text-slate-600 dark:text-slate-400">
+            Isolated local preview. Does not sync or connect with Firebase.
+          </p>
+        </div>
+
         {/* Privacy Assurance */}
-        <p className="mt-6 text-[11px] text-center text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
+        <p className="mt-4 text-[11px] text-center text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
           <Shield className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Health profile data is stored on your device only.</span>
+          <span>Health profile data is securely stored under your Firebase UID.</span>
         </p>
       </div>
 
@@ -271,17 +324,25 @@ export default function AuthPage() {
       {forgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="max-w-sm w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">
-              Reset Your Password
-            </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Enter your email and we'll send a secure password reset link.
+            <div className="flex items-center gap-2 text-slate-800 dark:text-white mb-1">
+              <KeyRound className="w-5 h-5 text-sky-500" />
+              <h3 className="text-base font-bold">Reset Your Password</h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              Enter your registered email address and Firebase will send a secure password reset link.
             </p>
 
+            {forgotError && (
+              <div className="my-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-1.5 border border-rose-200 dark:border-rose-800">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
             {forgotSent ? (
-              <div className="my-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+              <div className="my-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2 border border-emerald-200 dark:border-emerald-800">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>Reset link sent! Please check your inbox.</span>
+                <span>Reset email sent! Please check your inbox and spam folder.</span>
               </div>
             ) : (
               <form onSubmit={handleForgotSubmit} className="mt-4 space-y-3">
@@ -291,21 +352,22 @@ export default function AuthPage() {
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                   placeholder="your.email@example.com"
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setForgotModal(false)}
-                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3 py-1.5 text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white rounded-lg"
+                    disabled={forgotLoading}
+                    className="px-3 py-1.5 text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white rounded-lg cursor-pointer disabled:opacity-50"
                   >
-                    Send Reset Link
+                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
                   </button>
                 </div>
               </form>

@@ -69,7 +69,8 @@ const DEFAULT_PROFILE = {
 
 export function ProfileProvider({ children }) {
   const { user } = useAuth();
-  const storageKey = user ? `foggy_profile_${user.id}` : 'foggy_profile_guest';
+  const userUid = user?.uid || user?.id;
+  const storageKey = userUid ? `foggy_profile_${userUid}` : 'foggy_profile_guest';
 
   const [profile, setProfile] = useState(() => {
     try {
@@ -214,7 +215,7 @@ export function ProfileProvider({ children }) {
     setPendingFacts([]);
     try {
       localStorage.removeItem(storageKey);
-      localStorage.removeItem(`foggy_chat_history_${user?.id || 'guest'}`);
+      localStorage.removeItem(`foggy_chat_history_${userUid || 'guest'}`);
     } catch (err) {
       console.warn('Error clearing user storage:', err);
     }

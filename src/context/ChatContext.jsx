@@ -9,6 +9,7 @@ const ChatContext = createContext();
 export function ChatProvider({ children }) {
   const { user } = useAuth();
   const { profile, familyMembers, queuePendingFact } = useProfile();
+  const userUid = user?.uid || user?.id || 'guest';
 
   const [isOpen, setIsOpen] = useState(false);
   const [aqiData, setAqiData] = useState(null);
@@ -17,11 +18,11 @@ export function ChatProvider({ children }) {
 
   const [messages, setMessages] = useState(() => {
     try {
-      const saved = localStorage.getItem(`foggy_chat_history_${user?.id || 'guest'}`);
+      const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
       if (saved) return JSON.parse(saved);
     } catch {}
 
-    const firstName = user?.name ? user.name.split(' ')[0] : 'friend';
+    const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
     return [
       {
         id: 'msg_initial',
@@ -33,6 +34,29 @@ export function ChatProvider({ children }) {
       }
     ];
   });
+
+  // Switch chat history when active user changes
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
+      if (saved) {
+        setMessages(JSON.parse(saved));
+        return;
+      }
+    } catch {}
+
+    const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+    setMessages([
+      {
+        id: 'msg_initial_' + Date.now(),
+        sender: 'foggy',
+        text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
+          `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
+          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Salt Lake City'}). How can I help you today?`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+  }, [userUid]);
 
   // Sync AQI context
   useEffect(() => {
@@ -46,11 +70,11 @@ export function ChatProvider({ children }) {
   // Persist messages across sessions
   useEffect(() => {
     try {
-      localStorage.setItem(`foggy_chat_history_${user?.id || 'guest'}`, JSON.stringify(messages));
+      localStorage.setItem(`foggy_chat_history_${userUid}`, JSON.stringify(messages));
     } catch (err) {
       console.warn('Failed to save chat history:', err);
     }
-  }, [messages, user?.id]);
+  }, [messages, userUid]);
 
   const toggleChat = () => setIsOpen(prev => !prev);
   const openChat = () => setIsOpen(true);
@@ -110,7 +134,7 @@ export function ChatProvider({ children }) {
 
   const clearChatHistory = () => {
     if (window.confirm('Clear conversation history with Foggy?')) {
-      const firstName = user?.name ? user.name.split(' ')[0] : 'friend';
+      const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
       const initial = [
         {
           id: 'msg_initial_' + Date.now(),
@@ -120,7 +144,7 @@ export function ChatProvider({ children }) {
         }
       ];
       setMessages(initial);
-      localStorage.removeItem(`foggy_chat_history_${user?.id || 'guest'}`);
+      localStorage.removeItem(`foggy_chat_history_${userUid}`);
     }
   };
 

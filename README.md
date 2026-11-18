@@ -397,15 +397,47 @@ Under **Environment variables (advanced)**:
 2. Agree to the non-commercial terms of service.
 3. Enter your Name and Email address, then submit.
 4. Check your email inbox and click the confirmation link to activate your free token.
-5. Copy your token and paste it into `.env`:
+5. Copy your token and paste it into `.dev.vars` (or `.env`):
    ```env
    AQI_API_KEY=your_token_here
    ```
 > 💡 *Note: If no token is provided, Foggy seamlessly falls back to realistic regional atmospheric simulation data clearly marked with an informative badge.*
 
+### 3. Firebase Authentication Setup (Google OAuth & Email Accounts)
+Foggy uses official **Firebase Authentication** for secure user login, session management, and data privacy isolation:
+
+1. **Create a Firebase Project**:
+   - Go to the [Firebase Console](https://console.firebase.google.com/).
+   - Click **Add Project** and name it (e.g. `foggy-air-quality`).
+2. **Enable Authentication Providers**:
+   - In the left sidebar, navigate to **Build** > **Authentication** > **Get Started**.
+   - Under the **Sign-in method** tab:
+     - Enable **Email/Password** (enable Email/Password and save).
+     - Enable **Google** (set your project support email and save).
+3. **Register a Web App**:
+   - Go to **Project Settings** (gear icon) > **General**.
+   - Scroll down to *Your apps* and click the **Web** icon (`</>`).
+   - Enter an App nickname (e.g. `Foggy Web`) and click **Register app**.
+   - Copy the `firebaseConfig` credentials.
+4. **Configure Environment Variables**:
+   - Add these values to your `.env` file for local development:
+     ```env
+     VITE_FIREBASE_API_KEY=AIzaSy...
+     VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+     VITE_FIREBASE_PROJECT_ID=your-project
+     VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+     VITE_FIREBASE_MESSAGING_SENDER_ID=1234567890
+     VITE_FIREBASE_APP_ID=1:1234567890:web:abcdef
+     ```
+   - In Cloudflare Pages, add these identical variables under **Settings > Environment variables** (Client Build-Time Variables).
+5. **Add Authorized Domains**:
+   - In Firebase Console, go to **Authentication** > **Settings** > **Authorized domains**.
+   - Ensure `localhost` is present for local development.
+   - Click **Add domain** and enter your production Cloudflare Pages domain (e.g. `foggy.pages.dev`).
+
 ### ⚠️ Security Warning
-- **Never commit your `.env` file** or share your keys publicly. The `.gitignore` file is configured to exclude all `.env` files.
-- If you accidentally expose an API key, revoke and regenerate it immediately in Google AI Studio or the WAQI console.
+- **Never commit your `.env` or `.dev.vars` file** or share your keys publicly. The `.gitignore` file is configured to exclude all `.env` files.
+- If you accidentally expose an API key, revoke and regenerate it immediately in Google AI Studio, Firebase, or the WAQI console.
 
 ---
 
@@ -430,16 +462,22 @@ Foggy's visual styling reflects the cool, crisp, misty atmosphere of winter smog
 ## 🔐 Authentication & Memory Architecture
 
 ### Authentication Flow
-1. **Mock Session Store**: User authentication is persisted in `localStorage` under `foggy_session_user`.
-2. **One-Click Demo Login**: Includes a `Quick 1-Click Demo Login (Maya Chen)` button for immediate review without typing credentials.
-3. **Form Validation**: Validates email format and requires a minimum 6-character password with user-friendly error banners.
-4. **Protected Routes**: Dashboard, Chat, Family Profiles, and Memory pages are guarded by `ProtectedRoute`.
+1. **Real Firebase Authentication**: User sessions are persisted natively via Firebase `onAuthStateChanged`, handling token refreshes, session lifecycles, and cross-tab synchronizations automatically.
+2. **Google OAuth & Email Sign-In**:
+   - Real **"Continue with Google"** popup via Firebase `signInWithPopup(auth, googleProvider)`. The user's real Google display name and profile picture appear in the navbar.
+   - Real email account creation and sign-in via `createUserWithEmailAndPassword` and `signInWithEmailAndPassword`.
+   - Real **"Forgot password?"** self-service reset via `sendPasswordResetEmail`.
+3. **Friendly Error Translation**: Firebase error codes (such as popup closed, popup blocked, network error, wrong password, user not found, account exists with different method, too many attempts) are translated into clear, friendly guidance messages.
+4. **Environment Health Check**: If Firebase environment variables are missing or unconfigured, an informative on-screen banner is displayed with exact setup steps; the system never silently logs the user in as a fake account.
+5. **Isolated Demo Mode**: A clearly labeled, separate demo account option (`Demo Account - Offline Sandbox`) is provided for offline evaluation without connecting to Google or Firebase.
+6. **Protected Routes**: Protected routes (Dashboard, Family Profiles, Memory) verify session state asynchronously, showing a subtle loading state while Firebase validates tokens before redirecting.
 
 ### Memory & Personalization Flow
-1. **Context Bundling**: On every chat message, the frontend bundles the user's city, current AQI metrics, and family health vulnerabilities into the payload.
-2. **Extraction Engine**: Foggy scans chat messages for new family health mentions (e.g., *"my daughter has asthma"*), heating appliances, or commute changes.
-3. **User Confirmation**: The UI renders a floating banner (`💡 Foggy noticed...`) asking for user permission before permanently recording any fact.
-4. **Context Limits**: Older conversation turns are trimmed to retain recent relevance while staying well within Gemini token limits.
+1. **User UID Isolation**: Each user's family members, sensitivity profiles, and chat memory are keyed directly to their Firebase `uid` (`foggy_profile_${user.uid}`). Users never see each other's data across accounts.
+2. **Context Bundling**: On every chat message, the frontend bundles the user's city, current AQI metrics, and family health vulnerabilities into the payload.
+3. **Extraction Engine**: Foggy scans chat messages for new family health mentions (e.g., *"my daughter has asthma"*), heating appliances, or commute changes.
+4. **User Confirmation**: The UI renders a floating banner (`💡 Foggy noticed...`) asking for user permission before permanently recording any fact.
+5. **Context Limits**: Older conversation turns are trimmed to retain recent relevance while staying well within Gemini token limits.
 
 ---
 

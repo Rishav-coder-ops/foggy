@@ -57,7 +57,7 @@ export async function sendChatMessage({ message, history = [], user, aqiData, pr
   } catch (err) {
     console.warn('Chat request failed, providing supportive client fallback:', err);
     return {
-      reply: `Hello ${user?.name ? user.name.split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide. It looks like the network is running a bit slow, but I'm right here with you!\n\n` +
+      reply: `Hello ${user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide. It looks like the network is running a bit slow, but I'm right here with you!\n\n` +
         `Current air quality in **${aqiData?.city || 'your area'}** is **AQI ${aqiData?.aqi || 125} (${aqiData?.category || 'Unhealthy for Sensitive Groups'})**.\n\n` +
         `### Immediate Practical Steps:\n` +
         `* 🚪 **Seal Drafts**: Roll a damp towel along door thresholds to prevent up to **40%** of outdoor PM2.5 from infiltrating.\n` +
