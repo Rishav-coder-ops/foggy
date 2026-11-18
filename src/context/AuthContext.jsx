@@ -34,26 +34,42 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setLoading(true);
     // Simulate brief network latency for realistic feel
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
     setLoading(false);
 
-    if (!email || !password) {
-      throw new Error('Please fill in both email and password.');
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!cleanEmail) {
+      throw new Error('Please enter your email address.');
     }
-    if (!email.includes('@')) {
-      throw new Error('Please enter a valid email address.');
-    }
-    if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters.');
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.') || cleanEmail.startsWith('@') || cleanEmail.endsWith('@')) {
+      throw new Error('Please enter a valid email address (e.g. yourname@example.com).');
     }
 
-    const name = email.split('@')[0].replace(/[\._]/g, ' ');
-    const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+    const cleanPassword = (password || '').trim();
+    if (cleanPassword && cleanPassword.length < 3) {
+      throw new Error('Password must be at least 3 characters long.');
+    }
+
+    // Deterministic user ID from email so saved family profiles and memories persist across sessions
+    let hash = 0;
+    for (let i = 0; i < cleanEmail.length; i++) {
+      hash = (hash << 5) - hash + cleanEmail.charCodeAt(i);
+      hash |= 0;
+    }
+    const safeKey = cleanEmail.replace(/[^a-z0-9]/g, '_').slice(0, 16);
+    const stableId = `usr_${safeKey}_${Math.abs(hash).toString(36)}`;
+
+    const rawName = cleanEmail.split('@')[0].replace(/[\._\-+]/g, ' ').trim();
+    const formattedName = rawName
+      ? rawName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      : 'Friend';
+
     const signedInUser = {
-      id: 'usr_' + Math.random().toString(36).substr(2, 9),
-      name: formattedName || 'Alex Rivers',
-      email,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
+      id: stableId,
+      name: formattedName,
+      email: cleanEmail,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
       createdAt: new Date().toISOString()
     };
 
@@ -63,24 +79,39 @@ export function AuthProvider({ children }) {
 
   const signup = async (name, email, password) => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 450));
+    await new Promise(r => setTimeout(r, 350));
     setLoading(false);
 
-    if (!name || name.trim().length < 2) {
-      throw new Error('Please enter your full name (at least 2 characters).');
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    if (!cleanEmail) {
+      throw new Error('Please enter your email address.');
     }
-    if (!email || !email.includes('@')) {
-      throw new Error('Please enter a valid email address.');
-    }
-    if (!password || password.length < 6) {
-      throw new Error('Password must be at least 6 characters long.');
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.') || cleanEmail.startsWith('@') || cleanEmail.endsWith('@')) {
+      throw new Error('Please enter a valid email address (e.g. yourname@example.com).');
     }
 
+    const cleanName = (name || '').trim();
+    const finalName = cleanName || cleanEmail.split('@')[0].replace(/[\._\-+]/g, ' ').trim() || 'Friend';
+
+    const cleanPassword = (password || '').trim();
+    if (cleanPassword && cleanPassword.length < 3) {
+      throw new Error('Password must be at least 3 characters long.');
+    }
+
+    let hash = 0;
+    for (let i = 0; i < cleanEmail.length; i++) {
+      hash = (hash << 5) - hash + cleanEmail.charCodeAt(i);
+      hash |= 0;
+    }
+    const safeKey = cleanEmail.replace(/[^a-z0-9]/g, '_').slice(0, 16);
+    const stableId = `usr_${safeKey}_${Math.abs(hash).toString(36)}`;
+
     const newUser = {
-      id: 'usr_' + Math.random().toString(36).substr(2, 9),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`,
+      id: stableId,
+      name: finalName.charAt(0).toUpperCase() + finalName.slice(1),
+      email: cleanEmail,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
       createdAt: new Date().toISOString()
     };
 
@@ -88,16 +119,32 @@ export function AuthProvider({ children }) {
     return newUser;
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (emailOverride) => {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 350));
     setLoading(false);
 
+    const cleanEmail = (emailOverride || '').trim().toLowerCase() || 'elena.rostova@gmail.com';
+    const rawName = cleanEmail.split('@')[0].replace(/[\._\-+]/g, ' ').trim();
+    const formattedName = cleanEmail === 'elena.rostova@gmail.com'
+      ? 'Elena Rostova'
+      : rawName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Google User';
+
+    let hash = 0;
+    for (let i = 0; i < cleanEmail.length; i++) {
+      hash = (hash << 5) - hash + cleanEmail.charCodeAt(i);
+      hash |= 0;
+    }
+    const safeKey = cleanEmail.replace(/[^a-z0-9]/g, '_').slice(0, 16);
+    const stableId = `usr_g_${safeKey}_${Math.abs(hash).toString(36)}`;
+
     const googleUser = {
-      id: 'usr_g_' + Math.random().toString(36).substr(2, 8),
-      name: 'Elena Rostova',
-      email: 'elena.rostova@gmail.com',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80',
+      id: stableId,
+      name: formattedName,
+      email: cleanEmail,
+      avatar: cleanEmail === 'elena.rostova@gmail.com'
+        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=80'
+        : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
       createdAt: new Date().toISOString(),
       provider: 'google'
     };

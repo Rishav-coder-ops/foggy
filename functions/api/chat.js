@@ -1,18 +1,20 @@
-// api/chat.js
-// Vercel Serverless Function for Gemini GenAI Chat Proxy with Memory Extraction, Rate Limiting & Input Validation
+// functions/api/chat.js
+// Cloudflare Pages Function for Gemini GenAI Chat Proxy with Memory Extraction, Rate Limiting & Input Validation
+// Uses Web-standard Request/Response, context.env, body size limit, and CORS validation.
 
-// In-memory sliding window rate limiter per client IP
+// In-memory sliding window rate limiter per client IP (Worker isolate scope)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute
-const rateLimitMap = new Map();
+const MAX_PAYLOAD_BYTES = 65536; // 64KB request body limit
+const ipRateLimitMap = new Map();
 
 function checkRateLimit(clientIp) {
   const now = Date.now();
-  let clientRecord = rateLimitMap.get(clientIp);
+  let clientRecord = ipRateLimitMap.get(clientIp);
 
   if (!clientRecord || now > clientRecord.resetTime) {
     clientRecord = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitMap.set(clientIp, clientRecord);
+    ipRateLimitMap.set(clientIp, clientRecord);
     return { allowed: true, count: 1, remaining: MAX_REQUESTS_PER_WINDOW - 1, reset: clientRecord.resetTime };
   }
 
@@ -23,6 +25,29 @@ function checkRateLimit(clientIp) {
     count: clientRecord.count,
     remaining,
     reset: clientRecord.resetTime
+  };
+}
+
+function getCorsHeaders(request) {
+  const requestOrigin = request.headers.get('Origin');
+  const requestUrl = new URL(request.url);
+  const siteOrigin = requestUrl.origin;
+
+  const isAllowed = !requestOrigin ||
+    requestOrigin === siteOrigin ||
+    requestOrigin.includes('localhost') ||
+    requestOrigin.includes('127.0.0.1') ||
+    requestOrigin.endsWith('.pages.dev');
+
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? (requestOrigin || siteOrigin) : siteOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Vary': 'Origin',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'X-Content-Type-Options': 'nosniff'
   };
 }
 
@@ -108,79 +133,127 @@ function generateSmartFallbackResponse({ message, user, aqiData, profile, histor
   return { text, extractedFacts };
 }
 
-export default async function handler(req, res) {
-  // CORS & Security Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+export async function onRequestOptions(context) {
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders(context.request)
+  });
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+export async function onRequestPost(context) {
+  const { request, env } = context;
+  const headers = getCorsHeaders(request);
+  headers['Content-Type'] = 'application/json; charset=utf-8';
 
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
-  }
-
-  // Rate Limiting
-  const clientIp = req.headers['x-forwarded-for']
-    ? req.headers['x-forwarded-for'].split(',')[0].trim()
-    : req.headers['x-real-ip'] || req.socket?.remoteAddress || '127.0.0.1';
+  // Per-IP Rate Limiting (Best Effort)
+  const clientIp = request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    '127.0.0.1';
 
   const rateCheck = checkRateLimit(clientIp);
-  res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
-  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining.toString());
-  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.reset / 1000).toString());
+  headers['X-RateLimit-Limit'] = MAX_REQUESTS_PER_WINDOW.toString();
+  headers['X-RateLimit-Remaining'] = rateCheck.remaining.toString();
+  headers['X-RateLimit-Reset'] = Math.ceil(rateCheck.reset / 1000).toString();
 
   if (!rateCheck.allowed) {
-    return res.status(429).json({
+    return new Response(JSON.stringify({
       error: 'Too Many Requests',
-      message: 'Foggy rate limit reached. Please wait a moment before sending more messages to protect API quotas.',
-      retryAfterSeconds: Math.ceil((rateCheck.reset - Date.now()) / 1000)
-    });
+      message: 'Rate limit reached. Please wait a moment before sending more messages.'
+    }), { status: 429, headers });
   }
 
-  // Input Validation
-  let requestBody = req.body;
-  if (typeof requestBody === 'string') {
-    try {
-      requestBody = JSON.parse(requestBody);
-    } catch (err) {
-      return res.status(400).json({ error: 'Invalid JSON payload in request body.' });
-    }
+  // Request Body Size Limit Check (Content-Length header check)
+  const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_PAYLOAD_BYTES) {
+    return new Response(JSON.stringify({
+      error: 'Payload Too Large',
+      message: 'Request payload exceeds 64KB limit.'
+    }), { status: 413, headers });
   }
 
-  if (!requestBody || typeof requestBody !== 'object') {
-    return res.status(400).json({ error: 'Request body must be a valid JSON object.' });
+  // Read and Validate Body Text
+  let rawBodyText = '';
+  try {
+    rawBodyText = await request.text();
+  } catch (err) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Failed to read request body.'
+    }), { status: 400, headers });
+  }
+
+  if (rawBodyText.length > MAX_PAYLOAD_BYTES) {
+    return new Response(JSON.stringify({
+      error: 'Payload Too Large',
+      message: 'Request payload exceeds 64KB limit.'
+    }), { status: 413, headers });
+  }
+
+  let requestBody = {};
+  try {
+    requestBody = JSON.parse(rawBodyText);
+  } catch (err) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Malformed JSON payload.'
+    }), { status: 400, headers });
+  }
+
+  if (!requestBody || typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Request body must be a JSON object.'
+    }), { status: 400, headers });
   }
 
   const { message, history = [], user, aqiData, profile } = requestBody;
 
   // Validate message
   if (!message || typeof message !== 'string' || !message.trim()) {
-    return res.status(400).json({ error: 'Message is required and must be a non-empty string.' });
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Message is required and must be a non-empty string.'
+    }), { status: 400, headers });
   }
 
   if (message.length > 4000) {
-    return res.status(400).json({ error: 'Message exceeds maximum allowed length of 4000 characters.' });
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Message exceeds maximum allowed length of 4000 characters.'
+    }), { status: 400, headers });
   }
 
-  // Validate history
-  if (history && !Array.isArray(history)) {
-    return res.status(400).json({ error: 'History must be an array of messages.' });
+  // Validate optional fields
+  if (history && (!Array.isArray(history) || history.length > 50)) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'History must be an array of at most 50 messages.'
+    }), { status: 400, headers });
   }
 
-  // Validate profile & aqiData if present
-  if (profile && typeof profile !== 'object') {
-    return res.status(400).json({ error: 'Profile must be an object.' });
-  }
-  if (aqiData && typeof aqiData !== 'object') {
-    return res.status(400).json({ error: 'aqiData must be an object.' });
+  if (profile && (typeof profile !== 'object' || Array.isArray(profile))) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'Profile must be an object.'
+    }), { status: 400, headers });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  if (aqiData && (typeof aqiData !== 'object' || Array.isArray(aqiData))) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'aqiData must be an object.'
+    }), { status: 400, headers });
+  }
+
+  if (user && (typeof user !== 'object' || Array.isArray(user))) {
+    return new Response(JSON.stringify({
+      error: 'Bad Request',
+      message: 'User must be an object.'
+    }), { status: 400, headers });
+  }
+
+  // Read secrets strictly from context.env
+  const apiKey = env?.GEMINI_API_KEY;
   const isKeyConfigured = Boolean(
     apiKey &&
     apiKey !== 'your_gemini_api_key_here' &&
@@ -251,6 +324,7 @@ ${householdDetails}
         parts: [{ text: message }]
       });
 
+      // Direct REST API fetch to Google Gemini
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
       const apiRes = await fetch(geminiUrl, {
         method: 'POST',
@@ -288,24 +362,23 @@ ${householdDetails}
             }
           }
 
-          return res.status(200).json({
+          return new Response(JSON.stringify({
             reply: rawReply,
             extractedFacts,
             provider: 'Google Gemini 1.5 Flash'
-          });
+          }), { status: 200, headers });
         }
       } else {
-        const errorText = await apiRes.text();
-        console.error('[Chat Service Error] Gemini API returned error:', apiRes.status, errorText);
+        console.error('[Chat Service Error] Gemini API returned non-OK status:', apiRes.status);
       }
     } catch (err) {
       console.error('[Chat Service Error] Exception during Gemini API call, using smart fallback:', err.message);
     }
   } else {
-    console.error('[Chat Service Error] GEMINI_API_KEY is missing or invalid in environment. Falling back to intelligent Foggy Atmospheric Core.');
+    console.error('[Chat Service Error] GEMINI_API_KEY is missing or invalid in context.env. Falling back to intelligent Foggy Atmospheric Core.');
   }
 
-  // High-fidelity fallback core if Gemini is unreachable or key is missing
+  // Fallback core if Gemini is unreachable or key is missing
   const fallback = generateSmartFallbackResponse({
     message,
     user,
@@ -314,11 +387,25 @@ ${householdDetails}
     history
   });
 
-  return res.status(200).json({
+  return new Response(JSON.stringify({
     reply: fallback.text,
     extractedFacts: fallback.extractedFacts,
     provider: isKeyConfigured
       ? 'Foggy Atmospheric Core (Gemini API fallback active)'
-      : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in Vercel Environment Variables)'
+      : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in Cloudflare Pages Secrets)'
+  }), { status: 200, headers });
+}
+
+// Fallback for non-POST/OPTIONS methods
+export async function onRequest(context) {
+  if (context.request.method === 'POST') return onRequestPost(context);
+  if (context.request.method === 'OPTIONS') return onRequestOptions(context);
+
+  const headers = getCorsHeaders(context.request);
+  headers['Allow'] = 'POST, OPTIONS';
+  headers['Content-Type'] = 'application/json; charset=utf-8';
+  return new Response(JSON.stringify({ error: 'Method Not Allowed', message: 'Use POST.' }), {
+    status: 405,
+    headers
   });
 }

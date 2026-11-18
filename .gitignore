@@ -6,13 +6,16 @@ node_modules/
 dist/
 build/
 .vercel/
+.wrangler/
 
-# Environment files
+# Environment files & Local Secrets
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.dev.vars
+.dev.vars.local
 
 # Logs
 npm-debug.log*

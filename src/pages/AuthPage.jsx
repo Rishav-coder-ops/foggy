@@ -25,11 +25,17 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
 
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError('Please enter your email address (e.g. yourname@example.com).');
+      return;
+    }
+
     try {
       if (isSignUp) {
-        await signup(name, email, password);
+        await signup(name, cleanEmail, password);
       } else {
-        await login(email, password);
+        await login(cleanEmail, password);
       }
       navigate(from, { replace: true });
     } catch (err) {
@@ -40,10 +46,10 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setError('');
     try {
-      await loginWithGoogle();
+      await loginWithGoogle(email.trim());
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Google sign-in failed.');
     }
   };
 
@@ -166,7 +172,7 @@ export default function AuthPage() {
         </div>
 
         {/* Standard Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {isSignUp && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -176,10 +182,13 @@ export default function AuthPage() {
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (error) setError('');
+                  }}
                   placeholder="e.g. Maya Chen"
+                  autoComplete="name"
                   className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
                 />
               </div>
@@ -194,13 +203,20 @@ export default function AuthPage() {
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError('');
+                }}
+                onBlur={(e) => setEmail(e.target.value.trim())}
+                placeholder="yourname@gmail.com"
+                autoComplete="email"
                 className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
               />
             </div>
+            <p className="mt-1 text-[10px] text-slate-600 dark:text-slate-400">
+              Any valid email address is accepted to access your account.
+            </p>
           </div>
 
           <div>
@@ -222,10 +238,13 @@ export default function AuthPage() {
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
-                required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder={isSignUp ? 'Password (min 3 chars)' : 'Password (optional for demo)'}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
               />
             </div>
@@ -234,9 +253,9 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer"
           >
-            <span>{isSignUp ? 'Create Account' : 'Sign In'}</span>
+            <span>{isSignUp ? 'Create Account & Continue' : 'Sign In with Email'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

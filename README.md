@@ -23,8 +23,8 @@
 - [System Architecture](#-system-architecture)
 - [Folder Structure](#-folder-structure)
 - [Getting Started & Local Setup](#-getting-started--local-setup)
-- [Deploy to Vercel](#-deploy-to-vercel)
-- [API Keys Setup Guide](#-api-keys-setup-guide)
+- [Deploy to Cloudflare Pages](#-deploy-to-cloudflare-pages)
+- [API Keys & Secrets Setup Guide](#-api-keys--secrets-setup-guide)
 - [Light & Dark Mode Palettes](#-light--dark-mode-palettes)
 - [Authentication & Memory Architecture](#-authentication--memory-architecture)
 - [Privacy & Sensitive Health Data Statement](#-privacy--sensitive-health-data-statement)
@@ -177,28 +177,37 @@ flowchart TD
 
 ```
 challenge6/
-├── .env.example               # Environment variable templates
-├── .gitignore                  # Git ignore rules (node_modules, .env, dist, .vercel)
-├── vercel.json                 # Vercel deployment configuration (SPA rewrite, headers, Vite preset)
+├── .env.example               # Client build-time variable templates (VITE_FIREBASE_*)
+├── .dev.vars.example          # Cloudflare Pages Functions local secrets template
+├── .gitignore                  # Git ignore rules (node_modules, .env, .dev.vars, dist)
+├── .node-version               # Target Node version for Cloudflare Pages (Node 20)
+├── wrangler.toml               # Cloudflare Pages & Functions configuration
+├── _routes.json                # Cloudflare routing rules (/api/* -> Functions, rest -> static)
 ├── package.json                # Project dependencies, Node 20 engine, and npm scripts
 ├── postcss.config.js           # PostCSS configuration
 ├── tailwind.config.js          # Tailwind CSS theme configuration
 ├── vite.config.js              # Vite bundler & API proxy configuration
 ├── README.md                   # Complete documentation
 │
-├── api/                        # Vercel Serverless Functions (Production Cloud & Vercel CLI)
-│   ├── aqi.js                  # Serverless WAQI API proxy with live sensors, rate limiting & validation
-│   └── chat.js                 # Serverless Gemini GenAI proxy with memory extraction & rate limiting
+├── functions/                  # Cloudflare Pages Functions (Serverless Edge API)
+│   └── api/
+│       ├── aqi.js              # Edge WAQI API proxy with live sensors, rate limiting & validation
+│       └── chat.js             # Edge Gemini GenAI proxy with memory extraction & rate limiting
 │
-├── server/                     # Local Backend Proxy (Express.js)
+├── public/                     # Static assets copied into dist/ at build time
+│   ├── _headers                # Security headers (CSP, HSTS, X-Frame-Options, etc.)
+│   ├── _redirects              # SPA fallback rules (/* /index.html 200)
+│   └── _routes.json            # Cloudflare Pages Function routing rule definition
+│
+├── server/                     # Local Backend Proxy (Express.js fallback bridge)
 │   ├── index.js                # Express app entry, static serving & routes
 │   ├── middleware/
 │   │   └── rateLimiter.js      # Sliding-window IP rate limiting
 │   └── routes/
-│       ├── aqi.js              # Route mounted to /api/aqi (delegates to api/aqi.js)
-│       └── chat.js             # Route mounted to /api/chat (delegates to api/chat.js)
+│       ├── aqi.js              # Route mounted to /api/aqi (bridges to functions/api/aqi.js)
+│       └── chat.js             # Route mounted to /api/chat (bridges to functions/api/chat.js)
 │
-└── src/                        # Frontend source code (React)
+└── src/                        # Frontend source code (React + Vite)
     ├── main.jsx                # App initialization & Context mounting
     ├── App.jsx                 # Route declarations & layout structure
     ├── index.html              # HTML entry & favicon definition
@@ -241,7 +250,7 @@ challenge6/
 ## 🚀 Getting Started & Local Setup
 
 ### Prerequisites
-- **Node.js** v18.0.0 or later (v20+ / v24+ recommended)
+- **Node.js** v20.0.0 or later (configured in `.node-version`)
 - **pnpm** (or `npm` / `yarn`)
 
 ### 1. Clone & Install
@@ -253,119 +262,125 @@ cd foggy
 pnpm install
 ```
 
-### 2. Configure Environment Variables
-Copy the `.env.example` file to create your `.env`:
+### 2. Configure Local Secrets & Environment
+Foggy uses two configuration files for clean security boundaries:
+1. **Local Function Secrets (`.dev.vars`)**:
+   Used by Wrangler (`wrangler pages dev dist`) to securely provide backend secrets to Cloudflare Pages Functions:
+   ```bash
+   cp .dev.vars.example .dev.vars
+   ```
+   *(Windows PowerShell: `Copy-Item .dev.vars.example .dev.vars`)*
+   Add your keys:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   AQI_API_KEY=your_waqi_token_here
+   ```
+   > 💡 *Note: The application operates gracefully with built-in high-fidelity atmospheric simulation and smart AI fallback models even if keys are left blank!*
+
+2. **Client Build Configuration (`.env`)**:
+   Used by Vite at build time for public web client variables (such as Firebase Authentication):
+   ```bash
+   cp .env.example .env
+   ```
+   *(Windows PowerShell: `Copy-Item .env.example .env`)*
+
+### 3. Run Locally with Cloudflare Pages Functions (Wrangler)
+Build the frontend and run the complete Cloudflare Pages environment (static assets + Edge Pages Functions) locally:
 ```bash
-cp .env.example .env
-```
-*(On Windows PowerShell: `Copy-Item .env.example .env`)*
+# 1. Build the production assets into dist/
+pnpm run build
 
-Configure your keys in `.env` (the application works out-of-the-box in simulation mode even without keys!):
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-AQI_API_KEY=your_waqi_token_here
-PORT=3001
+# 2. Run the site and functions locally with Wrangler
+pnpm run pages:dev
 ```
+Your local Cloudflare Pages environment will be live at `http://localhost:8788`, executing `functions/api/aqi.js` and `functions/api/chat.js` with full Edge runtime parity!
 
-### 3. Run the Development Server
-Run the backend proxy and Vite frontend concurrently with a single command:
+### 4. Alternative: Run with Vite Dev Server & Local Proxy
+For hot-module replacement (HMR) during frontend UI editing:
 ```bash
 pnpm run dev
 ```
 - Frontend dev server: `http://localhost:5173`
-- Backend API proxy: `http://localhost:3001`
-
-### 4. Build for Production & Preview
-```bash
-# Build the client bundle
-pnpm run build
-
-# Start the unified production server
-pnpm start
-```
-Visit `http://localhost:3001` in your browser.
+- Local API proxy bridge: `http://localhost:3001`
 
 ---
 
-## 🚀 Deploy to Vercel
+## ⚡ Deploy to Cloudflare Pages
 
-Foggy is fully optimized for one-click continuous deployment on **Vercel** as a modern Single Page Application (SPA) backed by Vercel Serverless Functions in `/api/`.
+Foggy is fully optimized for continuous deployment on **Cloudflare Pages** with Cloudflare Pages Functions in `functions/api/`.
 
-### Architecture on Vercel
-* **Frontend SPA**: Pre-compiled with Vite into `dist/` and served with low latency via Vercel's Global Edge Network.
-* **Serverless Functions**: Located in the `/api/` folder:
-  - `/api/chat.js` handles Google Gemini GenAI interactions, safety disclaimers, rate limiting, and dynamic profile memory extraction.
-  - `/api/aqi.js` handles World Air Quality Index (WAQI) live station data, key pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$), rate limiting, input validation, and inversion curve modeling.
-* **Zero Secret Leakage**: API keys are stored strictly server-side in Vercel Environment Variables (`process.env.GEMINI_API_KEY` and `process.env.AQI_API_KEY`). **No secret keys use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring credentials are never exposed in client bundles.
-* **SPA Routing & Security**: `vercel.json` contains route rewrites ensuring all non-API paths (`/dashboard`, `/family`, `/memory`, `/indoor-hacks`, `/about`, `/auth`) fall back to `/index.html` with HTTP 200, alongside enterprise security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`).
-
----
-
-### Confirmed Vercel Build Settings
-When importing into Vercel, verify that the project settings match:
-
-| Setting | Value | Notes |
-| :--- | :--- | :--- |
-| **Framework Preset** | `Vite` | Detected automatically |
-| **Build Command** | `npm run build` (or `pnpm run build`) | Produces optimized production bundle in `dist/` |
-| **Output Directory** | `dist` | Static asset output directory |
-| **Node.js Version** | `20.x` | Configured in `package.json` (`"engines": { "node": ">=20.0.0" }`) |
+### Architecture on Cloudflare Pages
+* **Edge Static Assets**: Pre-compiled with Vite into `dist/` and served globally via Cloudflare's ultra-low latency CDN edge network.
+* **Pages Functions (Edge Workers)**: Located in `functions/api/`:
+  - `functions/api/chat.js` handles Google Gemini GenAI interactions, safety disclaimers, rate limiting, request size limits, and dynamic profile memory extraction.
+  - `functions/api/aqi.js` handles World Air Quality Index (WAQI) live station feeds, key pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$), rate limiting, input validation, and inversion curve modeling.
+* **Zero Secret Leakage**: Secret keys (`GEMINI_API_KEY`, `AQI_API_KEY`) are stored strictly server-side in Cloudflare Pages Secrets (`context.env`). **No secret keys ever use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring credentials are never exposed in browser bundles.
+* **SPA Routing & Security**:
+  - `public/_redirects`: Provides the SPA fallback rule (`/* /index.html 200`) so refreshing `/dashboard`, `/family`, `/memory`, or `/about` never produces a 404 error.
+  - `public/_routes.json`: Directs `/api/*` to Cloudflare Pages Functions while routing all other requests to static assets.
+  - `public/_headers`: Enforces strict security headers (`Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`). The CSP is pre-configured to allow Firebase Authentication popups and Google Sign-In.
+* **Rate Limiting**: Built-in best-effort in-memory sliding-window rate limiting (60 requests/minute per IP) protects API quotas. Stronger, distributed edge rate limiting can be configured directly in Cloudflare's dashboard under **Security > WAF > Rate limiting rules**.
 
 ---
 
 ### Step-by-Step Deployment Instructions
 
-#### 1. Import GitHub Repository
-1. Push your Foggy codebase to GitHub:
-   ```bash
-   git add .
-   git commit -m "feat: migrate backend functions & config to Vercel"
-   git push origin main
-   ```
-2. Navigate to [Vercel Dashboard](https://vercel.com/new).
-3. Under **"Import Git Repository"**, select your `foggy` repo and click **"Import"**.
-
-#### 2. Configure Environment Variables
-Under the **Environment Variables** section in the Vercel project configuration, add your secret keys:
-
-| Key | Example Value | Description |
-| :--- | :--- | :--- |
-| `GEMINI_API_KEY` | `AIzaSy...` | Google AI Studio Gemini API key for live GenAI assistant responses |
-| `AQI_API_KEY` | `67a5...` | World Air Quality Index platform token for live station sensor feeds |
-
-> 🔒 **Security Notice**: Never prefix these keys with `VITE_` or `NEXT_PUBLIC_`. Vercel injects them only into the secure Serverless Function runtime (`/api/*`).
-
-#### 3. Deploy
-1. Click **"Deploy"**. Vercel will install dependencies, compile the Vite frontend into `dist/`, provision `/api/chat` and `/api/aqi`, and deploy the site.
-2. Once the build completes, your production URL (e.g. `https://your-project.vercel.app`) is live!
-
-#### 4. Updating Variables & Redeploying
-If you update or add `GEMINI_API_KEY` or `AQI_API_KEY` after the initial deploy:
-1. Go to your project in the Vercel Dashboard > **Settings** > **Environment Variables**.
-2. Update the variable values.
-3. Redeploy your project so the new environment variables take effect:
-   - Navigate to the **Deployments** tab.
-   - Click the three dots `...` on the latest deployment and select **"Redeploy"**.
-
----
-
-### 💻 Running Functions & App Locally with Vercel CLI
-You can test the entire production Vercel runtime locally (including the serverless `/api` functions):
-
+#### 1. Push to GitHub
+Commit your project and push to your GitHub repository:
 ```bash
-# Option 1: Run with Vercel CLI
-pnpm dlx vercel dev
-# or if installed globally:
-vercel dev
-
-# Option 2: Run with local Express & Vite dev servers concurrently
-pnpm run dev
+git add .
+git commit -m "Migrate hosting to Cloudflare Pages"
+git push origin main
 ```
-Both options expose `/api/aqi` and `/api/chat` on `http://localhost:5173` (or `http://localhost:3000`).
+
+#### 2. Create Cloudflare Pages Project
+1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/).
+2. In the left navigation, go to **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
+3. Select your GitHub account and choose the `foggy` repository.
+4. Click **Begin setup**.
+
+#### 3. Configure Build Settings
+Fill in the build configuration:
+
+| Setting | Value | Notes |
+| :--- | :--- | :--- |
+| **Project Name** | `foggy` | Or your preferred subdomain |
+| **Production Branch** | `main` | Continuous deployment branch |
+| **Framework Preset** | `Vite` (or `None`) | Configured via `package.json` |
+| **Build Command** | `npm run build` | Produces production assets in `dist/` |
+| **Build Output Directory** | `dist` | Static asset output directory |
+| **Node.js Version** | `20` | Automatically picked up from `.node-version` |
+
+#### 4. Configure Environment Variables & Secrets
+Under **Environment variables (advanced)**:
+
+1. **Add Production Secrets (Server-Side)**:
+   - `GEMINI_API_KEY`: Your Google AI Studio Gemini API key (e.g. `AIzaSy...`)
+   - `AQI_API_KEY`: Your WAQI API platform token (e.g. `67a5...`)
+   *(Mark both as **Encrypt** / Secret)*
+
+2. **Add Client Build-Time Variables (Public Web Config)**:
+   If using Firebase Authentication, add the public web configuration:
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+
+> 🔒 **Security Notice**: Secret keys (`GEMINI_API_KEY`, `AQI_API_KEY`) must **NEVER** use the `VITE_` prefix. `VITE_` is reserved solely for public client-side web config that Vite embeds into the frontend bundle.
+
+#### 5. Deploy & Authorize Firebase Domain
+1. Click **Save and Deploy**. Cloudflare Pages will build the frontend, deploy the `functions/api/` edge routes, and provide your live URL (e.g. `https://foggy.pages.dev`).
+2. **Authorize Domain in Firebase**:
+   - Go to [Firebase Console](https://console.firebase.google.com/) > Select your Project.
+   - Navigate to **Authentication** > **Settings** > **Authorized domains**.
+   - Click **Add domain** and enter your Cloudflare Pages domain (e.g. `foggy.pages.dev`).
+   - This ensures Google OAuth popups and redirects function without origin rejection.
 
 ---
 
-## 🔑 API Keys Setup Guide
+## 🔑 API Keys & Secrets Setup Guide
 
 ### 1. Google Gemini API Key (GenAI Chat)
 1. Navigate to [Google AI Studio](https://aistudio.google.com).
@@ -467,6 +482,11 @@ Contributions are welcome! Please follow these steps:
 3. Commit your changes (`git commit -m 'feat: Add Corsi-Rosenthal filter size calculator'`).
 4. Push to your branch (`git push origin feature/amazing-hack`).
 5. Open a Pull Request.
+
+---
+
+## 👨‍💻 Developer & Authors
+Developed with ❤️ by **Rishav Nandi** — empowering families and communities to navigate severe smog with accessible GenAI and practical science.
 
 ---
 

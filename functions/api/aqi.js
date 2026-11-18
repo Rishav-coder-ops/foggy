@@ -1,18 +1,19 @@
-// api/aqi.js
-// Vercel Serverless Function for WAQI Air Quality Index Proxy with Live Data, Rate Limiting & Input Validation
+// functions/api/aqi.js
+// Cloudflare Pages Function for WAQI Air Quality Index Proxy
+// Uses Web-standard Request/Response, context.env, rate limiting, and CORS validation.
 
-// In-memory sliding window rate limiter per client IP
+// In-memory sliding window rate limiter per client IP (Worker isolate scope)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute
-const rateLimitMap = new Map();
+const ipRateLimitMap = new Map();
 
 function checkRateLimit(clientIp) {
   const now = Date.now();
-  let clientRecord = rateLimitMap.get(clientIp);
+  let clientRecord = ipRateLimitMap.get(clientIp);
 
   if (!clientRecord || now > clientRecord.resetTime) {
     clientRecord = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitMap.set(clientIp, clientRecord);
+    ipRateLimitMap.set(clientIp, clientRecord);
     return { allowed: true, count: 1, remaining: MAX_REQUESTS_PER_WINDOW - 1, reset: clientRecord.resetTime };
   }
 
@@ -23,6 +24,30 @@ function checkRateLimit(clientIp) {
     count: clientRecord.count,
     remaining,
     reset: clientRecord.resetTime
+  };
+}
+
+function getCorsHeaders(request) {
+  const requestOrigin = request.headers.get('Origin');
+  const requestUrl = new URL(request.url);
+  const siteOrigin = requestUrl.origin;
+
+  // Restrict CORS to site's own origin, with development localhosts allowed
+  const isAllowed = !requestOrigin ||
+    requestOrigin === siteOrigin ||
+    requestOrigin.includes('localhost') ||
+    requestOrigin.includes('127.0.0.1') ||
+    requestOrigin.endsWith('.pages.dev');
+
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? (requestOrigin || siteOrigin) : siteOrigin,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Vary': 'Origin',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'X-Content-Type-Options': 'nosniff'
   };
 }
 
@@ -261,13 +286,12 @@ function getDeterministicMockCity(city) {
     }
   }
 
-  // Generic seeded deterministic calculation based on city name
   let hash = 0;
   for (let i = 0; i < norm.length; i++) {
     hash = (hash << 5) - hash + norm.charCodeAt(i);
     hash |= 0;
   }
-  const aqi = Math.abs(hash % 210) + 40; // AQI 40 - 250
+  const aqi = Math.abs(hash % 210) + 40;
   return {
     city: city ? `${city.charAt(0).toUpperCase() + city.slice(1)}` : 'Metro Region',
     aqi,
@@ -285,77 +309,84 @@ function getDeterministicMockCity(city) {
   };
 }
 
-export default async function handler(req, res) {
-  // CORS & Security Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
+export async function onRequestOptions(context) {
+  return new Response(null, {
+    status: 204,
+    headers: getCorsHeaders(context.request)
+  });
+}
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+export async function onRequestGet(context) {
+  const { request, env } = context;
+  const headers = getCorsHeaders(request);
+  headers['Content-Type'] = 'application/json; charset=utf-8';
 
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
-    return res.status(405).json({ error: 'Method Not Allowed. Use GET.' });
-  }
-
-  // Rate Limiting
-  const clientIp = req.headers['x-forwarded-for']
-    ? req.headers['x-forwarded-for'].split(',')[0].trim()
-    : req.headers['x-real-ip'] || req.socket?.remoteAddress || '127.0.0.1';
+  // Per-IP Rate Limiting (Best Effort)
+  const clientIp = request.headers.get('cf-connecting-ip') ||
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    '127.0.0.1';
 
   const rateCheck = checkRateLimit(clientIp);
-  res.setHeader('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
-  res.setHeader('X-RateLimit-Remaining', rateCheck.remaining.toString());
-  res.setHeader('X-RateLimit-Reset', Math.ceil(rateCheck.reset / 1000).toString());
+  headers['X-RateLimit-Limit'] = MAX_REQUESTS_PER_WINDOW.toString();
+  headers['X-RateLimit-Remaining'] = rateCheck.remaining.toString();
+  headers['X-RateLimit-Reset'] = Math.ceil(rateCheck.reset / 1000).toString();
 
   if (!rateCheck.allowed) {
-    return res.status(429).json({
+    return new Response(JSON.stringify({
       error: 'Too Many Requests',
       message: 'Rate limit exceeded for AQI queries. Please wait a moment before sending more requests.',
       retryAfterSeconds: Math.ceil((rateCheck.reset - Date.now()) / 1000)
-    });
+    }), { status: 429, headers });
   }
 
   // Input Validation & Sanitization
-  const rawCity = req.query.city;
+  const url = new URL(request.url);
+  const rawCity = url.searchParams.get('city');
   let requestedCity = 'Salt Lake City';
 
-  if (rawCity !== undefined && rawCity !== null) {
+  if (rawCity !== null && rawCity !== undefined) {
     if (typeof rawCity !== 'string') {
-      return res.status(400).json({ error: 'Invalid city parameter: must be a string.' });
+      return new Response(JSON.stringify({
+        error: 'Bad Request',
+        message: 'Invalid city parameter: must be a string.'
+      }), { status: 400, headers });
     }
     const trimmed = rawCity.trim();
     if (trimmed.length > 100) {
-      return res.status(400).json({ error: 'City name exceeds maximum length of 100 characters.' });
+      return new Response(JSON.stringify({
+        error: 'Bad Request',
+        message: 'City name exceeds maximum allowed length of 100 characters.'
+      }), { status: 400, headers });
     }
-    // Block suspicious script / markup tags
+    // Block script tags or control characters
     if (/<[^>]*>|[<>]|javascript:/i.test(trimmed)) {
-      return res.status(400).json({ error: 'Invalid city name: contains disallowed characters.' });
+      return new Response(JSON.stringify({
+        error: 'Bad Request',
+        message: 'Invalid city name: contains disallowed characters.'
+      }), { status: 400, headers });
     }
     if (trimmed.length > 0) {
       requestedCity = trimmed;
     }
   }
 
-  const apiKey = process.env.AQI_API_KEY;
+  // Secrets read strictly from context.env
+  const apiKey = env?.AQI_API_KEY;
   const isKeyConfigured = Boolean(
     apiKey &&
     apiKey !== 'your_waqi_token_here' &&
     apiKey.trim().length > 5
   );
 
-  // If key is missing, log a clear server-side error as requested
+  // If key is missing, log clear server-side error and return realistic mock data
   if (!isKeyConfigured) {
-    console.error('[AQI Service Error] AQI_API_KEY is missing from environment variables. Real-time sensor feed from WAQI cannot be contacted. Falling back to calibrated simulation data.');
+    console.error('[AQI Service Error] AQI_API_KEY is missing from context.env. Real-time sensor feed from WAQI cannot be contacted. Falling back to calibrated simulation data.');
   } else {
     // Attempt Live WAQI API fetch
     try {
       let rawData = null;
       const feedUrl = `https://api.waqi.info/feed/${encodeURIComponent(requestedCity)}/?token=${apiKey.trim()}`;
-      
+
       const response = await fetch(feedUrl, {
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(6500)
@@ -417,7 +448,7 @@ export default async function handler(req, res) {
           condition: aqi > 200 ? 'Hazardous Smog' : aqi > 150 ? 'Smoggy Inversion' : aqi > 100 ? 'Hazy' : 'Clear'
         };
 
-        return res.status(200).json({
+        return new Response(JSON.stringify({
           city: rawData.city?.name || requestedCity,
           aqi,
           category: cat.status,
@@ -436,7 +467,7 @@ export default async function handler(req, res) {
           isMock: false,
           source: 'WAQI Live Station Feed',
           sourceUrl: rawData.city?.url || 'https://aqicn.org'
-        });
+        }), { status: 200, headers });
       } else {
         console.error(`[AQI Service Error] WAQI API returned non-OK status or unparseable AQI data for "${requestedCity}". Falling back to simulation.`);
       }
@@ -445,12 +476,12 @@ export default async function handler(req, res) {
     }
   }
 
-  // Fallback to clearly labelled realistic simulation data
+  // Fallback to clearly labelled simulation data
   const mock = getDeterministicMockCity(requestedCity);
   const cat = getAQICategory(mock.aqi);
   const hourlyForecast = generateHourlyForecast(mock.aqi);
 
-  return res.status(200).json({
+  return new Response(JSON.stringify({
     city: mock.city,
     aqi: mock.aqi,
     category: cat.status,
@@ -482,6 +513,20 @@ export default async function handler(req, res) {
     source: 'Foggy Atmospheric Simulation Model (Realistic Fallback)',
     note: isKeyConfigured
       ? 'Live station temporarily unreachable; using high-fidelity regional simulation.'
-      : 'Using realistic simulated data. Add your free WAQI API key under Vercel Environment Variables (AQI_API_KEY) for live sensors.'
+      : 'Using realistic simulated data. Add your free WAQI API key in Cloudflare Pages Secrets (AQI_API_KEY) for live sensors.'
+  }), { status: 200, headers });
+}
+
+// Fallback for non-GET/OPTIONS methods
+export async function onRequest(context) {
+  if (context.request.method === 'GET') return onRequestGet(context);
+  if (context.request.method === 'OPTIONS') return onRequestOptions(context);
+
+  const headers = getCorsHeaders(context.request);
+  headers['Allow'] = 'GET, OPTIONS';
+  headers['Content-Type'] = 'application/json; charset=utf-8';
+  return new Response(JSON.stringify({ error: 'Method Not Allowed', message: 'Use GET.' }), {
+    status: 405,
+    headers
   });
 }
