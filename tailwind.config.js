@@ -12,6 +12,9 @@ export default {
         // Crisp Fog (#F1F5F9), Dense Mist (#E2E8F0), Slate Charcoal (#334155), Haze Orange (#D97706)
         // Dark mode palette:
         // Midnight Smog (#0F172A), Industrial Haze (#1E293B), Ice White (#F8FAFC), Ozone Blue (#38BDF8), Toxic Yellow (#FBBF24)
+        slate: {
+          850: '#172033',
+        },
         fog: {
           lightBg: '#F1F5F9',
           lightMist: '#E2E8F0',

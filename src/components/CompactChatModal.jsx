@@ -143,7 +143,7 @@ export default function CompactChatModal({ isEmbedded = false }) {
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-0.5">
-                {aqiData?.city || profile?.location || 'Salt Lake City'} • AQI {aqiData?.aqi || 125}
+                {aqiData?.city || profile?.location || 'Kolkata'} • AQI {aqiData?.aqi || 125}
               </p>
             </div>
           </div>

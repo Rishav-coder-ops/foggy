@@ -1,17 +1,10 @@
 // src/components/AQICard.jsx
+// Atmospheric Monitoring Station Card using CPCB National AQI Scale (0-500)
 import React, { useState } from 'react';
-import { Search, Wind, Thermometer, Droplets, Shield, Info, AlertTriangle, RefreshCw, MapPin } from 'lucide-react';
+import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertCircle } from 'lucide-react';
+import { INDIAN_METROS } from '../services/api';
 
-const PRESET_CITIES = [
-  'Salt Lake City',
-  'New Delhi',
-  'Beijing',
-  'London',
-  'New York',
-  'Los Angeles',
-  'Lahore',
-  'Paris'
-];
+const PRESET_CITIES = INDIAN_METROS.map((m) => m.name);
 
 export default function AQICard({ aqiData, onCityChange, loading = false, onRefresh }) {
   const [searchInput, setSearchInput] = useState('');
@@ -25,9 +18,7 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
   };
 
   const getAQIRangeIndicator = (aqi) => {
-    // Percentage for progress indicator bar (0 - 500 max)
-    const pct = Math.min(100, Math.round((aqi / 350) * 100));
-    return pct;
+    return Math.min(100, Math.round((aqi / 500) * 100));
   };
 
   return (
@@ -40,7 +31,7 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
             <span>Atmospheric Monitoring Station</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white mt-1">
-            {aqiData?.city || 'Salt Lake City'}
+            {aqiData?.city || 'Kolkata, West Bengal'}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
             Updated: {aqiData?.updatedAt || 'Just now'} • Dominant Pollutant: <span className="font-semibold text-slate-700 dark:text-slate-200">{aqiData?.dominantPollutant || 'PM2.5'}</span>
@@ -48,16 +39,16 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
         </div>
 
         {/* Source Badge with transparency */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {aqiData?.isMock ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span>Simulation Mode (WAQI Free Fallback)</span>
+              <span>Simulation Mode (Sample Data)</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>WAQI Live Sensor Feed</span>
+              <span>Open-Meteo CAMS Model (Live)</span>
             </div>
           )}
 
@@ -74,7 +65,7 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
         </div>
       </div>
 
-      {/* City Search Bar & Quick Picks */}
+      {/* City Search Bar & Indian Metro Quick Picks */}
       <div className="mt-4 flex flex-col gap-2.5">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <div className="relative flex-1">
@@ -83,26 +74,26 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search any global city (e.g., Delhi, Beijing, Salt Lake City, London)..."
+              placeholder="Search any city in India (e.g., Kolkata, Mumbai, Delhi...)"
               className="w-full pl-9 pr-4 py-2 text-sm rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/50 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all shadow-xs"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white transition-all shadow-xs cursor-pointer"
           >
             Check City
           </button>
         </form>
 
         <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 overflow-x-auto sm:flex-wrap pb-1 scrollbar-none">
-          <span className="font-medium mr-1 shrink-0">Quick Picks:</span>
+          <span className="font-medium mr-1 shrink-0">Indian Metros:</span>
           {PRESET_CITIES.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => onCityChange(c)}
-              className={`px-2.5 py-1 rounded-lg shrink-0 transition-all ${
+              className={`px-2.5 py-1 rounded-lg shrink-0 transition-all cursor-pointer ${
                 aqiData?.city?.toLowerCase().includes(c.toLowerCase())
                   ? 'bg-sky-500 text-white font-semibold shadow-xs'
                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -120,7 +111,7 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
         <div className="lg:col-span-5 rounded-2xl p-6 relative overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Air Quality Index (AQI)
+              National AQI (CPCB Scale)
             </span>
             <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${aqiData?.badgeClass || 'bg-amber-100 text-amber-800'}`}>
               {aqiData?.category || 'Moderate'}
@@ -132,62 +123,77 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
               className="text-6xl md:text-7xl font-extrabold tracking-tight"
               style={{ color: aqiData?.color || '#D97706' }}
             >
-              {aqiData?.aqi ?? 125}
+              {aqiData?.aqi ?? 165}
             </span>
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-              US AQI Standard
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Estimated NAQI
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                from PM2.5 & PM10
+              </span>
+            </div>
           </div>
 
-          {/* AQI Gradient Spectrum Bar */}
+          {/* CPCB NAQI Gradient Spectrum Bar (0 - 500) */}
           <div className="space-y-1.5">
             <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 relative overflow-hidden flex">
-              <div className="h-full w-1/6 bg-emerald-500"></div>
-              <div className="h-full w-1/6 bg-amber-400"></div>
-              <div className="h-full w-1/6 bg-orange-500"></div>
-              <div className="h-full w-1/6 bg-red-500"></div>
-              <div className="h-full w-1/6 bg-purple-600"></div>
-              <div className="h-full w-1/6 bg-rose-900"></div>
+              <div className="h-full w-[10%] bg-emerald-500" title="Good (0-50)"></div>
+              <div className="h-full w-[10%] bg-green-500" title="Satisfactory (51-100)"></div>
+              <div className="h-full w-[20%] bg-yellow-500" title="Moderate (101-200)"></div>
+              <div className="h-full w-[20%] bg-orange-500" title="Poor (201-300)"></div>
+              <div className="h-full w-[20%] bg-red-500" title="Very Poor (301-400)"></div>
+              <div className="h-full w-[20%] bg-rose-950" title="Severe (401-500)"></div>
             </div>
             <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400 font-medium">
               <span>0 (Good)</span>
-              <span>100</span>
-              <span>200</span>
-              <span>300+ (Hazardous)</span>
+              <span>100 (Sat)</span>
+              <span>200 (Mod)</span>
+              <span>300 (Poor)</span>
+              <span>400 (V.Poor)</span>
+              <span>500 (Sev)</span>
             </div>
           </div>
+
+          {/* Nearest station WAQI reference if available */}
+          {aqiData?.waqiReference && (
+            <div className="mt-3 p-2 rounded-xl bg-slate-200/60 dark:bg-slate-700/50 text-[10px] text-slate-600 dark:text-slate-300 flex items-center justify-between">
+              <span>Nearest station (WAQI, US EPA scale):</span>
+              <span className="font-bold">AQI {aqiData.waqiReference.aqiUS}</span>
+            </div>
+          )}
 
           {/* Weather Pill */}
           <div className="mt-5 pt-4 border-t border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
             <div className="flex items-center gap-1.5">
               <Thermometer className="w-4 h-4 text-rose-500" />
-              <span>{aqiData?.weather?.temp ?? 8}°C</span>
+              <span>{aqiData?.weather?.temp ?? 24}°C</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Droplets className="w-4 h-4 text-sky-500" />
-              <span>{aqiData?.weather?.humidity ?? 65}% Hum</span>
+              <span>{aqiData?.weather?.humidity ?? 68}% Hum</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Wind className="w-4 h-4 text-teal-500" />
-              <span>{aqiData?.weather?.windSpeed ?? 4.5} km/h</span>
+              <span>{aqiData?.weather?.windSpeed ?? 3.2} km/h</span>
             </div>
           </div>
         </div>
 
         {/* Health Advisory & Key Pollutants */}
         <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
-          {/* Main Health Advisory Banner */}
+          {/* Main Health Advisory Banner with official CPCB health statements */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
               <Shield className="w-4 h-4 text-sky-500" />
-              <span>Health Guidance for Today</span>
+              <span>CPCB Health Guidance & Impact</span>
             </div>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              {aqiData?.advisory}
+              {aqiData?.healthImpact || aqiData?.advisory || 'Air quality is monitored continuously according to CPCB guidelines.'}
             </p>
-            {aqiData?.sensitiveGroups && (
-              <p className="mt-2 text-xs text-amber-800 dark:text-amber-300/90 font-medium bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-200/70 dark:border-amber-800/40">
-                ⚠️ <strong>Sensitive Groups</strong>: {aqiData.sensitiveGroups}
+            {aqiData?.advisory && aqiData?.advisory !== aqiData?.healthImpact && (
+              <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">
+                {aqiData.advisory}
               </p>
             )}
           </div>
@@ -198,31 +204,31 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
               <span className="text-xl">😷</span>
               <div>
                 <p className="font-bold text-sky-900 dark:text-sky-200">
-                  {aqiData?.maskRecommended ? 'Mask Recommended Outdoors' : 'Mask Optional Outdoors'}
+                  {aqiData?.aqi > 200 ? 'Certified N95 / FFP2 Mask Advised Outdoors' : aqiData?.aqi > 100 ? 'Mask Recommended for Sensitive Groups' : 'Mask Optional Outdoors'}
                 </p>
                 <p className="text-sky-700 dark:text-sky-300/80 text-[11px]">
-                  {aqiData?.maskType || 'Standard clean air conditions today.'}
+                  Cloth and surgical masks do not block fine PM2.5 particulates.
                 </p>
               </div>
             </div>
             <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/60 px-2 py-1 rounded-md">
-              {aqiData?.aqi > 150 ? 'Mandatory' : aqiData?.aqi > 100 ? 'Advised' : 'Optional'}
+              {aqiData?.aqi > 300 ? 'Mandatory' : aqiData?.aqi > 200 ? 'Strongly Advised' : aqiData?.aqi > 100 ? 'Recommended' : 'Optional'}
             </span>
           </div>
 
           {/* Pollutant Breakdown Grid */}
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-              Key Pollutant Concentrations
+              Key Pollutant Concentrations (24-Hour Average)
             </span>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {[
-                { label: 'PM2.5', val: aqiData?.pollutants?.pm25, unit: 'µg/m³', limit: 35 },
-                { label: 'PM10', val: aqiData?.pollutants?.pm10, unit: 'µg/m³', limit: 150 },
-                { label: 'NO2', val: aqiData?.pollutants?.no2, unit: 'ppb', limit: 53 },
-                { label: 'O3', val: aqiData?.pollutants?.o3, unit: 'ppb', limit: 70 },
-                { label: 'SO2', val: aqiData?.pollutants?.so2, unit: 'ppb', limit: 75 },
-                { label: 'CO', val: aqiData?.pollutants?.co, unit: 'ppm', limit: 9 }
+                { label: 'PM2.5', val: aqiData?.pollutants?.pm25, unit: 'µg/m³', limit: 60 },
+                { label: 'PM10', val: aqiData?.pollutants?.pm10, unit: 'µg/m³', limit: 100 },
+                { label: 'NO2', val: aqiData?.pollutants?.no2, unit: 'µg/m³', limit: 80 },
+                { label: 'O3', val: aqiData?.pollutants?.o3, unit: 'µg/m³', limit: 100 },
+                { label: 'SO2', val: aqiData?.pollutants?.so2, unit: 'µg/m³', limit: 80 },
+                { label: 'CO', val: aqiData?.pollutants?.co, unit: 'mg/m³', limit: 2 }
               ].map((p) => {
                 const isOver = p.val > p.limit;
                 return (
@@ -243,6 +249,16 @@ export default function AQICard({ aqiData, onCityChange, loading = false, onRefr
                 );
               })}
             </div>
+          </div>
+
+          {/* Attribution & Official CPCB Guidance Note */}
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1 pt-1">
+            <p>
+              <strong>Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data.
+            </p>
+            <p className="italic">
+              Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.
+            </p>
           </div>
         </div>
       </div>

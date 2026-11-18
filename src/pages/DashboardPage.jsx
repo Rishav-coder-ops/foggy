@@ -1,4 +1,5 @@
 // src/pages/DashboardPage.jsx
+// Main Dashboard for Indian Air Quality Monitoring with CPCB NAQI and Low-Emission Routines
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Flame, Bus, Wind, Sun, AlertTriangle, ShieldCheck, ArrowRight, Sparkles, Check, Users, Bot } from 'lucide-react';
@@ -6,7 +7,7 @@ import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
 import MascotAvatar from '../components/MascotAvatar';
-import { fetchAQIData } from '../services/api';
+import { fetchAQIData, getStoredCity, setStoredCity, DEFAULT_CITY } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useChat } from '../context/ChatContext';
@@ -16,7 +17,9 @@ export default function DashboardPage() {
   const { profile, familyMembers, updateProfile } = useProfile();
   const { openChat } = useChat();
 
-  const [currentCity, setCurrentCity] = useState(profile?.location || 'Salt Lake City');
+  const [currentCity, setCurrentCity] = useState(() => {
+    return profile?.location || getStoredCity()?.name || DEFAULT_CITY.name;
+  });
   const [aqiData, setAqiData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +45,7 @@ export default function DashboardPage() {
   const handleCityChange = (newCity) => {
     setCurrentCity(newCity);
     updateProfile({ location: newCity });
+    setStoredCity({ name: newCity, country: 'India', lat: 22.5726, lon: 88.3639 });
   };
 
   const sensitiveMembers = familyMembers.filter(m => m.condition && m.condition !== 'None');
@@ -55,14 +59,14 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white">
-                Good day, {user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}!
+                Namaste, {user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}!
               </h1>
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
-                Personalized
+                Indian CPCB Standards
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Foggy has analyzed today's winter air patterns in <span className="font-semibold text-slate-800 dark:text-slate-200">{currentCity}</span> for your household.
+              Foggy has analyzed today's atmospheric particulate patterns in <span className="font-semibold text-slate-800 dark:text-slate-200">{currentCity}</span> for your household.
             </p>
           </div>
         </div>
@@ -104,7 +108,7 @@ export default function DashboardPage() {
                   Family Health Priority: {sensitiveMembers.length} Vulnerable {sensitiveMembers.length === 1 ? 'Member' : 'Members'}
                 </h3>
                 <p className="text-xs text-amber-900/90 dark:text-amber-300/90 mt-1 leading-relaxed">
-                  Today's AQI ({aqiData?.aqi || 125}) presents heightened risk for sensitive airways. Foggy recommends special care for:
+                  Today's Estimated NAQI ({aqiData?.aqi || 165}) presents heightened risk for sensitive airways. Foggy recommends special precautions for:
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {sensitiveMembers.map((m) => (
@@ -146,7 +150,7 @@ export default function DashboardPage() {
               Have Questions About Today's Smog?
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl leading-relaxed">
-              Foggy remembers your household health profiles and today's AQI. Ask about kid playtime safety, commute alternatives, or how to seal drafts.
+              Foggy remembers your household health profiles and today's NAQI. Ask about kid playtime safety, Metro commute alternatives, or how to seal door drafts.
             </p>
           </div>
         </div>
@@ -187,7 +191,7 @@ export default function DashboardPage() {
                   <Bus className="w-4 h-4" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Commute: Take Metro / Light Rail Instead of Solo Car
+                  Commute: Take Metro / Electric Bus Instead of Two-Wheeler
                 </h4>
               </div>
               <span className="text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 px-2 py-0.5 rounded-full">
@@ -196,13 +200,13 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Winter inversions trap vehicle tailpipe exhaust at bumper height. Riding transit bypasses street-level NO2 fumes and keeps hundreds of vehicle cold-starts off the road.
+              Winter inversions trap vehicular exhaust at bumper height. Riding the air-conditioned Metro or electric bus bypasses direct street-level PM2.5 inhalation and cuts personal emissions.
             </p>
 
             <ImpactBadge
               co2Saved="~2.4 kg CO2 saved"
               pmReduced="-65% PM2.5 inhaled"
-              costTradeoff="$3.50 gas & parking saved"
+              costTradeoff="~₹180 fuel & parking saved"
             />
           </div>
 
@@ -223,7 +227,7 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Solar radiation breaks the morning thermal lid in the afternoon, lowering ground-level particulate density by up to 35%. Complete dog walks and errands during this window.
+              Solar radiation breaks the morning thermal inversion lid in the afternoon, improving vertical dispersion and lowering particulate counts. Complete walks and errands during this window.
             </p>
 
             <ImpactBadge
@@ -232,7 +236,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Routine Card 3: Heating */}
+          {/* Routine Card 3: Heating & Cooking */}
           <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -240,7 +244,7 @@ export default function DashboardPage() {
                   <Flame className="w-4 h-4" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Heating Swap: Zone Heat with Heat Pump (No Wood Burning)
+                  Clean Cooking & Warmth: LPG / Induction (Zero Open Chulha)
                 </h4>
               </div>
               <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded-full">
@@ -249,17 +253,17 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              A single residential fireplace emits as much PM2.5 in an evening as 90 modern heavy diesel trucks driving 10 miles. Use electric zoned heat and weatherstrip exterior doors.
+              Burning dung cakes or wood in a chulha produces dense indoor particulate smoke exceeding 500 µg/m³. Cook with LPG or induction and avoid open fires for warmth.
             </p>
 
             <ImpactBadge
-              co2Saved="~5.1 kg CO2 / evening"
-              pmReduced="Prevents ~40g neighborhood soot"
+              co2Saved="~4.2 kg CO2 saved"
+              pmReduced="Prevents ~40g indoor soot"
               healthBenefit="Protects local asthmatics"
             />
           </div>
 
-          {/* Routine Card 4: Cooking & Indoor */}
+          {/* Routine Card 4: Indoor Air */}
           <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -267,7 +271,7 @@ export default function DashboardPage() {
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Indoor Air: Run Bedroom DIY Box Fan & Vent Hood
+                  Indoor Air: Run DIY Box Fan & Damp-Mop Floors
                 </h4>
               </div>
               <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full">
@@ -276,19 +280,19 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Turn on exhaust ventilation when cooking, and keep the Corsi-Rosenthal filter circulating on low. A damp rolled towel at the entry door cuts drafts by 40%.
+              Wet-mopping floors (pocha) prevents settled toxic heavy metals from resuspending. Run your DIY Corsi-Rosenthal filter on low and place a damp towel at the entry door.
             </p>
 
             <ImpactBadge
-              pmReduced="-85% indoor particulate count"
-              costTradeoff="< $0.15 electricity / day"
+              pmReduced="-80% indoor particulate count"
+              costTradeoff="< ₹12 electricity / day"
             />
           </div>
         </div>
 
         {/* Ask Foggy Card Footer */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">
-          <span>Need custom changes for shifts, kids, or pets?</span>
+          <span>Need custom changes for family health or daily shifts?</span>
           <button
             type="button"
             onClick={openChat}

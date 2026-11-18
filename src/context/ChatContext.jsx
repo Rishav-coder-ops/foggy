@@ -20,7 +20,7 @@ export function ChatProvider({ children }) {
     try {
       const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
 
     const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
     return [
@@ -29,7 +29,7 @@ export function ChatProvider({ children }) {
         sender: 'foggy',
         text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Salt Lake City'}). How can I help you today?`,
+          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -43,7 +43,7 @@ export function ChatProvider({ children }) {
         setMessages(JSON.parse(saved));
         return;
       }
-    } catch {}
+    } catch { }
 
     const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
     setMessages([
@@ -52,7 +52,7 @@ export function ChatProvider({ children }) {
         sender: 'foggy',
         text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Salt Lake City'}). How can I help you today?`,
+          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -61,7 +61,7 @@ export function ChatProvider({ children }) {
   // Sync AQI context
   useEffect(() => {
     async function load() {
-      const data = await fetchAQIData(profile?.location || 'Salt Lake City');
+      const data = await fetchAQIData(profile?.location || 'Kolkata');
       setAqiData(data);
     }
     load();

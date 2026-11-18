@@ -1,70 +1,104 @@
 // src/context/ProfileContext.jsx
+// Profile context with Indian default location (Kolkata), Indian cooking/heating/commute options,
+// and Indian demo household profiles.
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { getStoredCity, setStoredCity, DEFAULT_CITY } from '../services/api';
 
 const ProfileContext = createContext();
 
+export const COOKING_OPTIONS = [
+  'LPG Cylinder',
+  'PNG (Piped Natural Gas)',
+  'Induction Cooktop',
+  'Electric Hotplate',
+  'Wood or dung-cake chulha',
+  'Coal or charcoal angithi'
+];
+
+export const HEATING_OPTIONS = [
+  'Electric geyser or heater',
+  'Electric room heater',
+  'LPG or gas heater',
+  'Wood or dung-cake chulha',
+  'Coal or charcoal angithi',
+  'Open fire for warmth',
+  'None (Mild climate)'
+];
+
+export const COMMUTE_OPTIONS = [
+  'Walk',
+  'Cycle',
+  'Two-wheeler',
+  'Car',
+  'Auto-rickshaw',
+  'E-rickshaw',
+  'Bus',
+  'Metro',
+  'Train'
+];
+
 const DEFAULT_PROFILE = {
-  location: 'Salt Lake City',
-  commute: 'Public Transit',
-  heatingType: 'Natural Gas Furnace',
-  cookingType: 'Induction Cooktop',
-  budget: 'Balanced / Practical',
+  location: 'Kolkata',
+  commute: 'Metro',
+  heatingType: 'Electric geyser or heater',
+  cookingType: 'LPG Cylinder',
+  budget: 'Practical / Budget-conscious (₹)',
   homeType: 'Apartment (3rd floor)',
-  vulnerabilities: ['Mild Asthma', 'Child in household'],
+  vulnerabilities: ['Mild Asthma', 'Child & Elderly parent in household'],
   familyMembers: [
     {
       id: 'fam_1',
-      name: 'Leo (Son)',
+      name: 'Aarav (Son)',
       role: 'Child',
       age: 7,
-      condition: 'Asthma (Uses Albuterol)',
+      condition: 'Asthma (Uses Inhaler)',
       sensitivity: 'High',
-      notes: 'Loves soccer outdoors; needs indoor activity alternative during high smog days.'
+      notes: 'Loves cricket outdoors; needs indoor activity alternative during high smog days.'
     },
     {
       id: 'fam_2',
-      name: 'Grandma Helen',
+      name: 'Dadi Meera',
       role: 'Senior',
       age: 74,
-      condition: 'Hypertension',
+      condition: 'Hypertension & Bronchitis',
       sensitivity: 'High',
-      notes: 'Morning walk routine needs to shift to afternoon.'
+      notes: 'Morning walk routine shifted to afternoon solar window (1:00 PM).'
     },
     {
       id: 'fam_3',
-      name: 'Rusty (Golden Retriever)',
+      name: 'Sheru (Pet)',
       role: 'Pet',
       age: 4,
       condition: 'None',
       sensitivity: 'Moderate',
-      notes: 'Sensitive to eye irritation on haze days.'
+      notes: 'Prone to eye watering during severe winter smog episodes.'
     }
   ],
   savedMemories: [
     {
       id: 'mem_1',
       category: 'Health Vulnerability',
-      detail: 'Son Leo experiences wheezing when AQI rises above 120.',
+      detail: 'Son Aarav experiences wheezing when Estimated NAQI rises above 150.',
       dateSaved: '2026-11-10',
       source: 'User shared in chat'
     },
     {
       id: 'mem_2',
       category: 'Home Filtration',
-      detail: 'Built a Corsi-Rosenthal DIY box fan filter with 4 MERV-13 filters for the living room.',
+      detail: 'Built a Corsi-Rosenthal DIY box fan filter with MERV-13 filters for the living room (~₹3,000).',
       dateSaved: '2026-11-12',
       source: 'User confirmed hack'
     },
     {
       id: 'mem_3',
       category: 'Transit Swap',
-      detail: 'Swapped 4 days of solo driving for the light rail transit line.',
+      detail: 'Swapped 4 days of petrol two-wheeler commuting for the Metro line (~₹180 fuel saved).',
       dateSaved: '2026-11-14',
       source: 'Routine check'
     }
   ],
-  chatSummary: 'User lives in an inversion-prone valley with child with asthma and senior. Prioritizes budget DIY filtration and shifts outdoor time to afternoon dispersion window.'
+  chatSummary: 'Indian household in Kolkata with asthmatic child and senior. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
 };
 
 export function ProfileProvider({ children }) {
@@ -75,7 +109,15 @@ export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Replace obsolete locations like Salt Lake City
+        if (parsed.location && (parsed.location.includes('Salt Lake') || parsed.location.includes('US'))) {
+          parsed.location = 'Kolkata';
+        }
+        return parsed;
+      }
+      return DEFAULT_PROFILE;
     } catch {
       return DEFAULT_PROFILE;
     }
@@ -88,7 +130,11 @@ export function ProfileProvider({ children }) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        setProfile(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed.location && (parsed.location.includes('Salt Lake') || parsed.location.includes('US'))) {
+          parsed.location = 'Kolkata';
+        }
+        setProfile(parsed);
       } else {
         setProfile(DEFAULT_PROFILE);
       }
@@ -97,10 +143,16 @@ export function ProfileProvider({ children }) {
     }
   }, [storageKey]);
 
-  // Persist profile changes to localStorage
+  // Persist profile changes to localStorage & sync city
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(profile));
+      if (profile.location) {
+        const stored = getStoredCity();
+        if (stored.name !== profile.location) {
+          setStoredCity({ name: profile.location, country: 'India', lat: 22.5726, lon: 88.3639 });
+        }
+      }
     } catch (err) {
       console.warn('Failed to save profile to localStorage:', err);
     }
@@ -120,7 +172,7 @@ export function ProfileProvider({ children }) {
     };
     setProfile(prev => ({
       ...prev,
-      familyMembers: [...prev.familyMembers, newMember]
+      familyMembers: [...(prev.familyMembers || []), newMember]
     }));
     return newMember;
   };
@@ -149,7 +201,7 @@ export function ProfileProvider({ children }) {
     };
     setProfile(prev => ({
       ...prev,
-      savedMemories: [newMemory, ...prev.savedMemories]
+      savedMemories: [newMemory, ...(prev.savedMemories || [])]
     }));
     return newMemory;
   };
@@ -162,7 +214,6 @@ export function ProfileProvider({ children }) {
   };
 
   const queuePendingFact = (fact) => {
-    // Avoid duplicate pending facts
     setPendingFacts(prev => {
       const exists = prev.some(p => p.detail === fact.detail || (p.key && p.key === fact.key));
       if (exists) return prev;
@@ -185,6 +236,7 @@ export function ProfileProvider({ children }) {
       addExtractedMemory(`Added ${fact.name || 'family member'} with ${fact.condition || 'health concern'}.`, 'Family Health');
     } else if (fact.type === 'home' || fact.type === 'lifestyle') {
       if (fact.key === 'heating') updateProfile({ heatingType: fact.value });
+      if (fact.key === 'cooking') updateProfile({ cookingType: fact.value });
       if (fact.key === 'commute') updateProfile({ commute: fact.value });
       addExtractedMemory(`Updated ${fact.key || 'home attribute'}: ${fact.value}`, 'Lifestyle & Home');
     } else {
@@ -200,11 +252,11 @@ export function ProfileProvider({ children }) {
 
   const clearAllUserData = () => {
     const emptyProfile = {
-      location: 'Salt Lake City',
-      commute: 'Public Transit',
-      heatingType: 'Electric Heat Pump',
-      cookingType: 'Induction Cooktop',
-      budget: 'Balanced / Practical',
+      location: 'Kolkata',
+      commute: 'Metro',
+      heatingType: 'Electric geyser or heater',
+      cookingType: 'LPG Cylinder',
+      budget: 'Practical / Budget-conscious (₹)',
       homeType: 'Apartment',
       vulnerabilities: [],
       familyMembers: [],
@@ -216,6 +268,7 @@ export function ProfileProvider({ children }) {
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(`foggy_chat_history_${userUid || 'guest'}`);
+      setStoredCity(DEFAULT_CITY);
     } catch (err) {
       console.warn('Error clearing user storage:', err);
     }

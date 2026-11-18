@@ -1,8 +1,9 @@
 // functions/api/chat.js
-// Cloudflare Pages Function for Gemini GenAI Chat Proxy with Memory Extraction, Rate Limiting & Input Validation
-// Uses Web-standard Request/Response, context.env, body size limit, and CORS validation.
+// Cloudflare Pages Function & Local Server Handler for Gemini GenAI Chat Proxy
+// India-first configuration with CPCB National AQI scale, Indian Rupees (₹),
+// Indian context (crop burning, winter inversions, Delhi-NCR GRAP, chulha/LPG, N95 masks),
+// medical disclaimer (emergency 112), and multilingual support (English, Hindi, Hinglish).
 
-// In-memory sliding window rate limiter per client IP (Worker isolate scope)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 60; // 60 requests per minute
 const MAX_PAYLOAD_BYTES = 65536; // 64KB request body limit
@@ -30,10 +31,14 @@ function checkRateLimit(clientIp) {
 
 function getCorsHeaders(request) {
   const requestOrigin = request.headers.get('Origin');
-  const requestUrl = new URL(request.url);
-  const siteOrigin = requestUrl.origin;
+  let siteOrigin = 'https://foggy.pages.dev';
+  try {
+    const parsed = new URL(request.url);
+    siteOrigin = parsed.origin;
+  } catch {}
 
-  const isAllowed = !requestOrigin ||
+  const isAllowed =
+    !requestOrigin ||
     requestOrigin === siteOrigin ||
     requestOrigin.includes('localhost') ||
     requestOrigin.includes('127.0.0.1') ||
@@ -45,18 +50,16 @@ function getCorsHeaders(request) {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Vary': 'Origin',
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
     'X-Content-Type-Options': 'nosniff'
   };
 }
 
-function generateSmartFallbackResponse({ message, user, aqiData, profile, history }) {
+function generateSmartFallbackResponse({ message, user, aqiData, profile }) {
   const q = message.toLowerCase();
   const userName = user?.name ? user.name.split(' ')[0] : 'friend';
-  const cityName = aqiData?.city || profile?.location || 'your area';
-  const aqi = aqiData?.aqi || 135;
-  const aqiCat = aqiData?.category || 'Unhealthy for Sensitive Groups';
+  const cityName = aqiData?.city || profile?.location || 'Kolkata';
+  const aqi = aqiData?.aqi || 165;
+  const aqiCat = aqiData?.category || 'Moderate';
 
   const familyList = profile?.familyMembers || [];
   const sensitiveMembers = familyList.filter(m => m.condition && m.condition !== 'None');
@@ -66,68 +69,82 @@ function generateSmartFallbackResponse({ message, user, aqiData, profile, histor
   const extractedFacts = [];
 
   // Memory detection heuristic
-  if (q.includes('father') || q.includes('dad')) {
-    if (q.includes('copd') || q.includes('asthma') || q.includes('heart')) {
-      const cond = q.includes('copd') ? 'COPD' : q.includes('asthma') ? 'Asthma' : 'Heart condition';
+  if (q.includes('father') || q.includes('dad') || q.includes('pitaji')) {
+    if (q.includes('copd') || q.includes('asthma') || q.includes('heart') || q.includes('saans')) {
+      const cond = q.includes('copd') ? 'COPD' : q.includes('asthma') || q.includes('saans') ? 'Asthma' : 'Heart condition';
       extractedFacts.push({ type: 'family', name: 'Father', role: 'Senior', condition: cond });
     }
   }
-  if (q.includes('daughter') || q.includes('son') || q.includes('child') || q.includes('kid')) {
-    if (q.includes('asthma') || q.includes('allerg')) {
+  if (q.includes('daughter') || q.includes('son') || q.includes('child') || q.includes('kid') || q.includes('baccha')) {
+    if (q.includes('asthma') || q.includes('allerg') || q.includes('saans')) {
       extractedFacts.push({ type: 'family', name: 'Child', role: 'Child', condition: 'Asthma/Allergies' });
     }
   }
-  if (q.includes('wood stove') || q.includes('coal') || q.includes('fireplace') || q.includes('gas stove')) {
-    const heat = q.includes('wood') ? 'Wood Stove' : q.includes('coal') ? 'Coal Burner' : q.includes('fireplace') ? 'Fireplace' : 'Gas Stove';
-    extractedFacts.push({ type: 'home', key: 'heating', value: heat });
+  if (q.includes('chulha') || q.includes('wood') || q.includes('coal') || q.includes('angithi') || q.includes('lpg') || q.includes('png') || q.includes('induction')) {
+    const heat = q.includes('chulha') ? 'Wood/Dung Chulha' : q.includes('angithi') ? 'Coal/Charcoal Angithi' : q.includes('induction') ? 'Induction Cooktop' : q.includes('png') ? 'PNG Piped Gas' : 'LPG Cylinder';
+    extractedFacts.push({ type: 'home', key: 'cooking', value: heat });
   }
-  if (q.includes('commute') || q.includes('drive') || q.includes('car') || q.includes('bike') || q.includes('train')) {
-    const commute = q.includes('bike') ? 'Bicycle' : q.includes('train') || q.includes('metro') || q.includes('bus') ? 'Public Transit' : 'Solo Car';
+  if (q.includes('metro') || q.includes('train') || q.includes('bus') || q.includes('auto') || q.includes('scooter') || q.includes('bike') || q.includes('car')) {
+    const commute = q.includes('metro') ? 'Metro' : q.includes('train') ? 'Local Train' : q.includes('bus') ? 'City Bus' : q.includes('auto') ? 'Auto/E-Rickshaw' : q.includes('bike') || q.includes('scooter') ? 'Two-Wheeler' : 'Car';
     extractedFacts.push({ type: 'lifestyle', key: 'commute', value: commute });
   }
 
-  // Topic responses
-  if (q.includes('plan') || q.includes('routine') || q.includes('schedule') || q.includes('day')) {
-    text = `Hello ${userName}! Here is your personalized, low-exposure day plan for **${cityName}** where the AQI is currently **${aqi} (${aqiCat})**.\n\n` +
+  // Detect Hindi / Hinglish query
+  const isHindi = /[\u0900-\u097F]/.test(message);
+  const isHinglish = /\b(kya|kaise|karo|aaj|hawa|ka|ki|ke|hai|nahi|baahar|jaana|chahiye|saans|mask)\b/i.test(message);
+
+  if (isHindi) {
+    text = `नमस्ते ${userName}! **${cityName}** में आज अनुमानित CPCB वायु गुणवत्ता सूचकांक (NAQI) **${aqi} (${aqiCat})** है।\n\n` +
+      `### 🕒 आज के लिए सुझाव:\n` +
+      `* **सुबह (6:00 – 9:30 AM)**: सर्दियों की धुंध (इनवर्जन) ज़मीन के पास प्रदूषण रोक लेती है। खिड़कियाँ बंद रखें और सुबह की सैर दोपहर (1:00 – 3:30 PM) तक टालें।\n` +
+      `* **मास्क**: बाहर निकलते समय केवल प्रमाणित **N95 या FFP2 मास्क** पहनें (कपड़े या सर्जिकल मास्क बारीक PM2.5 कण नहीं रोक पाते)।\n` +
+      `* **सस्ता इनडोर फिल्टर**: 20-इंच पंखे पर MERV-13 फिल्टर लगाकर DIY Corsi-Rosenthal बॉक्स लगभग ₹3,000 में बन जाता है और 80%+ धूल साफ करता है।\n\n` +
+      `> 🩺 *अस्वीकरण: फॉगी एक AI सहायक है, डॉक्टर नहीं। चिकित्सा आपात स्थिति में 112 पर कॉल करें।*`;
+  } else if (isHinglish) {
+    text = `Namaste ${userName}! **${cityName}** mein aaj estimated CPCB NAQI **${aqi} (${aqiCat})** hai.\n\n` +
+      `### 🕒 Smog Shield Routine:\n` +
+      `* **Morning (6:00 – 9:30 AM)**: Winter inversion ground ke paas pollution trap karta hai. Morning walk ya jogging ko avoid karein; afternoon (1:00 – 3:30 PM) safest window hai.\n` +
+      `* **Mask**: Bahar jaate waqt certified **N95 / FFP2 mask** pehnein. Cloth masks PM2.5 particles ko nahi rok paate.\n` +
+      `* **Indoor Air**: Rolled damp towel se door gaps seal karein aur kitchen exhaust fan zaroor on rakhein.\n\n` +
+      `> 🩺 *Disclaimer: Foggy ek AI assistant hai, doctor nahi. Medical emergency ke liye 112 par call karein.*`;
+  } else if (q.includes('plan') || q.includes('routine') || q.includes('schedule') || q.includes('day')) {
+    text = `Hello ${userName}! Here is your low-exposure day plan for **${cityName}** where the estimated NAQI is currently **${aqi} (${aqiCat})** based on CPCB categories.\n\n` +
       `### 🕒 Hour-by-Hour Smog Shield Routine:\n` +
-      `* **Morning (7:00 AM – 9:30 AM) [Peak Inversion Alert]**: Winter air traps pollutants near ground level. Keep windows sealed. Do morning light stretches indoors. Run your air purifier in the bedroom.\n` +
-      `  * **Commute Swap**: If you commute by train/metro instead of driving solo, you save ~**2.8 kg CO2** today and cut your direct exhaust inhalation by **65%** compared to idling in traffic.\n` +
-      `* **Midday (1:00 PM – 3:30 PM) [Safest Outdoor Window]**: Sunlight and thermal mixing dilute ground pollutants. If you need to run errands or walk pets, this is your optimal 2.5-hour window.\n` +
-      `* **Evening (6:30 PM – 9:00 PM) [Domestic Heating Peak]**: Outdoor AQI climbs as heating fires and traffic peak. Keep doors shut and avoid heavy outdoor cardio.\n\n` +
-      (sensitiveNames ? `⚠️ *Special Note for ${sensitiveNames}*: Ensure rescue inhalers are nearby and avoid outdoor cardio during morning/evening inversion hours.\n\n` : '') +
-      `> 🩺 *Friendly reminder: I am Foggy, your air quality companion, not a medical professional. If anyone experiences persistent coughing, wheezing, or chest tightness, please consult a healthcare professional.*`;
+      `* **Morning (6:30 AM – 9:30 AM) [Winter Inversion Peak]**: Dense ground-level inversion traps vehicular exhaust and smoke. Keep balcony doors tightly sealed. Avoid outdoor jogs.\n` +
+      `  * **Commute Swap**: Swapping a petrol two-wheeler or car for the Metro or AC electric bus saves ~**₹150–₹220 in fuel & parking** and cuts direct PM2.5 inhalation by **65%**.\n` +
+      `* **Midday (1:00 PM – 3:30 PM) [Safest Solar Dispersal Window]**: Sunlight breaks the nocturnal inversion layer, improving surface ventilation. Optimal window for errands, quick grocery runs, or indoor airing.\n` +
+      `* **Evening (6:30 PM – 9:30 PM) [Traffic & Smoke Accumulation]**: Ambient particulate counts spike. Keep doors shut, run indoor filtration, and use an induction cooktop or keep the kitchen exhaust fan running.\n\n` +
+      (sensitiveNames ? `⚠️ *Household Alert for ${sensitiveNames}*: Ensure rescue inhalers are readily accessible and keep physical activity indoors during inversion hours.\n\n` : '') +
+      `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`;
   } else if (q.includes('clean') || q.includes('indoor') || q.includes('purifier') || q.includes('filter') || q.includes('box fan')) {
-    text = `Great question, ${userName}! Keeping your indoor sanctuary clean is one of the most effective ways to slash pollution exposure, especially during severe smog.\n\n` +
-      `### 🛠️ Practical Indoor Air Quality Hacks:\n` +
-      `1. **The Corsi-Rosenthal Box (Budget Champion)**:\n` +
-      `   * A standard 20" box fan taped to one or four MERV-13 furnace filters costs under $35-$45 and matches the CADR (Clean Air Delivery Rate) of commercial $400 HEPA units.\n` +
-      `   * **Impact**: Cleans ~85% of PM2.5 in a 400 sq.ft room within 30 minutes.\n` +
-      `2. **Micro-Gap Door & Window Sealing**:\n` +
-      `   * Place a damp rolled towel or foam draft stopper along external door sills.\n` +
-      `   * **Impact**: Slashes uncontrolled outdoor particulate infiltration by up to **40%** at zero additional cost.\n` +
-      `3. **Ventilation Timing**:\n` +
-      `   * Never air out your home before 10 AM or after 6 PM during smog season. Ventilate for 10-15 minutes strictly between 1:30 PM and 3:30 PM if needed, then re-seal.\n` +
-      `4. **Cooktop Safety**:\n` +
-      `   * If you have a gas stove, run your range hood or switch portable cooking to an electric induction plate to eliminate indoor NO2 spikes.\n\n` +
-      `> 🩺 *Medical note: Clean air reduces airway inflammation, but does not replace prescribed respiratory medications. Consult your physician for personalized medical advice.*`;
+    text = `Great question, ${userName}! Managing indoor air quality is vital during Indian winters:\n\n` +
+      `### 🛠️ Practical Indoor Interventions:\n` +
+      `1. **DIY Corsi-Rosenthal Box Fan (~₹2,500 – ₹3,500)**:\n` +
+      `   * Tape 2 to 4 MERV-13 pleated filters to a standard box fan. Delivers the Clean Air Delivery Rate (CADR) of commercial ₹15,000+ HEPA purifiers at a fraction of the cost.\n` +
+      `2. **Damp-Mop Daily (Zero Dry Sweeping)**:\n` +
+      `   * Dry jhadu (brooms) launch settled toxic heavy metals back into breathing height. Use a wet mop (pocha) with water or mild disinfectant.\n` +
+      `3. **Door & Window Draft Sealing (₹0 – ₹350)**:\n` +
+      `   * Place a rolled damp towel across the main door threshold or apply self-adhesive EPDM weatherstripping to block street smog drafts by up to **40%**.\n` +
+      `4. **Honest Note on Houseplants**:\n` +
+      `   * While plants like Snake Plant look wonderful, scientific testing confirms they cannot filter severe particulate smog (PM2.5) at room scale; mechanical filtration is essential.\n\n` +
+      `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`;
   } else if (q.includes('mask') || q.includes('n95') || q.includes('outside') || q.includes('walk')) {
-    text = `Heading outside in ${cityName} (AQI: ${aqi}) requires smart physical barriers, ${userName}.\n\n` +
+    text = `Heading outdoors in ${cityName} (Estimated NAQI: ${aqi}) requires certified physical filtration, ${userName}.\n\n` +
       `### 😷 Mask & Outdoor Protection Guide:\n` +
-      `* **N95 or FFP2 Masks**: Certified N95 respirators filter **95%+ of PM2.5**. Cloth masks or loose surgical masks only block ~20-30% of fine particles.\n` +
-      `* **Fit Matters**: Pinch the nose wire firmly against the bridge of your nose. If air leaks around your cheeks, tighten the straps.\n` +
-      `* **Timing**: Conduct all walking, grocery runs, or errands between **1:00 PM and 3:30 PM** when the sun has broken the overnight inversion lid.\n` +
-      `* **Low-Cost Reuse**: Keep 3-4 N95 masks in labelled paper bags; rotate them daily to let moisture dissipate naturally without losing filtration efficiency.\n\n` +
-      `> 🩺 *Friendly reminder: I am Foggy, your air quality companion, not a medical professional. If breathing feels labored while wearing a mask, step into a clean indoor area and rest.*`;
+      `* **Certified N95 / FFP2 Respirators**: Block **95%+ of PM2.5**. Ordinary cloth, handkerchiefs, or loose surgical masks leak unfiltered air through the sides and do not stop micro-particles.\n` +
+      `* **Proper Seal**: Pinch the metal nose clip firmly and ensure the elastic headbands fit snugly against your cheeks.\n` +
+      `* **4-Day Paper Bag Rotation**: Buy a 4-pack of N95 masks (~₹250–₹400). Label paper bags Mon–Thu and rotate daily to let moisture dissipate naturally, safely extending each mask's life up to 40 hours.\n\n` +
+      `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`;
   } else {
-    text = `Hello ${userName}! I'm Foggy, your air quality companion.\n\n` +
-      `In **${cityName}** today, the AQI is **${aqi} (${aqiCat})**.\n\n` +
-      `Here is how I can help your household navigate this smog season:\n` +
-      `* 📅 **Low-Emission Routines**: Get an hour-by-hour plan for clean commute swaps and optimal outdoor windows.\n` +
-      `* 🏡 **Indoor Protection**: Learn budget-friendly filtration hacks like the DIY Corsi-Rosenthal box fan.\n` +
-      `* 👨‍👩‍👧 **Family Shield**: Set up profiles for children, seniors, or pets with sensitive respiratory needs.\n` +
-      `* 🌱 **Impact Tracking**: See direct CO2 and PM2.5 reduction metrics for every sustainable habit.\n\n` +
-      `What would you like to focus on first?\n\n` +
-      `> 🩺 *Safety disclaimer: I provide air quality and exposure prevention guidance, not medical diagnosis. Please consult a doctor for health concerns.*`;
+    text = `Hello ${userName}! I'm Foggy, your Indian air quality companion.\n\n` +
+      `In **${cityName}** today, the estimated CPCB National AQI is **${aqi} (${aqiCat})**.\n\n` +
+      `Here is how I can help your family stay safe:\n` +
+      `* 📅 **Low-Emission Routines**: Optimal outdoor windows (1-3 PM) and metro/bus commute swaps.\n` +
+      `* 🏡 **Clean Air Playbook**: Budget hacks from ₹0 door draft sealing to DIY Corsi-Rosenthal boxes (~₹3,000).\n` +
+      `* 👨‍👩‍👧 **Family Health Shield**: Tailored precautions for children, seniors, and asthmatic family members.\n` +
+      `* 🌾 **Seasonal Context**: Insights on winter inversion, parali burning, and Delhi-NCR GRAP guidelines.\n\n` +
+      `What would you like to plan today? (You can also ask in Hindi or Hinglish!)\n\n` +
+      `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`;
   }
 
   return { text, extractedFacts };
@@ -145,8 +162,8 @@ export async function onRequestPost(context) {
   const headers = getCorsHeaders(request);
   headers['Content-Type'] = 'application/json; charset=utf-8';
 
-  // Per-IP Rate Limiting (Best Effort)
-  const clientIp = request.headers.get('cf-connecting-ip') ||
+  const clientIp =
+    request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     '127.0.0.1';
 
@@ -156,103 +173,51 @@ export async function onRequestPost(context) {
   headers['X-RateLimit-Reset'] = Math.ceil(rateCheck.reset / 1000).toString();
 
   if (!rateCheck.allowed) {
-    return new Response(JSON.stringify({
-      error: 'Too Many Requests',
-      message: 'Rate limit reached. Please wait a moment before sending more messages.'
-    }), { status: 429, headers });
+    return new Response(
+      JSON.stringify({
+        error: 'Too Many Requests',
+        message: 'Rate limit reached. Please wait a moment before sending more messages.'
+      }),
+      { status: 429, headers }
+    );
   }
 
-  // Request Body Size Limit Check (Content-Length header check)
-  const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
-  if (contentLength > MAX_PAYLOAD_BYTES) {
-    return new Response(JSON.stringify({
-      error: 'Payload Too Large',
-      message: 'Request payload exceeds 64KB limit.'
-    }), { status: 413, headers });
-  }
-
-  // Read and Validate Body Text
   let rawBodyText = '';
   try {
     rawBodyText = await request.text();
-  } catch (err) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Failed to read request body.'
-    }), { status: 400, headers });
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Bad Request', message: 'Failed to read request body.' }),
+      { status: 400, headers }
+    );
   }
 
   if (rawBodyText.length > MAX_PAYLOAD_BYTES) {
-    return new Response(JSON.stringify({
-      error: 'Payload Too Large',
-      message: 'Request payload exceeds 64KB limit.'
-    }), { status: 413, headers });
+    return new Response(
+      JSON.stringify({ error: 'Payload Too Large', message: 'Request payload exceeds 64KB limit.' }),
+      { status: 413, headers }
+    );
   }
 
   let requestBody = {};
   try {
     requestBody = JSON.parse(rawBodyText);
-  } catch (err) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Malformed JSON payload.'
-    }), { status: 400, headers });
-  }
-
-  if (!requestBody || typeof requestBody !== 'object' || Array.isArray(requestBody)) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Request body must be a JSON object.'
-    }), { status: 400, headers });
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'Bad Request', message: 'Malformed JSON payload.' }),
+      { status: 400, headers }
+    );
   }
 
   const { message, history = [], user, aqiData, profile } = requestBody;
 
-  // Validate message
   if (!message || typeof message !== 'string' || !message.trim()) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Message is required and must be a non-empty string.'
-    }), { status: 400, headers });
+    return new Response(
+      JSON.stringify({ error: 'Bad Request', message: 'Message is required and must be non-empty.' }),
+      { status: 400, headers }
+    );
   }
 
-  if (message.length > 4000) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Message exceeds maximum allowed length of 4000 characters.'
-    }), { status: 400, headers });
-  }
-
-  // Validate optional fields
-  if (history && (!Array.isArray(history) || history.length > 50)) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'History must be an array of at most 50 messages.'
-    }), { status: 400, headers });
-  }
-
-  if (profile && (typeof profile !== 'object' || Array.isArray(profile))) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'Profile must be an object.'
-    }), { status: 400, headers });
-  }
-
-  if (aqiData && (typeof aqiData !== 'object' || Array.isArray(aqiData))) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'aqiData must be an object.'
-    }), { status: 400, headers });
-  }
-
-  if (user && (typeof user !== 'object' || Array.isArray(user))) {
-    return new Response(JSON.stringify({
-      error: 'Bad Request',
-      message: 'User must be an object.'
-    }), { status: 400, headers });
-  }
-
-  // Read secrets strictly from context.env
   const apiKey = env?.GEMINI_API_KEY;
   const isKeyConfigured = Boolean(
     apiKey &&
@@ -261,10 +226,10 @@ export async function onRequestPost(context) {
   );
 
   const userName = user?.name || 'Friend';
-  const cityName = aqiData?.city || profile?.location || 'Unknown City';
-  const currentAQI = aqiData?.aqi || 120;
+  const cityName = aqiData?.city || profile?.location || 'Kolkata';
+  const currentAQI = aqiData?.aqi || 165;
   const aqiCategory = aqiData?.category || 'Moderate';
-  const pollutants = aqiData?.pollutants ? JSON.stringify(aqiData.pollutants) : 'N/A';
+  const dominantPollutant = aqiData?.dominantPollutant || 'PM2.5';
 
   const familyList = profile?.familyMembers || [];
   const familyDesc = familyList.length > 0
@@ -273,41 +238,61 @@ export async function onRequestPost(context) {
 
   const householdDetails = `
 - User Name: ${userName}
-- User Location: ${cityName}
-- Current AQI: ${currentAQI} (${aqiCategory})
-- Primary Pollutants: ${pollutants}
-- Household Members: ${familyDesc}
-- Commute Method: ${profile?.commute || 'Not specified'}
-- Heating / Cooking Type: ${profile?.heatingType || 'Not specified'} / ${profile?.cookingType || 'Not specified'}
-- Budget Preference: ${profile?.budget || 'Practical / Budget-conscious'}
-- Known Vulnerabilities: ${profile?.vulnerabilities?.join(', ') || 'None specified'}
+- Location: ${cityName}, India
+- Estimated CPCB NAQI: ${currentAQI} (${aqiCategory})
+- Dominant Pollutant: ${dominantPollutant}
+- Family Members: ${familyDesc}
+- Commute: ${profile?.commute || 'Metro / Two-wheeler'}
+- Cooking / Heating: ${profile?.cookingType || 'LPG Cylinder'} / ${profile?.heatingType || 'Electric geyser'}
+- Currency: Indian Rupees (₹)
 `;
 
   const systemPrompt = `
-You are Foggy, a friendly, knowledgeable, and reassuring GenAI companion who helps families and communities navigate severe winter smog and urban air pollution.
-Your personality is warm, approachable, empathetic, and always practical (never alarmist, never catastrophizing).
+You are Foggy, an empathetic, practical, and knowledgeable GenAI companion designed for Indian households navigating severe air pollution, seasonal winter smog, and urban particulates.
 
-CORE PURPOSE & RULES:
-1. Greet the user warmly by name (${userName}) if appropriate.
-2. Provide personalized, highly actionable guidance that reduces their exposure to polluted air AND lowers their personal contribution to it.
-3. CLEARLY EXPLAIN THE DIRECT IMPACT of every recommendation (e.g. "Switching to public transport for this trip saves ~2.4 kg CO2 and reduces PM2.5 exposure by 60%").
-4. ALWAYS provide budget-friendly options alongside standard solutions (e.g., DIY Corsi-Rosenthal box fan filters, rolled towel draft sealing, window timing).
-5. Address specific family members if relevant: ${familyDesc}.
-6. SAFETY DISCLAIMER: You are an AI companion, NOT a medical doctor. Always include a brief, reassuring medical disclaimer when health symptoms or respiratory conditions arise, advising consulting a healthcare provider.
-7. NEVER ask for information you already have in the context below.
-8. FOCUS: Air quality, winter smog, particulate matter (PM2.5, PM10), low-emission routines, clean indoor air, sustainable alternatives.
-9. DYNAMIC MEMORY EXTRACTION: If the user reveals new personal details in their message (such as a family member's illness like asthma/COPD, a pet, heating type like wood/coal, pregnancy, or commute style), append a special JSON block at the very end of your response on a new line:
-[FOGGY_MEMORY_EXTRACTION: {"facts": [{"type": "family"|"home"|"lifestyle", "key": "string", "name": "optional name", "condition": "optional condition", "value": "string"}]}]
+CORE SYSTEM RULES:
+1. INDIAN CONTEXT & NATIONAL AQI SCALE:
+   - Use the official Central Pollution Control Board (CPCB) National AQI (NAQI) categories (0-500):
+     * Good (0-50)
+     * Satisfactory (51-100)
+     * Moderate (101-200)
+     * Poor (201-300)
+     * Very Poor (301-400)
+     * Severe (401-500)
+   - Never use the US EPA scale, US AQI, Fahrenheit, or "Unhealthy for Sensitive Groups".
+   - Default city is Kolkata unless specified otherwise. Understand major Indian cities (Delhi, Mumbai, Bengaluru, Chennai, Hyderabad, Ahmedabad, Pune, Lucknow, etc.).
+   - Understand Indian seasonal pollution dynamics: winter atmospheric temperature inversions across the Indo-Gangetic Plain, post-harvest crop-residue burning (parali), Diwali fireworks, construction & road dust, vehicular tailpipes, and biomass/chulha burning.
+   - Mention Delhi-NCR Graded Response Action Plan (GRAP) at a general informational level when relevant, directing users to the official CAQM/CPCB bulletin without fabricating specific dates.
 
-CURRENT CONTEXT:
+2. CURRENCY & REALISTIC PRICING:
+   - Always use Indian Rupees (₹), formatted with realistic Indian market estimates (e.g. ₹2,500 – ₹3,500 for a DIY Corsi-Rosenthal box, ₹250 – ₹450 for a multi-pack of N95 masks, ₹8,500 – ₹16,000 for a commercial HEPA purifier, ₹250 for door draft seals).
+   - Never mention dollars ($) or USD.
+
+3. PRACTICAL MITIGATION:
+   - Emphasize certified N95 / FFP2 respirators (cloth and surgical masks cannot filter fine PM2.5).
+   - Promote DIY Corsi-Rosenthal box fan filters with MERV-13 filters as budget champions.
+   - Recommend wet damp-mopping (pocha) over dry brooms (jhadu) to stop dust resuspension.
+   - Honest about indoor plants: clarify that while plants have wellness value, scientific studies show they have negligible impact on severe outdoor particulate infiltration.
+   - Suggest swapping chulha/open fires for LPG cylinders or induction cooktops.
+
+4. MULTILINGUAL COMMUNICATION:
+   - Reply in the language the user writes in: English, Hindi (हिन्दी), or Hinglish.
+   - Tone: Warm, reassuring, evidence-based, actionable (never alarmist or despair-inducing).
+
+5. MANDATORY SAFETY DISCLAIMER:
+   - Always include this exact spirit of disclaimer: "Foggy is an AI assistant, not a doctor. In a medical emergency, call 112."
+
+6. DYNAMIC MEMORY EXTRACTION:
+   - If the user mentions family health conditions (e.g., asthma, COPD, bronchitis), new members, cooking methods, or commute swaps, append:
+   [FOGGY_MEMORY_EXTRACTION: {"facts": [{"type": "family"|"home"|"lifestyle", "key": "string", "name": "optional", "condition": "optional", "value": "string"}]}]
+
+CURRENT HOUSEHOLD CONTEXT:
 ${householdDetails}
 `;
 
   if (isKeyConfigured) {
     try {
       const contents = [];
-
-      // Add recent history (up to last 6 messages)
       const recentHistory = Array.isArray(history) ? history.slice(-6) : [];
       for (const item of recentHistory) {
         if (item.text || item.content) {
@@ -317,27 +302,16 @@ ${householdDetails}
           });
         }
       }
+      contents.push({ role: 'user', parts: [{ text: message }] });
 
-      // Add current message
-      contents.push({
-        role: 'user',
-        parts: [{ text: message }]
-      });
-
-      // Direct REST API fetch to Google Gemini
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
       const apiRes = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }]
-          },
+          system_instruction: { parts: [{ text: systemPrompt }] },
           contents,
-          generationConfig: {
-            temperature: 0.6,
-            maxOutputTokens: 1000
-          }
+          generationConfig: { temperature: 0.6, maxOutputTokens: 1000 }
         }),
         signal: AbortSignal.timeout(9000)
       });
@@ -345,58 +319,40 @@ ${householdDetails}
       if (apiRes.ok) {
         const data = await apiRes.json();
         let rawReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
         if (rawReply) {
-          // Parse out memory extraction block if present
           let extractedFacts = [];
-          const match = rawReply.match(/\[FOGGY_MEMORY_EXTRACTION:\s*(\{.*?\})\]/s);
-          if (match && match[1]) {
+          const memoryMatch = rawReply.match(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/);
+          if (memoryMatch) {
             try {
-              const parsed = JSON.parse(match[1]);
-              if (Array.isArray(parsed.facts)) {
-                extractedFacts = parsed.facts;
-              }
-              rawReply = rawReply.replace(/\[FOGGY_MEMORY_EXTRACTION:\s*(\{.*?\})\]/s, '').trim();
-            } catch (e) {
-              console.warn('[Memory Parse Warning]:', e.message);
-            }
+              const parsed = JSON.parse(memoryMatch[1]);
+              if (Array.isArray(parsed.facts)) extractedFacts = parsed.facts;
+            } catch {}
+            rawReply = rawReply.replace(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/, '').trim();
           }
-
-          return new Response(JSON.stringify({
-            reply: rawReply,
-            extractedFacts,
-            provider: 'Google Gemini 1.5 Flash'
-          }), { status: 200, headers });
+          return new Response(
+            JSON.stringify({ reply: rawReply, extractedFacts, isLive: true, model: 'gemini-1.5-flash' }),
+            { status: 200, headers }
+          );
         }
-      } else {
-        console.error('[Chat Service Error] Gemini API returned non-OK status:', apiRes.status);
       }
     } catch (err) {
-      console.error('[Chat Service Error] Exception during Gemini API call, using smart fallback:', err.message);
+      console.warn('Gemini API fetch failed, falling back to smart simulation:', err.message);
     }
-  } else {
-    console.error('[Chat Service Error] GEMINI_API_KEY is missing or invalid in context.env. Falling back to intelligent Foggy Atmospheric Core.');
   }
 
-  // Fallback core if Gemini is unreachable or key is missing
-  const fallback = generateSmartFallbackResponse({
-    message,
-    user,
-    aqiData,
-    profile,
-    history
-  });
-
-  return new Response(JSON.stringify({
-    reply: fallback.text,
-    extractedFacts: fallback.extractedFacts,
-    provider: isKeyConfigured
-      ? 'Foggy Atmospheric Core (Gemini API fallback active)'
-      : 'Foggy Atmospheric Core (Simulated GenAI - Add GEMINI_API_KEY in Cloudflare Pages Secrets)'
-  }), { status: 200, headers });
+  // Smart fallback
+  const fallback = generateSmartFallbackResponse({ message, user, aqiData, profile });
+  return new Response(
+    JSON.stringify({
+      reply: fallback.text,
+      extractedFacts: fallback.extractedFacts,
+      isLive: false,
+      model: 'foggy-indian-atmospheric-core'
+    }),
+    { status: 200, headers }
+  );
 }
 
-// Fallback for non-POST/OPTIONS methods
 export async function onRequest(context) {
   if (context.request.method === 'POST') return onRequestPost(context);
   if (context.request.method === 'OPTIONS') return onRequestOptions(context);

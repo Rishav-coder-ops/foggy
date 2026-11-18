@@ -1,9 +1,11 @@
 // src/pages/MemoryPage.jsx
+// Memory and Privacy Transparency for Indian Context
 import React, { useState } from 'react';
 import { Brain, Shield, Trash2, Edit3, Check, X, AlertTriangle, Sparkles, Lock, RefreshCw } from 'lucide-react';
-import { useProfile } from '../context/ProfileContext';
+import { useProfile, COOKING_OPTIONS, HEATING_OPTIONS, COMMUTE_OPTIONS } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
 import MascotAvatar from '../components/MascotAvatar';
+import { getStoredCity } from '../services/api';
 
 export default function MemoryPage() {
   const { user } = useAuth();
@@ -19,11 +21,11 @@ export default function MemoryPage() {
   const [editingAttributes, setEditingAttributes] = useState(false);
 
   // Edit fields
-  const [location, setLocation] = useState(profile?.location || 'Salt Lake City');
-  const [commute, setCommute] = useState(profile?.commute || 'Public Transit');
-  const [heatingType, setHeatingType] = useState(profile?.heatingType || 'Natural Gas Furnace');
-  const [cookingType, setCookingType] = useState(profile?.cookingType || 'Induction Cooktop');
-  const [budget, setBudget] = useState(profile?.budget || 'Balanced / Practical');
+  const [location, setLocation] = useState(profile?.location || getStoredCity()?.name || 'Kolkata');
+  const [commute, setCommute] = useState(profile?.commute || 'Metro');
+  const [heatingType, setHeatingType] = useState(profile?.heatingType || 'Electric geyser or heater');
+  const [cookingType, setCookingType] = useState(profile?.cookingType || 'LPG Cylinder');
+  const [budget, setBudget] = useState(profile?.budget || 'Practical / Budget-conscious (₹)');
 
   const handleSaveAttributes = (e) => {
     e.preventDefault();
@@ -62,7 +64,7 @@ export default function MemoryPage() {
         <button
           type="button"
           onClick={() => setClearModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 transition-colors shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 transition-colors shrink-0 cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
           <span>Clear All My Data</span>
@@ -95,7 +97,7 @@ export default function MemoryPage() {
           <button
             type="button"
             onClick={() => setEditingAttributes(!editingAttributes)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>{editingAttributes ? 'Cancel' : 'Edit Attributes'}</span>
@@ -112,6 +114,7 @@ export default function MemoryPage() {
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Kolkata, Mumbai, Delhi..."
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -125,47 +128,39 @@ export default function MemoryPage() {
                 onChange={(e) => setCommute(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
-                <option value="Public Transit">Public Transit (Metro / Bus)</option>
-                <option value="Solo Car (Gasoline/Diesel)">Solo Car (Gasoline/Diesel)</option>
-                <option value="Electric Vehicle (EV)">Electric Vehicle (EV)</option>
-                <option value="Carpool">Carpool</option>
-                <option value="Bicycle / Walking">Bicycle / Walking</option>
-                <option value="Work from Home">Work from Home</option>
+                {COMMUTE_OPTIONS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Home Heating Source
+                Home Heating / Geyser
               </label>
               <select
                 value={heatingType}
                 onChange={(e) => setHeatingType(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
-                <option value="Electric Heat Pump / Mini-Split">Electric Heat Pump / Mini-Split</option>
-                <option value="Natural Gas Furnace">Natural Gas Furnace</option>
-                <option value="District Steam / Radiator">District Steam / Radiator</option>
-                <option value="Electric Baseboard / Space Heater">Electric Baseboard / Space Heater</option>
-                <option value="Wood Burning Stove / Fireplace">Wood Burning Stove / Fireplace</option>
-                <option value="Coal Burner">Coal Burner</option>
+                {HEATING_OPTIONS.map((h) => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Cooking Appliance
+                Cooking Fuel / Appliance
               </label>
               <select
                 value={cookingType}
                 onChange={(e) => setCookingType(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
-                <option value="Induction Cooktop">Induction Cooktop (Cleanest)</option>
-                <option value="Standard Electric Coil/Ceramic">Standard Electric Coil/Ceramic</option>
-                <option value="Natural Gas Burner">Natural Gas Burner</option>
-                <option value="LPG Cylinder Stove">LPG Cylinder Stove</option>
-                <option value="Traditional Biomass">Traditional Biomass</option>
+                {COOKING_OPTIONS.map((ck) => (
+                  <option key={ck} value={ck}>{ck}</option>
+                ))}
               </select>
             </div>
 
@@ -173,13 +168,13 @@ export default function MemoryPage() {
               <button
                 type="button"
                 onClick={() => setEditingAttributes(false)}
-                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold"
+                className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold cursor-pointer"
               >
                 Save Attributes
               </button>
@@ -192,7 +187,7 @@ export default function MemoryPage() {
                 City / Location
               </span>
               <p className="text-sm font-extrabold text-slate-800 dark:text-white mt-1">
-                {profile?.location || 'Salt Lake City'}
+                {profile?.location || 'Kolkata'}
               </p>
             </div>
 
@@ -201,73 +196,76 @@ export default function MemoryPage() {
                 Commute Style
               </span>
               <p className="text-sm font-extrabold text-slate-800 dark:text-white mt-1">
-                {profile?.commute || 'Public Transit'}
+                {profile?.commute || 'Metro'}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Home Heating
+                Home Heating / Geyser
               </span>
               <p className="text-sm font-extrabold text-slate-800 dark:text-white mt-1">
-                {profile?.heatingType || 'Natural Gas'}
+                {profile?.heatingType || 'Electric geyser'}
               </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Cooktop Type
+                Cooking Fuel
               </span>
               <p className="text-sm font-extrabold text-slate-800 dark:text-white mt-1">
-                {profile?.cookingType || 'Induction'}
+                {profile?.cookingType || 'LPG Cylinder'}
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Extracted Chat Memories */}
+      {/* Extracted Memory Items List */}
       <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-              Extracted Facts & Learned Preferences
+              Remembered Facts & Inferences ({savedMemories.length})
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Details Foggy noted during your conversations and suggested saving to your profile.
+              Facts Foggy has extracted from your conversations or verified tips. You can delete any fact anytime.
             </p>
           </div>
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            {savedMemories.length} Facts Saved
-          </span>
         </div>
 
         {savedMemories.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
-            No memories saved yet. As you chat with Foggy about your family, commute, or heating, Foggy will offer to remember key facts here.
+          <div className="p-8 text-center text-slate-400 text-xs italic">
+            No memories saved yet. As you talk to Foggy about your family health, fuels, or daily routines, key facts will appear here.
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="space-y-3">
             {savedMemories.map((mem) => (
-              <div key={mem.id} className="py-3 flex items-start justify-between gap-4">
+              <div
+                key={mem.id}
+                className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/50 text-xs transition-colors hover:border-slate-300 dark:hover:border-slate-600"
+              >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300">
-                      {mem.category || 'General Context'}
+                    <span className="font-bold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 text-[10px]">
+                      {mem.category}
                     </span>
-                    <span className="text-[10px] text-slate-400">
-                      Saved: {mem.dateSaved}
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {mem.dateSaved}
                     </span>
                   </div>
-                  <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                  <p className="text-slate-800 dark:text-slate-200 font-medium">
                     {mem.detail}
+                  </p>
+                  <p className="text-[10px] text-slate-400 italic">
+                    Source: {mem.source}
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => deleteMemory(mem.id)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                   title="Forget this memory"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -278,37 +276,31 @@ export default function MemoryPage() {
         )}
       </div>
 
-      {/* Clear Data Modal */}
+      {/* Clear Modal Confirmation */}
       {clearModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="max-w-md w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
-              <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950/80">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                Clear All Personal Data?
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 text-rose-600">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-lg font-bold">Clear All Memory & Profiles?</h3>
             </div>
-
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              This action will permanently delete all your saved family profiles, learned chat memories, and conversation history from your device's local storage. Foggy will revert to a fresh clean state.
+              This action will reset your saved household details, all family health profiles, and conversation history stored on this device. This cannot be undone.
             </p>
-
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setClearModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
-                Cancel
+                Keep My Data
               </button>
               <button
                 type="button"
                 onClick={handleConfirmClear}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm cursor-pointer"
               >
-                Yes, Wipe All Data
+                Yes, Delete Everything
               </button>
             </div>
           </div>

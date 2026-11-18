@@ -43,9 +43,10 @@ export default function HourlyTimeline({ hourlyData = [] }) {
             const isSelected = activeHour?.time === item.time;
             const aqiColor =
               item.aqi <= 50 ? 'bg-emerald-500' :
-              item.aqi <= 100 ? 'bg-amber-400' :
-              item.aqi <= 150 ? 'bg-orange-500' :
-              item.aqi <= 200 ? 'bg-red-500' : 'bg-purple-600';
+              item.aqi <= 100 ? 'bg-lime-500' :
+              item.aqi <= 200 ? 'bg-amber-400' :
+              item.aqi <= 300 ? 'bg-orange-500' :
+              item.aqi <= 400 ? 'bg-rose-500' : 'bg-red-700';
 
             return (
               <button
@@ -82,7 +83,7 @@ export default function HourlyTimeline({ hourlyData = [] }) {
                   </span>
                 ) : (
                   <span className="inline-block text-[9px] text-slate-600 dark:text-slate-400">
-                    Moderate
+                    {item.aqi <= 50 ? 'Good' : item.aqi <= 100 ? 'Satisfactory' : item.aqi <= 200 ? 'Moderate' : item.aqi <= 300 ? 'Poor' : item.aqi <= 400 ? 'Very Poor' : 'Severe'}
                   </span>
                 )}
               </button>

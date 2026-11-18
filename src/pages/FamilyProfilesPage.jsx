@@ -238,7 +238,7 @@ export default function FamilyProfilesPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Leo, Grandma Helen, Max (Dog)"
+                  placeholder="e.g. Aarav, Dadi Meera, Sheru (Dog)"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 />
               </div>
@@ -307,7 +307,7 @@ export default function FamilyProfilesPage() {
                   rows="2"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Morning soccer practice, walks dog at 8am, needs indoor substitute during smog."
+                  placeholder="e.g. Morning school run at 7:30am, walks Sheru at 7am, needs indoor substitute during winter smog."
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 ></textarea>
               </div>

@@ -8,6 +8,7 @@ import fs from 'fs';
 
 import aqiRouter from './routes/aqi.js';
 import chatRouter from './routes/chat.js';
+import aqiTimelineRouter from './routes/aqiTimeline.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +42,7 @@ app.get('/api/health', (req, res) => {
 // Mount Routes
 app.use('/api/aqi', aqiRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/aqi-timeline', aqiTimelineRouter);
 
 // Catch-all for undefined API routes
 app.all('/api/*', (req, res) => {

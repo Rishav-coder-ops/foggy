@@ -40,7 +40,7 @@ Every winter, hundreds of urban valleys and metropolitan centers experience cata
 
 Particulate matter ($PM_{2.5}$) is small enough ($\le 2.5\,\mu\text{m}$) to bypass nasal cilia, penetrate deep into bronchial alveoli, and enter the circulatory bloodstream. This causes acute asthma flare-ups, vascular inflammation, and chronic pulmonary damage—especially in vulnerable populations like children, seniors, and individuals with respiratory conditions.
 
-Commercial advice often promotes costly purifiers ($400+) or causes anxiety without actionable, community-scale solutions. **Foggy** bridges this gap by delivering reassuring, practical, low-cost guidance and quantifying the exact environmental and health impact of every choice.
+Commercial advice often promotes costly purifiers (₹15,000–₹40,000+) or causes anxiety without actionable, community-scale solutions. **Foggy** bridges this gap by delivering reassuring, practical, low-cost guidance and quantifying the exact environmental and health impact of every choice.
 
 ---
 
@@ -67,21 +67,22 @@ Commercial advice often promotes costly purifiers ($400+) or causes anxiety with
 - Cleaner alternatives: public transit, cycling, carpooling, and induction cooking over coal/wood burning.
 
 ### 3. 🛠️ Budget-Friendly Indoor Air Hacks
-- **The Corsi-Rosenthal Box**: Step-by-step DIY box-fan filter builder that matches $400 HEPA Clean Air Delivery Rates (CADR) for under $35-$50.
-- **Micro-Gap Sealing**: Roll damp towels and apply weatherstripping to slash passive particulate drafts by up to 50% for $0 to $12.
-- **Inversion Ventilation Timing**: Scientifically-timed window airing protocol.
-- **Air-Purifying Botanical Companions**: Snake Plants (nighttime oxygen), Spider Plants (pet-safe formaldehyde absorption), and Areca Palms.
-- **N95/FFP2 Mask Rotation**: Safe 4-day rotating paper bag protocol allowing safe re-use up to 40 hours.
+- **The Corsi-Rosenthal Box**: Step-by-step DIY box-fan filter builder that matches expensive HEPA Clean Air Delivery Rates (CADR) for ~₹2,500–₹3,500.
+- **Micro-Gap Sealing**: Roll damp towels and apply weatherstripping to slash passive particulate drafts by up to 50% for ₹0 to ₹350.
+- **Inversion Ventilation Timing**: Scientifically-timed window airing protocol during midday solar warming.
+- **Air-Purifying Botanical Companions**: Snake Plants (nighttime oxygen), Spider Plants (pet-safe formaldehyde absorption), and Areca Palms (honest assessment: botanical companions, not replacements for filtration).
+- **N95/FFP2 Mask Rotation**: Safe 4-day rotating paper bag protocol allowing safe re-use up to 40 hours (~₹250–₹350 for a multi-pack).
 
 ### 4. 📊 Direct Impact Explainer
 Every recommendation features visual badges detailing:
 - **Estimated Emission Savings**: e.g. `~2.4 kg CO2 saved`
 - **Health Inhalation Reduction**: e.g. `-65% PM2.5 inhaled`
-- **Cost/Time Tradeoff**: e.g. `Save $3.50 vs solo driving`
+- **Cost/Time Tradeoff**: e.g. `Save ~₹180 fuel vs solo driving`
 
 ### 5. 🌍 Location-Aware AQI Display
-- Color-coded severity gauge (Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, Hazardous) following US EPA standards.
-- Real-time station integration via the **World Air Quality Index (WAQI) API**.
+- Color-coded severity gauge (Good, Satisfactory, Moderate, Poor, Very Poor, Severe) following India CPCB National AQI (NAQI) standards (0–500).
+- Primary forecasting and timeline feed via **Open-Meteo Air Quality (CAMS model)**, computing CPCB sub-indices from PM2.5 and PM10 with rolling 24-hour averages.
+- Real-time station reference via the **World Air Quality Index (WAQI) API**.
 - Seamless fallback to high-fidelity regional atmospheric simulation models with clear source badges (`Live Sensor Feed` vs `Simulation Mode`).
 - Direct injection of today's AQI and pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$) into Foggy's LLM prompt context.
 
@@ -98,6 +99,12 @@ Every recommendation features visual badges detailing:
 ### 8. 🌗 Light & Dark Theme
 - Navbar Sun/Moon toggle with smooth CSS transitions.
 - Strictly adheres to the project color specification with WCAG AA compliance.
+
+### 9. 🗂️ Interactive Expandable Feature Panels
+- **7-Day AQI Predictor**: Preview strip and expandable 7-day forward outlook with 3-hour interval breakdown (`02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00, 23:00`), deviation from daily average, best/worst windows, and instant **"Ask Foggy about this forecast"** AI routing.
+- **24-Hour AQI Curve**: Live SVG sparkline preview and expandable full line/area chart with shaded CPCB NAQI bands (colour + text labels: Good, Satisfactory, Moderate, Poor, Very Poor, Severe), interactive tooltips, summary metrics (now, 24h avg, cleanest window, peak smog), and accessible **"View as Table"** data alternative.
+- **Clean Air Playbook: Free to Premium**: Tiered interventions across Free (₹0), Budget (<₹1,000), and Premium (₹1,000+) with estimated particulate reductions, cost in INR, effort ratings, who benefits most, dynamic **"Match to Today's AQI"** advisory banner, and card-specific **"Ask Foggy"** guidance.
+- **Shared Location & Geolocation**: City search powered by Open-Meteo Geocoding with browser geolocation integration, synchronized across panels and the live dashboard.
 
 ---
 
@@ -314,6 +321,7 @@ Foggy is fully optimized for continuous deployment on **Cloudflare Pages** with 
 * **Pages Functions (Edge Workers)**: Located in `functions/api/`:
   - `functions/api/chat.js` handles Google Gemini GenAI interactions, safety disclaimers, rate limiting, request size limits, and dynamic profile memory extraction.
   - `functions/api/aqi.js` handles World Air Quality Index (WAQI) live station feeds, key pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$), rate limiting, input validation, and inversion curve modeling.
+  - `functions/api/aqi-timeline.js` handles Open-Meteo Air Quality timeline forecasting (Copernicus CAMS model) and global city geocoding, returning the past 24 hours of hourly AQI, 7-day 3-hour interval outlooks, 30-minute edge caching, rate limiting, and CORS protection. No API key required.
 * **Zero Secret Leakage**: Secret keys (`GEMINI_API_KEY`, `AQI_API_KEY`) are stored strictly server-side in Cloudflare Pages Secrets (`context.env`). **No secret keys ever use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring credentials are never exposed in browser bundles.
 * **SPA Routing & Security**:
   - `public/_redirects`: Provides the SPA fallback rule (`/* /index.html 200`) so refreshing `/dashboard`, `/family`, `/memory`, or `/about` never produces a 404 error.
@@ -496,7 +504,7 @@ Foggy recognizes that respiratory conditions (asthma, COPD, cardiovascular illne
 1. **Sign In**: Launch the app and click **"Try 1-Click Demo Profile"** or create a new account.
 2. **Check the Dashboard**: Review your local AQI score, the 24-hour inversion curve, and the recommended low-emission daily routine.
 3. **Chat with Foggy**: Ask Foggy to plan your day, provide a budget DIY purifier recipe, or evaluate if it is safe for your child to play soccer outside today.
-4. **Explore Indoor Hacks**: Select the *Indoor Hacks* page to view instructions for building a Corsi-Rosenthal box for under $35.
+4. **Explore Indoor Hacks**: Select the *Indoor Hacks* page to view instructions for building a Corsi-Rosenthal box for ~₹2,500–₹3,500.
 5. **Manage Family**: Add household members with conditions like asthma so Foggy automatically factors them into outdoor advisories.
 6. **Inspect Memory**: Open *What Foggy Knows* to inspect and manage the facts Foggy has learned.
 
