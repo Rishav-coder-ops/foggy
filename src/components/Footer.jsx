@@ -52,8 +52,6 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
               <li><a href="https://cpcb.nic.in" target="_blank" rel="noreferrer" className="hover:text-sky-500 transition-colors">CPCB National AQI Standards</a></li>
               <li><a href="https://open-meteo.com" target="_blank" rel="noreferrer" className="hover:text-sky-500 transition-colors">Open-Meteo Air Quality (CAMS)</a></li>
-              <li><a href="https://aqicn.org" target="_blank" rel="noreferrer" className="hover:text-sky-500 transition-colors">WAQI Data Platform</a></li>
-              <li><a href="https://aistudio.google.com" target="_blank" rel="noreferrer" className="hover:text-sky-500 transition-colors">Google Gemini API</a></li>
               <li><a href="/about" className="hover:text-sky-500 transition-colors">Documentation & Roadmap</a></li>
             </ul>
           </div>
