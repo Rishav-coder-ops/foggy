@@ -131,16 +131,26 @@ export async function sendChatMessage({ message, history = [], user, aqiData, pr
       };
     }
     console.warn('Chat request failed, providing supportive client fallback:', err.message);
+    const isFirst = !history || history.filter(m => m.sender === 'user' || m.role === 'user').length <= 1;
+    const greetingPrefix = isFirst
+      ? `Hello ${user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide.\n\n`
+      : '';
+
     return {
-      reply: `Hello ${user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide.\n\n` +
+      reply: `${greetingPrefix}` +
         `Current air quality in **${aqiData?.city || 'Kolkata'}** is **Estimated NAQI ${aqiData?.aqi || 165} (${aqiData?.category || 'Moderate'})**.\n\n` +
-        `### Immediate Practical Steps:\n` +
-        `* 🚪 **Seal Drafts**: Roll a damp towel along door thresholds to prevent up to **40%** of outdoor PM2.5 from infiltrating.\n` +
-        `* 😷 **Outdoor Protection**: If heading outside, a fitted certified N95 / FFP2 mask blocks **>95%** of hazardous particulates (cloth masks do not stop fine PM2.5).\n` +
-        `* 🚇 **Low-Emission Commute**: Riding the Metro or electric city bus cuts direct tailpipe inhalation by **65%** and saves fuel costs.\n\n` +
+        `### 🛡️ Recommended Safeguards:\n` +
+        `* **Draft Sealing:** Roll a damp towel along door thresholds to prevent up to 40% of outdoor PM2.5 from entering.\n` +
+        `* **Outdoor Transit:** Wear a certified N95 / FFP2 mask during high-traffic morning commute hours.\n` +
+        `* **Family Safety:** Keep prescribed salbutamol inhaler (for example Asthalin) handy as advised by your doctor, and shift walks to the afternoon solar window.\n\n` +
         `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`,
       extractedFacts: [],
-      provider: 'Foggy Resilient Core'
+      provider: 'Foggy Resilient Core',
+      cityData: {
+        name: aqiData?.city || 'Kolkata',
+        aqi: aqiData?.aqi || 165,
+        category: aqiData?.category || 'Moderate'
+      }
     };
   }
 }

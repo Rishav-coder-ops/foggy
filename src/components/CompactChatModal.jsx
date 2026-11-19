@@ -2,9 +2,29 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Send, Trash2, X, Sparkles, User as UserIcon, Minus, MapPin, Check } from 'lucide-react';
 import MascotAvatar from './MascotAvatar';
+import FormattedChatMessage from './FormattedChatMessage';
 import { useChat } from '../context/ChatContext';
 import { useProfile } from '../context/ProfileContext';
 import { getStoredCity } from '../services/api';
+
+function getCategoryBadge(cat) {
+  switch (cat) {
+    case 'Good':
+      return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+    case 'Satisfactory':
+      return 'bg-green-100 text-green-900 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800';
+    case 'Moderate':
+      return 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+    case 'Poor':
+      return 'bg-orange-100 text-orange-900 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800';
+    case 'Very Poor':
+      return 'bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border-purple-300 dark:border-purple-800';
+    case 'Severe':
+      return 'bg-rose-100 text-rose-900 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-800';
+    default:
+      return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700';
+  }
+}
 
 const STARTER_PROMPTS = [
   'Plan my low-pollution day',
@@ -84,63 +104,6 @@ export default function CompactChatModal({ isEmbedded = false }) {
     sendMessage();
   };
 
-  const renderFormattedSpans = (text) => {
-    const parts = text.split(/(\*\*.*?\*\*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return (
-          <strong key={i} className="font-bold text-slate-900 dark:text-white">
-            {part.slice(2, -2)}
-          </strong>
-        );
-      }
-      return part;
-    });
-  };
-
-  const renderMessageContent = (content) => {
-    const lines = content.split('\n');
-    return (
-      <div className="space-y-1.5 text-xs leading-relaxed">
-        {lines.map((line, idx) => {
-          if (!line.trim()) return <div key={idx} className="h-1" />;
-
-          if (line.startsWith('### ')) {
-            return (
-              <h4 key={idx} className="font-extrabold text-slate-800 dark:text-white pt-1 text-xs sm:text-sm">
-                {line.replace('### ', '')}
-              </h4>
-            );
-          }
-          if (line.startsWith('## ')) {
-            return (
-              <h3 key={idx} className="font-extrabold text-slate-800 dark:text-white pt-1 text-sm">
-                {line.replace('## ', '')}
-              </h3>
-            );
-          }
-          if (line.startsWith('* ') || line.startsWith('- ')) {
-            const rawText = line.substring(2);
-            return (
-              <div key={idx} className="flex items-start gap-1.5 pl-1">
-                <span className="text-sky-500 font-bold text-xs mt-0.5">•</span>
-                <span>{renderFormattedSpans(rawText)}</span>
-              </div>
-            );
-          }
-          if (line.startsWith('> ')) {
-            return (
-              <div key={idx} className="p-2 rounded-xl bg-amber-500/10 border-l-2 border-amber-500 text-amber-900 dark:text-amber-300 text-[11px] italic my-1">
-                {renderFormattedSpans(line.replace('> ', ''))}
-              </div>
-            );
-          }
-          return <p key={idx}>{renderFormattedSpans(line)}</p>;
-        })}
-      </div>
-    );
-  };
-
   const containerClasses = isEmbedded
     ? 'w-full max-w-lg mx-auto h-[580px] max-h-[85vh] rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xl flex flex-col overflow-hidden'
     : 'fixed inset-x-0 bottom-0 sm:bottom-5 sm:right-5 sm:inset-x-auto z-50 w-full sm:w-[410px] h-[85vh] sm:h-[580px] max-h-[92dvh] sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t sm:border border-sky-400/40 dark:border-sky-500/40 shadow-2xl dark:shadow-soft-dark flex flex-col overflow-hidden animate-fade-in transition-all';
@@ -175,9 +138,18 @@ export default function CompactChatModal({ isEmbedded = false }) {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-0.5">
-                {activeCityName} • AQI {activeCityAqi}, {activeCityCat}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap text-[10px] sm:text-[11px] mt-0.5">
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {activeCityName}
+                </span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
+                <span className="text-slate-600 dark:text-slate-300">
+                  Estimated NAQI: <strong className="font-extrabold text-slate-900 dark:text-white">{activeCityAqi}</strong>
+                </span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${getCategoryBadge(activeCityCat)}`}>
+                  {activeCityCat}
+                </span>
+              </div>
               {isDifferentFromDashboard && (
                 <button
                   type="button"
@@ -275,7 +247,7 @@ export default function CompactChatModal({ isEmbedded = false }) {
                   </div>
                 )}
 
-                {renderMessageContent(msg.text)}
+                <FormattedChatMessage content={msg.text} sender={msg.sender} />
 
                 <div className="mt-1 text-right">
                   <span className={`text-[9px] ${isUser ? 'text-slate-300 dark:text-slate-800' : 'text-slate-400 dark:text-slate-400'}`}>

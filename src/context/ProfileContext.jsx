@@ -52,34 +52,43 @@ const DEFAULT_PROFILE = {
       name: 'Aarav (Son)',
       role: 'Child',
       age: 7,
-      condition: 'Asthma (Uses Inhaler)',
+      condition: 'Asthma (Uses salbutamol inhaler, for example Asthalin)',
       sensitivity: 'High',
-      notes: 'Loves cricket outdoors; needs indoor activity alternative during high smog days.'
+      notes: 'Loves cricket outdoors; keeps prescribed salbutamol inhaler (for example Asthalin) handy as advised by doctor. Needs indoor activities during smog peaks.'
     },
     {
       id: 'fam_2',
-      name: 'Dadi Meera',
+      name: 'Dadi Meera (Grandmother)',
       role: 'Senior',
       age: 74,
-      condition: 'Hypertension & Bronchitis',
+      condition: 'Hypertension & Chronic Bronchitis',
       sensitivity: 'High',
-      notes: 'Morning walk routine shifted to afternoon solar window (1:00 PM).'
+      notes: 'Morning park walk shifted to afternoon solar dispersal window (1:00 PM – 3:30 PM). Follows physician guidance.'
     },
     {
       id: 'fam_3',
+      name: 'Rajesh (Papa)',
+      role: 'Adult',
+      age: 42,
+      condition: 'Mild dust allergy',
+      sensitivity: 'Moderate',
+      notes: 'Daily metro commute to office; wears N95 mask during winter morning transit.'
+    },
+    {
+      id: 'fam_4',
       name: 'Sheru (Pet)',
       role: 'Pet',
       age: 4,
       condition: 'None',
       sensitivity: 'Moderate',
-      notes: 'Prone to eye watering during severe winter smog episodes.'
+      notes: 'Prone to eye watering and sneezing during severe winter smog episodes.'
     }
   ],
   savedMemories: [
     {
       id: 'mem_1',
       category: 'Health Vulnerability',
-      detail: 'Son Aarav experiences wheezing when Estimated NAQI rises above 150.',
+      detail: 'Son Aarav has asthma. Doctor advised keeping a salbutamol inhaler (for example Asthalin) handy when Estimated NAQI rises above 150.',
       dateSaved: '2026-11-10',
       source: 'User shared in chat'
     },
@@ -93,13 +102,33 @@ const DEFAULT_PROFILE = {
     {
       id: 'mem_3',
       category: 'Transit Swap',
-      detail: 'Swapped 4 days of petrol two-wheeler commuting for the Metro line (~₹180 fuel saved).',
+      detail: 'Papa Rajesh swapped petrol two-wheeler commuting for the Metro line (~₹180 fuel saved daily).',
       dateSaved: '2026-11-14',
       source: 'Routine check'
     }
   ],
-  chatSummary: 'Indian household in Kolkata with asthmatic child and senior. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
+  chatSummary: 'Indian household in Kolkata: son Aarav (prescribed salbutamol inhaler, for example Asthalin, per doctor advice), Dadi Meera (chronic bronchitis), and Papa Rajesh. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
 };
+
+function sanitizeStoredProfile(parsed) {
+  if (!parsed || typeof parsed !== 'object') return DEFAULT_PROFILE;
+  const jsonStr = JSON.stringify(parsed);
+  if (
+    jsonStr.includes('Salt Lake') ||
+    jsonStr.includes('US') ||
+    jsonStr.includes('Leo') ||
+    jsonStr.includes('Helen') ||
+    jsonStr.includes('Albuterol')
+  ) {
+    const cleaned = { ...DEFAULT_PROFILE, ...parsed };
+    cleaned.location = 'Kolkata';
+    cleaned.familyMembers = DEFAULT_PROFILE.familyMembers;
+    cleaned.savedMemories = DEFAULT_PROFILE.savedMemories;
+    cleaned.chatSummary = DEFAULT_PROFILE.chatSummary;
+    return cleaned;
+  }
+  return parsed;
+}
 
 export function ProfileProvider({ children }) {
   const { user } = useAuth();
@@ -110,12 +139,7 @@ export function ProfileProvider({ children }) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        // Replace obsolete locations like Salt Lake City
-        if (parsed.location && (parsed.location.includes('Salt Lake') || parsed.location.includes('US'))) {
-          parsed.location = 'Kolkata';
-        }
-        return parsed;
+        return sanitizeStoredProfile(JSON.parse(saved));
       }
       return DEFAULT_PROFILE;
     } catch {
@@ -130,11 +154,7 @@ export function ProfileProvider({ children }) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.location && (parsed.location.includes('Salt Lake') || parsed.location.includes('US'))) {
-          parsed.location = 'Kolkata';
-        }
-        setProfile(parsed);
+        setProfile(sanitizeStoredProfile(JSON.parse(saved)));
       } else {
         setProfile(DEFAULT_PROFILE);
       }

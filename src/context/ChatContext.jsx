@@ -13,7 +13,19 @@ export function ChatProvider({ children }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [aqiData, setAqiData] = useState(null);
-  const [chatCityData, setChatCityData] = useState(null);
+  const [chatCityData, setChatCityData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const lastWithCity = [...parsed].reverse().find(m => m.sender === 'foggy' && m.cityData?.name);
+          if (lastWithCity?.cityData) return lastWithCity.cityData;
+        }
+      }
+    } catch { }
+    return null;
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
 
@@ -41,7 +53,10 @@ export function ChatProvider({ children }) {
     try {
       const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
       if (saved) {
-        setMessages(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setMessages(parsed);
+        const lastWithCity = [...parsed].reverse().find(m => m.sender === 'foggy' && m.cityData?.name);
+        setChatCityData(lastWithCity?.cityData || null);
         return;
       }
     } catch { }
