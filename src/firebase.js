@@ -9,8 +9,30 @@ import {
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  reauthenticateWithPopup,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser
 } from 'firebase/auth';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -39,6 +61,7 @@ export const isFirebaseConfigured = missingFirebaseVars.length === 0;
 
 let app = null;
 let auth = null;
+let db = null;
 let googleProvider = null;
 
 if (firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('your_')) {
@@ -47,6 +70,16 @@ if (firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('your_'))
     auth = getAuth(app);
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+    } catch {
+      db = getFirestore(app);
+    }
   } catch (err) {
     console.error('Firebase initialization error:', err);
   }
@@ -55,6 +88,7 @@ if (firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('your_'))
 export {
   app,
   auth,
+  db,
   googleProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -62,5 +96,21 @@ export {
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  reauthenticateWithPopup,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp
 };

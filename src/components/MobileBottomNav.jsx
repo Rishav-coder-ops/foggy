@@ -1,14 +1,14 @@
 // src/components/MobileBottomNav.jsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Shield, Users, Brain, Info } from 'lucide-react';
+import { LayoutDashboard, Search, Shield, Users, Info } from 'lucide-react';
 
 export default function MobileBottomNav() {
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/search', label: 'Search', icon: Search },
     { to: '/indoor-hacks', label: 'Hacks', icon: Shield },
     { to: '/family', label: 'Family', icon: Users },
-    { to: '/memory', label: 'Memory', icon: Brain },
     { to: '/about', label: 'About', icon: Info },
   ];
 

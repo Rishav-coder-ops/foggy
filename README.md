@@ -320,8 +320,11 @@ Foggy is fully optimized for continuous deployment on **Cloudflare Pages** with 
 * **Edge Static Assets**: Pre-compiled with Vite into `dist/` and served globally via Cloudflare's ultra-low latency CDN edge network.
 * **Pages Functions (Edge Workers)**: Located in `functions/api/`:
   - `functions/api/chat.js` handles Google Gemini GenAI interactions, safety disclaimers, rate limiting, request size limits, and dynamic profile memory extraction.
-  - `functions/api/aqi.js` handles World Air Quality Index (WAQI) live station feeds, key pollutants ($PM_{2.5}, PM_{10}, NO_2, O_3, SO_2, CO$), rate limiting, input validation, and inversion curve modeling.
+  - `functions/api/aqi.js` handles CPCB National AQI (NAQI) linear sub-index calculations, Open-Meteo CAMS atmospheric model data, rate limiting, input validation, and inversion curve modeling.
   - `functions/api/aqi-timeline.js` handles Open-Meteo Air Quality timeline forecasting (Copernicus CAMS model) and global city geocoding, returning the past 24 hours of hourly AQI, 7-day 3-hour interval outlooks, 30-minute edge caching, rate limiting, and CORS protection. No API key required.
+  - `functions/api/geocode.js` handles Indian city and district search queries with Open-Meteo geocoding, country-priority filtering (`IN`), 10-minute in-memory caching, and Indian state alias matching (`statesMatch` handling variations like Odisha/Orissa, Delhi/NCT of Delhi, Puducherry/Pondicherry).
+  - `functions/api/news.js` aggregates verified public RSS news feeds covering Indian air quality and winter smog, extracting only title, source, publication date, and link (30-minute cache with verified CPCB/CAQM/IMD fallbacks).
+  - `functions/api/alerts.js` serves dated official environmental and meteorological alerts from the Central Pollution Control Board (CPCB), Commission for Air Quality Management (CAQM GRAP directives), India Meteorological Department (IMD fog warnings), and National Disaster Management Authority (NDMA SACHET portal).
 * **Zero Secret Leakage**: Secret keys (`GEMINI_API_KEY`, `AQI_API_KEY`) are stored strictly server-side in Cloudflare Pages Secrets (`context.env`). **No secret keys ever use `VITE_` or `NEXT_PUBLIC_` prefixes**, ensuring credentials are never exposed in browser bundles.
 * **SPA Routing & Security**:
   - `public/_redirects`: Provides the SPA fallback rule (`/* /index.html 200`) so refreshing `/dashboard`, `/family`, `/memory`, or `/about` never produces a 404 error.
@@ -467,25 +470,50 @@ Foggy's visual styling reflects the cool, crisp, misty atmosphere of winter smog
 
 ---
 
-## 🔐 Authentication & Memory Architecture
+## 🔐 Authentication, Onboarding & Firestore Architecture
 
-### Authentication Flow
-1. **Real Firebase Authentication**: User sessions are persisted natively via Firebase `onAuthStateChanged`, handling token refreshes, session lifecycles, and cross-tab synchronizations automatically.
-2. **Google OAuth & Email Sign-In**:
-   - Real **"Continue with Google"** popup via Firebase `signInWithPopup(auth, googleProvider)`. The user's real Google display name and profile picture appear in the navbar.
-   - Real email account creation and sign-in via `createUserWithEmailAndPassword` and `signInWithEmailAndPassword`.
-   - Real **"Forgot password?"** self-service reset via `sendPasswordResetEmail`.
-3. **Friendly Error Translation**: Firebase error codes (such as popup closed, popup blocked, network error, wrong password, user not found, account exists with different method, too many attempts) are translated into clear, friendly guidance messages.
-4. **Environment Health Check**: If Firebase environment variables are missing or unconfigured, an informative on-screen banner is displayed with exact setup steps; the system never silently logs the user in as a fake account.
-5. **Isolated Demo Mode**: A clearly labeled, separate demo account option (`Demo Account - Offline Sandbox`) is provided for offline evaluation without connecting to Google or Firebase.
-6. **Protected Routes**: Protected routes (Dashboard, Family Profiles, Memory) verify session state asynchronously, showing a subtle loading state while Firebase validates tokens before redirecting.
+### 1. Compulsory 2-Step Onboarding Flow
+All real accounts must complete a mandatory two-step onboarding sequence before accessing dashboard, chat, or settings:
+* **Step 1: Personal Profile (`/get-started/profile`)**:
+  - Collects 10 compulsory fields in exact sequence: Full Name, Age (0–120), Country (India-first with ISO search), State / UT (all 28 states & 8 Union Territories), City / Town (live geocoding autocomplete with `statesMatch` normalization), Pre-existing Respiratory/Health Conditions (multi-select), Sensitivity Level (`Low`, `Moderate`, `High` with automatic `Low` lock when "None" is chosen), Daily Commute Method (Metro, bus, car, two-wheeler), Lifestyle & Outdoor Habits, and Compulsory Data Processing Consent checkbox.
+  - Inline error validation triggers on blur; submission automatically scrolls and focuses the first invalid field.
+* **Step 2: Household & Family Members (`/get-started/family`)**:
+  - Users add dependent profiles (children, elderly parents, asthmatics, pets) with relationship tags, individual locations, vulnerabilities, and commute styles.
+  - Alternatively, users can check **"I live alone / No dependents to add"** to bypass adding members and proceed directly.
+  - Completion triggers confetti celebration and transitions `onboarding.step` to `'done'`, granting access to protected routes.
+* **Route Guards (`ProtectedRoute` & `OnboardingRoute`)**:
+  - Unauthenticated visitors attempting to access `/dashboard`, `/chat`, `/family`, or `/settings` are redirected to `/auth`.
+  - Authenticated users with pending onboarding steps (`'profile'` or `'family'`) are strictly locked into `/get-started/*` until finished.
 
-### Memory & Personalization Flow
-1. **User UID Isolation**: Each user's family members, sensitivity profiles, and chat memory are keyed directly to their Firebase `uid` (`foggy_profile_${user.uid}`). Users never see each other's data across accounts.
-2. **Context Bundling**: On every chat message, the frontend bundles the user's city, current AQI metrics, and family health vulnerabilities into the payload.
-3. **Extraction Engine**: Foggy scans chat messages for new family health mentions (e.g., *"my daughter has asthma"*), heating appliances, or commute changes.
-4. **User Confirmation**: The UI renders a floating banner (`💡 Foggy noticed...`) asking for user permission before permanently recording any fact.
-5. **Context Limits**: Older conversation turns are trimmed to retain recent relevance while staying well within Gemini token limits.
+### 2. Cloud Firestore Setup (`asia-south1`) & Security Rules
+* **Database Region**: Provisioned in `asia-south1` (Mumbai) for ultra-low latency and compliance with Indian data sovereignty standards.
+* **Source of Truth Data Model**:
+  - `users/{uid}`: Contains `profile` (all Page 1 fields, latitude, longitude, timezone), `preferredName`, `consentAcceptedAt`, `onboarding` (`{ step: 'profile' | 'family' | 'done', completedAt }`), `createdAt`, and `updatedAt`.
+  - `users/{uid}/family/{memberId}`: Subcollection containing individual family profiles with relationship tags, age, conditions, sensitivity, and commute habits (maximum 20 members).
+  - `users/{uid}/memory/{factId}`: Subcollection containing transparent AI-learned facts and preferences (maximum 50 facts).
+* **Local Persistent Cache**: Initialized via Firebase Web SDK `initializeFirestore` using `persistentLocalCache` and `persistentMultipleTabManager` backed by IndexedDB. User data remains cached offline and synchronizes seamlessly across tabs and device reboots.
+* **Declarative Security Rules (`firestore.rules`)**:
+  - Strict `isOwner(uid)` authorization guarantees that only the authenticated user matching `request.auth.uid == uid` can read or write their document and subcollections.
+  - Free-form string sizes are enforced (< 100 characters for names, < 250 characters for facts) and collection limits are strictly checked.
+  - All public, anonymous, or third-party access is denied (`allow read, write: if false`).
+
+### 3. Account Deletion & Right to Be Forgotten (Danger Zone)
+* Accessible in `/settings` under the **Danger Zone**.
+* **Confirmation Verification**: User must explicitly type `DELETE` into a confirmation field.
+* **Re-authentication**: User re-authenticates via Google OAuth popup or email/password credential to verify identity before deletion.
+* **Comprehensive Purge**:
+  1. Iteratively deletes all subcollection documents (`users/{uid}/family/*` and `users/{uid}/memory/*`).
+  2. Deletes the root document `users/{uid}`.
+  3. Purges local IndexedDB cache and localStorage.
+  4. Calls `deleteUser(auth.currentUser)` on Firebase Authentication to permanently eradicate the user account.
+
+### 4. Demo Account Sandbox (Offline Isolation)
+* Accessible from the login screen (`Demo Account - Offline Sandbox`).
+* Pre-seeded with realistic Indian demo profiles:
+  - **Beta (Son)**: 7 years old, High Sensitivity, Asthma (uses a doctor-prescribed salbutamol rescue inhaler such as Asthalin), loves outdoor cricket.
+  - **Dadi**: 74 years old, Moderate Sensitivity, Hypertension (afternoon walking routine).
+  - **Rusty**: Golden Retriever, pet sensitivity.
+* **Zero Cloud Writes**: Stored purely in local browser memory and never written to Cloud Firestore. Automatically bypasses onboarding to allow instant trial and reviewer demonstration.
 
 ---
 

@@ -49,9 +49,13 @@ export function setStoredCity(cityObj) {
   } catch {}
 }
 
-export async function fetchAQIData(city = 'Kolkata') {
+export async function fetchAQIData(city = 'Kolkata', lat = null, lon = null) {
   try {
-    const res = await fetch(`/api/aqi?city=${encodeURIComponent(city)}`);
+    let url = `/api/aqi?city=${encodeURIComponent(city)}`;
+    if (lat !== null && lon !== null && !isNaN(lat) && !isNaN(lon)) {
+      url += `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    }
+    const res = await fetch(url);
     if (!res.ok) {
       throw new Error(`Failed to load AQI data (Status ${res.status})`);
     }
@@ -158,7 +162,7 @@ export async function sendChatMessage({ message, history = [], user, aqiData, pr
 export async function searchCities(query) {
   if (!query || query.trim().length < 2) return [];
   try {
-    const res = await fetch(`/api/aqi-timeline?search=${encodeURIComponent(query.trim())}`);
+    const res = await fetch(`/api/geocode?name=${encodeURIComponent(query.trim())}&countryCode=IN`);
     if (!res.ok) throw new Error('Geocoding search failed');
     const data = await res.json();
     return data.results || [];
@@ -175,6 +179,22 @@ export async function searchCities(query) {
       longitude: c.lon
     }));
   }
+}
+
+export async function geocodeLocation({ name, countryCode = 'IN', count = 10 } = {}) {
+  if (!name || name.trim().length < 2) return [];
+  const params = new URLSearchParams({
+    name: name.trim(),
+    count: String(count)
+  });
+  if (countryCode) params.append('countryCode', countryCode);
+
+  const res = await fetch(`/api/geocode?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error(`Geocoding failed with status ${res.status}`);
+  }
+  const data = await res.json();
+  return data.results || [];
 }
 
 export async function fetchAQITimeline({ lat = 22.5726, lon = 88.3639, city = 'Kolkata' } = {}) {

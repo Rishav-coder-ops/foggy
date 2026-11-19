@@ -273,6 +273,8 @@ export async function onRequestGet(context) {
 
   const url = new URL(request.url);
   const rawCity = url.searchParams.get('city');
+  const rawLat = parseFloat(url.searchParams.get('lat'));
+  const rawLon = parseFloat(url.searchParams.get('lon'));
   let requestedCity = 'Kolkata';
 
   if (rawCity !== null && rawCity !== undefined) {
@@ -287,22 +289,28 @@ export async function onRequestGet(context) {
   let lon = 88.3639;
   let displayCity = requestedCity;
 
-  const metroMatch = INDIAN_METROS.find(
-    (m) => m.name.toLowerCase() === requestedCity.toLowerCase()
-  );
-  if (metroMatch) {
-    lat = metroMatch.lat;
-    lon = metroMatch.lon;
-    displayCity = `${metroMatch.name}, ${metroMatch.admin1 || 'India'}`;
+  if (!Number.isNaN(rawLat) && !Number.isNaN(rawLon) && rawLat >= -90 && rawLat <= 90 && rawLon >= -180 && rawLon <= 180) {
+    lat = rawLat;
+    lon = rawLon;
+    displayCity = requestedCity;
   } else {
-    // Check Indian DB
-    const dbKey = Object.keys(INDIAN_CITY_SIMULATION_DB).find(
-      (k) => requestedCity.toLowerCase().includes(k) || k.includes(requestedCity.toLowerCase())
+    const metroMatch = INDIAN_METROS.find(
+      (m) => m.name.toLowerCase() === requestedCity.toLowerCase()
     );
-    if (dbKey) {
-      lat = INDIAN_CITY_SIMULATION_DB[dbKey].lat;
-      lon = INDIAN_CITY_SIMULATION_DB[dbKey].lon;
-      displayCity = INDIAN_CITY_SIMULATION_DB[dbKey].city;
+    if (metroMatch) {
+      lat = metroMatch.lat;
+      lon = metroMatch.lon;
+      displayCity = `${metroMatch.name}, ${metroMatch.admin1 || 'India'}`;
+    } else {
+      // Check Indian DB
+      const dbKey = Object.keys(INDIAN_CITY_SIMULATION_DB).find(
+        (k) => requestedCity.toLowerCase().includes(k) || k.includes(requestedCity.toLowerCase())
+      );
+      if (dbKey) {
+        lat = INDIAN_CITY_SIMULATION_DB[dbKey].lat;
+        lon = INDIAN_CITY_SIMULATION_DB[dbKey].lon;
+        displayCity = INDIAN_CITY_SIMULATION_DB[dbKey].city;
+      }
     }
   }
 

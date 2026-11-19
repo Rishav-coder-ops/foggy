@@ -9,6 +9,7 @@ import MobileBottomNav from './components/MobileBottomNav';
 import CompactChatModal from './components/CompactChatModal';
 import CursorAtmosphere from './components/CursorAtmosphere';
 import ProtectedRoute from './components/ProtectedRoute';
+import OnboardingRoute from './components/OnboardingRoute';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -19,6 +20,11 @@ import IndoorHacksPage from './pages/IndoorHacksPage';
 import FamilyProfilesPage from './pages/FamilyProfilesPage';
 import MemoryPage from './pages/MemoryPage';
 import AboutPage from './pages/AboutPage';
+import SettingsPage from './pages/SettingsPage';
+import SupportPage from './pages/SupportPage';
+import SearchAQIPage from './pages/SearchAQIPage';
+import OnboardingProfilePage from './pages/onboarding/OnboardingProfilePage';
+import OnboardingFamilyPage from './pages/onboarding/OnboardingFamilyPage';
 
 export default function App() {
   return (
@@ -33,6 +39,28 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
 
+          {/* Compulsory 2-Step Onboarding */}
+          <Route
+            path="/get-started"
+            element={<Navigate to="/get-started/profile" replace />}
+          />
+          <Route
+            path="/get-started/profile"
+            element={
+              <OnboardingRoute step="profile">
+                <OnboardingProfilePage />
+              </OnboardingRoute>
+            }
+          />
+          <Route
+            path="/get-started/family"
+            element={
+              <OnboardingRoute step="family">
+                <OnboardingFamilyPage />
+              </OnboardingRoute>
+            }
+          />
+
           {/* Protected Routes */}
           <Route
             path="/dashboard"
@@ -42,6 +70,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/search" element={<SearchAQIPage />} />
           <Route
             path="/chat"
             element={
@@ -64,12 +93,17 @@ export default function App() {
           />
           <Route
             path="/memory"
+            element={<Navigate to="/settings" replace />}
+          />
+          <Route
+            path="/settings"
             element={
               <ProtectedRoute>
-                <MemoryPage />
+                <SettingsPage />
               </ProtectedRoute>
             }
           />
+          <Route path="/support" element={<SupportPage />} />
           <Route path="/about" element={<AboutPage />} />
 
           {/* Fallback */}

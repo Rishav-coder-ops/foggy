@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for auth and validation
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isValidProfileData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['profile', 'onboarding', 'updatedAt'])
+        && data.profile is map
+        && data.onboarding is map
+        && data.onboarding.step in ['profile', 'family', 'done']
+        && data.size() <= 25;
+    }
+
+    function isValidFamilyMember() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'relationship'])
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 60
+        && data.relationship is string
+        && data.size() <= 25;
+    }
+
+    function isValidMemoryItem() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['detail'])
+        && data.detail is string
+        && data.detail.size() <= 500
+        && data.size() <= 10;
+    }
+
+    // Match the user's isolated data tree
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if isOwner(uid) && (request.resource == null || isValidProfileData());
+
+      // Family members subcollection
+      match /family/{memberId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && (request.resource == null || isValidFamilyMember());
+      }
+
+      // Learned chat facts memory subcollection
+      match /memory/{factId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) && (request.resource == null || isValidMemoryItem());
+      }
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: false;
+    }
+  }
+}

@@ -9,6 +9,9 @@ import fs from 'fs';
 import aqiRouter from './routes/aqi.js';
 import chatRouter from './routes/chat.js';
 import aqiTimelineRouter from './routes/aqiTimeline.js';
+import geocodeRouter from './routes/geocode.js';
+import newsRouter from './routes/news.js';
+import alertsRouter from './routes/alerts.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -43,6 +46,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/aqi', aqiRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/aqi-timeline', aqiTimelineRouter);
+app.use('/api/geocode', geocodeRouter);
 
 // Catch-all for undefined API routes
 app.all('/api/*', (req, res) => {

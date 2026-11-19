@@ -18,6 +18,8 @@ export default function AuthPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const {
+    user,
+    isAuthenticated,
     login,
     signup,
     loginWithGoogle,
@@ -32,6 +34,12 @@ export default function AuthPage() {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

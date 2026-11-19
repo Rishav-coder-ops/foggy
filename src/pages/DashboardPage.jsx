@@ -7,46 +7,35 @@ import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
 import MascotAvatar from '../components/MascotAvatar';
-import { fetchAQIData, getStoredCity, setStoredCity, DEFAULT_CITY } from '../services/api';
+import { fetchAQIData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useChat } from '../context/ChatContext';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { profile, familyMembers, updateProfile } = useProfile();
+  const { profile, familyMembers } = useProfile();
   const { openChat } = useChat();
 
-  const [currentCity, setCurrentCity] = useState(() => {
-    return profile?.location || getStoredCity()?.name || DEFAULT_CITY.name;
-  });
   const [aqiData, setAqiData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Sync city when profile updates
-  useEffect(() => {
-    if (profile?.location && profile.location !== currentCity) {
-      setCurrentCity(profile.location);
-    }
-  }, [profile?.location]);
+  const savedCity = profile?.city || profile?.location || 'Kolkata';
+  const savedState = profile?.state || 'West Bengal';
+  const locationTitle = `${savedCity}, ${savedState}`;
+  const greetingName = profile?.preferredName || (user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend');
 
-  // Load AQI Data
-  const loadAQI = async (city) => {
+  // Load AQI Data for saved location
+  const loadAQI = async () => {
     setLoading(true);
-    const data = await fetchAQIData(city);
+    const data = await fetchAQIData(savedCity, profile?.latitude, profile?.longitude);
     setAqiData(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadAQI(currentCity);
-  }, [currentCity]);
-
-  const handleCityChange = (newCity) => {
-    setCurrentCity(newCity);
-    updateProfile({ location: newCity });
-    setStoredCity({ name: newCity, country: 'India', lat: 22.5726, lon: 88.3639 });
-  };
+    loadAQI();
+  }, [profile?.city, profile?.state, profile?.latitude, profile?.longitude]);
 
   const sensitiveMembers = familyMembers.filter(m => m.condition && m.condition !== 'None');
 
@@ -59,14 +48,14 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white">
-                Namaste, {user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}!
+                Namaste, {greetingName}!
               </h1>
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
                 Indian CPCB Standards
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Foggy has analyzed today's atmospheric particulate patterns in <span className="font-semibold text-slate-800 dark:text-slate-200">{currentCity}</span> for your household.
+              Foggy has analyzed today's atmospheric particulate patterns in <span className="font-semibold text-slate-800 dark:text-slate-200">{locationTitle}</span> for your household.
             </p>
           </div>
         </div>
@@ -82,12 +71,13 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Main AQI Widget */}
+      {/* Main AQI Widget (Strictly displays user's saved location, search box & quick picks removed) */}
       <AQICard
         aqiData={aqiData}
-        onCityChange={handleCityChange}
         loading={loading}
-        onRefresh={() => loadAQI(currentCity)}
+        onRefresh={loadAQI}
+        showSearch={false}
+        locationTitle={locationTitle}
       />
 
       {/* 24-Hour Smog Inversion Curve */}
@@ -178,7 +168,7 @@ export default function DashboardPage() {
             </h2>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Tailored for {currentCity} • Updated hourly
+            Tailored for {locationTitle} • Updated hourly
           </span>
         </div>
 
