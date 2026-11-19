@@ -18,6 +18,462 @@ export const INDIAN_METROS = [
   { name: 'Pune', lat: 18.5204, lon: 73.8567, country: 'India', admin1: 'Maharashtra' }
 ];
 
+// Comprehensive mapping for Indian cities, old names, spelling variants, typos, and major neighbourhoods
+export const INDIAN_CITY_ALIASES = {
+  // Delhi NCR
+  'delhi': 'Delhi',
+  'new delhi': 'Delhi',
+  'dehli': 'Delhi',
+  'dilli': 'Delhi',
+  'ncr': 'Delhi',
+  'delhi-ncr': 'Delhi',
+  'delhi ncr': 'Delhi',
+  'connaught place': 'Delhi',
+  'rohini': 'Delhi',
+  'dwarka': 'Delhi',
+  'saket': 'Delhi',
+  'karol bagh': 'Delhi',
+  'hauz khas': 'Delhi',
+  'chandni chowk': 'Delhi',
+  'anand vihar': 'Delhi',
+  'ito': 'Delhi',
+  'punjabi bagh': 'Delhi',
+  'rk puram': 'Delhi',
+  'lodhi road': 'Delhi',
+  'nehru place': 'Delhi',
+  'noida': 'Noida',
+  'greater noida': 'Noida',
+  'gurgaon': 'Gurugram',
+  'gurugram': 'Gurugram',
+  'faridabad': 'Faridabad',
+  'ghaziabad': 'Ghaziabad',
+
+  // Mumbai / Maharashtra
+  'mumbai': 'Mumbai',
+  'bombay': 'Mumbai',
+  'bambai': 'Mumbai',
+  'bandra': 'Mumbai',
+  'andheri': 'Mumbai',
+  'juhu': 'Mumbai',
+  'colaba': 'Mumbai',
+  'borivali': 'Mumbai',
+  'dadar': 'Mumbai',
+  'thane': 'Thane',
+  'navi mumbai': 'Navi Mumbai',
+  'pune': 'Pune',
+  'poona': 'Pune',
+  'nagpur': 'Nagpur',
+  'nashik': 'Nashik',
+
+  // Kolkata / West Bengal
+  'kolkata': 'Kolkata',
+  'calcutta': 'Kolkata',
+  'kolkatta': 'Kolkata',
+  'howrah': 'Howrah',
+  'salt lake': 'Kolkata',
+  'salt lake city': 'Kolkata',
+  'newtown': 'Kolkata',
+  'new town': 'Kolkata',
+  'jadavpur': 'Kolkata',
+  'park street': 'Kolkata',
+  'durgapur': 'Durgapur',
+  'asansol': 'Asansol',
+  'siliguri': 'Siliguri',
+
+  // Bengaluru / Karnataka
+  'bengaluru': 'Bengaluru',
+  'bangalore': 'Bengaluru',
+  'blr': 'Bengaluru',
+  'whitefield': 'Bengaluru',
+  'indiranagar': 'Bengaluru',
+  'koramangala': 'Bengaluru',
+  'electronic city': 'Bengaluru',
+  'hsr layout': 'Bengaluru',
+  'jayanagar': 'Bengaluru',
+  'mysore': 'Mysuru',
+  'mysuru': 'Mysuru',
+  'mangalore': 'Mangaluru',
+
+  // Chennai / Tamil Nadu
+  'chennai': 'Chennai',
+  'madras': 'Chennai',
+  'anna nagar': 'Chennai',
+  't nagar': 'Chennai',
+  'adyar': 'Chennai',
+  'velachery': 'Chennai',
+  'coimbatore': 'Coimbatore',
+  'madurai': 'Madurai',
+  'trichy': 'Tiruchirappalli',
+
+  // Hyderabad / Telangana / AP
+  'hyderabad': 'Hyderabad',
+  'secunderabad': 'Hyderabad',
+  'cyberabad': 'Hyderabad',
+  'gachibowli': 'Hyderabad',
+  'hitec city': 'Hyderabad',
+  'visakhapatnam': 'Visakhapatnam',
+  'vizag': 'Visakhapatnam',
+  'vijayawada': 'Vijayawada',
+  'tirupati': 'Tirupati',
+
+  // Gujarat
+  'ahmedabad': 'Ahmedabad',
+  'amdavad': 'Ahmedabad',
+  'surat': 'Surat',
+  'vadodara': 'Vadodara',
+  'baroda': 'Vadodara',
+  'rajkot': 'Rajkot',
+
+  // Odisha
+  'bhubaneswar': 'Bhubaneswar',
+  'bhubaneshwar': 'Bhubaneswar',
+  'bbsr': 'Bhubaneswar',
+  'cuttack': 'Cuttack',
+  'puri': 'Puri',
+
+  // UP, Bihar, Central & Northern
+  'lucknow': 'Lucknow',
+  'kanpur': 'Kanpur',
+  'varanasi': 'Varanasi',
+  'banaras': 'Varanasi',
+  'kashi': 'Varanasi',
+  'prayagraj': 'Prayagraj',
+  'allahabad': 'Prayagraj',
+  'agra': 'Agra',
+  'meerut': 'Meerut',
+  'patna': 'Patna',
+  'gaya': 'Gaya',
+  'chandigarh': 'Chandigarh',
+  'amritsar': 'Amritsar',
+  'ludhiana': 'Ludhiana',
+  'dehradun': 'Dehradun',
+  'shimla': 'Shimla',
+  'srinagar': 'Srinagar',
+  'jammu': 'Jammu',
+  'jaipur': 'Jaipur',
+  'jodhpur': 'Jodhpur',
+  'bhopal': 'Bhopal',
+  'indore': 'Indore',
+  'gwalior': 'Gwalior',
+  'raipur': 'Raipur',
+  'ranchi': 'Ranchi',
+  'guwahati': 'Guwahati',
+  'kochi': 'Kochi',
+  'cochin': 'Kochi',
+  'thiruvananthapuram': 'Thiruvananthapuram',
+  'trivandrum': 'Thiruvananthapuram',
+
+  // Hindi script spellings
+  'दिल्ली': 'Delhi',
+  'दिल्लि': 'Delhi',
+  'नई दिल्ली': 'Delhi',
+  'मुंबई': 'Mumbai',
+  'मुम्बई': 'Mumbai',
+  'बंबई': 'Mumbai',
+  'कोलकाता': 'Kolkata',
+  'कलकत्ता': 'Kolkata',
+  'बेंगलुरु': 'Bengaluru',
+  'बैंगलोर': 'Bengaluru',
+  'चेन्नई': 'Chennai',
+  'मद्रास': 'Chennai',
+  'हैदराबाद': 'Hyderabad',
+  'अहमदाबाद': 'Ahmedabad',
+  'पुणे': 'Pune',
+  'भुवनेश्वर': 'Bhubaneswar',
+  'नोएडा': 'Noida',
+  'गुड़गांव': 'Gurugram',
+  'गुरुग्राम': 'Gurugram',
+  'जयपुर': 'Jaipur',
+  'लखनऊ': 'Lucknow',
+  'कानपुर': 'Kanpur',
+  'पटना': 'Patna',
+  'चंडीगढ़': 'Chandigarh',
+  'वाराणसी': 'Varanasi',
+  'बनारस': 'Varanasi',
+  'इंदौर': 'Indore',
+  'भोपाल': 'Bhopal'
+};
+
+// Geocode any Indian city/place name with countrycode=IN, preferring most populous match
+export async function geocodeIndianCity(query) {
+  if (!query || typeof query !== 'string') return null;
+  const raw = query.trim().toLowerCase();
+  if (!raw) return null;
+
+  // 1. Direct alias dictionary lookup
+  const canonicalName = INDIAN_CITY_ALIASES[raw] || query.trim();
+  const canonicalLower = canonicalName.toLowerCase();
+
+  // 2. Check preset Indian metros
+  const metroMatch = INDIAN_METROS.find((m) =>
+    m.name.toLowerCase() === canonicalLower ||
+    m.name.toLowerCase() === raw
+  );
+  if (metroMatch) {
+    return {
+      name: metroMatch.name,
+      latitude: metroMatch.lat,
+      longitude: metroMatch.lon,
+      admin1: metroMatch.admin1,
+      country: 'India',
+      population: 10000000
+    };
+  }
+
+  // 3. Online Geocoding via Open-Meteo with countrycode=IN
+  try {
+    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(canonicalName)}&count=10&language=en&format=json&countrycode=IN`;
+    const res = await fetch(geoUrl, {
+      headers: { 'User-Agent': 'FoggyAirQualityIndia/1.0' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const results = (data.results || [])
+        .filter((r) => (!r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India'))
+        .sort((a, b) => (b.population || 0) - (a.population || 0));
+
+      if (results.length > 0) {
+        const top = results[0];
+        return {
+          name: top.name,
+          latitude: top.latitude,
+          longitude: top.longitude,
+          admin1: top.admin1 || '',
+          country: 'India',
+          population: top.population || 0
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`Geocoding error for ${canonicalName}:`, err.message);
+  }
+
+  return null;
+}
+
+// Fetch live AQI timeline report for a city, computing CPCB NAQI and rolling averages
+export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
+  let cityInfo = null;
+  if (typeof cityNameOrObj === 'string') {
+    cityInfo = await geocodeIndianCity(cityNameOrObj);
+    if (!cityInfo) {
+      return { found: false, city: cityNameOrObj };
+    }
+  } else if (cityNameOrObj && typeof cityNameOrObj.lat === 'number' && typeof cityNameOrObj.lon === 'number') {
+    cityInfo = {
+      name: cityNameOrObj.name || 'Unknown City',
+      latitude: cityNameOrObj.lat,
+      longitude: cityNameOrObj.lon,
+      admin1: cityNameOrObj.admin1 || '',
+      country: 'India'
+    };
+  } else {
+    return { found: false, city: 'Unknown' };
+  }
+
+  const { name, latitude: lat, longitude: lon, admin1 } = cityInfo;
+
+  try {
+    const apiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10&past_days=1&forecast_days=7&timezone=auto`;
+    const res = await fetch(apiUrl, {
+      headers: { 'User-Agent': 'FoggyAirQualityIndia/1.0' },
+      signal: AbortSignal.timeout(7000)
+    });
+
+    if (!res.ok) throw new Error(`Open-Meteo responded with status ${res.status}`);
+
+    const data = await res.json();
+    const times = data.hourly?.time || [];
+    const pm25s = data.hourly?.pm2_5 || [];
+    const pm10s = data.hourly?.pm10 || [];
+
+    if (times.length === 0) throw new Error('No hourly data from Open-Meteo');
+
+    function getRolling(arr, idx) {
+      const s = Math.max(0, idx - 23);
+      let sum = 0;
+      let count = 0;
+      for (let k = s; k <= idx; k++) {
+        if (typeof arr[k] === 'number' && !isNaN(arr[k])) {
+          sum += arr[k];
+          count++;
+        }
+      }
+      return count > 0 ? sum / count : (arr[idx] ?? 0);
+    }
+
+    const tz = data.timezone || 'Asia/Kolkata';
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
+    const currentHourInt = parseInt(now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }), 10);
+    const targetHourStr = `${todayStr}T${String(currentHourInt).padStart(2, '0')}:00`;
+
+    let currentIdx = times.indexOf(targetHourStr);
+    if (currentIdx === -1) {
+      currentIdx = times.findIndex((t) => t.startsWith(todayStr));
+      if (currentIdx === -1) currentIdx = Math.min(36, times.length - 1);
+    }
+
+    const points = times.map((t, i) => {
+      const roll25 = getRolling(pm25s, i);
+      const roll10 = getRolling(pm10s, i);
+      const naqiRes = calculateCPCBNAQI(roll25, roll10);
+      const cat = getAQICategory(naqiRes.aqi);
+      const hourStr = t.split('T')[1] || '00:00';
+      return {
+        time: t,
+        date: t.split('T')[0],
+        hour: hourStr,
+        aqi: naqiRes.aqi,
+        dominant: naqiRes.dominant,
+        pm25: typeof pm25s[i] === 'number' ? Math.round(pm25s[i] * 10) / 10 : null,
+        pm10: typeof pm10s[i] === 'number' ? Math.round(pm10s[i] * 10) / 10 : null,
+        rollingPm25: Math.round(roll25 * 10) / 10,
+        rollingPm10: Math.round(roll10 * 10) / 10,
+        category: cat.name
+      };
+    });
+
+    const currentPoint = points[currentIdx] || points[points.length - 1];
+
+    // 24-hour window slice
+    const start24 = Math.max(0, currentIdx - 12);
+    const end24 = Math.min(points.length, start24 + 24);
+    const slice24 = points.slice(start24, end24);
+
+    let bestHour24h = slice24[0] || currentPoint;
+    let worstHour24h = slice24[0] || currentPoint;
+    let sum24 = 0;
+    for (const p of slice24) {
+      sum24 += p.aqi;
+      if (p.aqi < bestHour24h.aqi) bestHour24h = p;
+      if (p.aqi > worstHour24h.aqi) worstHour24h = p;
+    }
+    const avg24 = Math.round(sum24 / (slice24.length || 1));
+
+    // Tonight slot (look for today 20:00, 21:00, 22:00, or 23:00)
+    const tonightSlot =
+      points.find((p) => p.date === todayStr && (p.hour === '20:00' || p.hour === '21:00' || p.hour === '22:00' || p.hour === '23:00')) ||
+      points.find((p) => p.time > currentPoint.time && (p.hour === '20:00' || p.hour === '23:00')) ||
+      currentPoint;
+
+    // Tomorrow slots
+    const tomorrowDate = new Date(now.getTime() + 86400 * 1000);
+    const tomorrowStr = tomorrowDate.toLocaleDateString('en-CA', { timeZone: tz });
+    const tomorrowPoints = points.filter((p) => p.date === tomorrowStr);
+    let tomorrowAvg = currentPoint.aqi;
+    let tomorrowBest = currentPoint;
+    let tomorrowWorst = currentPoint;
+    if (tomorrowPoints.length > 0) {
+      let tSum = 0;
+      tomorrowBest = tomorrowPoints[0];
+      tomorrowWorst = tomorrowPoints[0];
+      for (const p of tomorrowPoints) {
+        tSum += p.aqi;
+        if (p.aqi < tomorrowBest.aqi) tomorrowBest = p;
+        if (p.aqi > tomorrowWorst.aqi) tomorrowWorst = p;
+      }
+      tomorrowAvg = Math.round(tSum / tomorrowPoints.length);
+    }
+    const tomorrowCat = getAQICategory(tomorrowAvg);
+
+    const timeFormatted = `${currentPoint.hour} IST, ${now.toLocaleDateString('en-IN', { timeZone: tz, day: 'numeric', month: 'short' })}`;
+
+    return {
+      found: true,
+      city: name,
+      admin1,
+      lat,
+      lon,
+      country: 'India',
+      timeframe,
+      current: {
+        aqi: currentPoint.aqi,
+        category: currentPoint.category,
+        dominant: currentPoint.dominant,
+        pm25: currentPoint.rollingPm25 || currentPoint.pm25,
+        pm10: currentPoint.rollingPm10 || currentPoint.pm10,
+        time: timeFormatted,
+        hourStr: currentPoint.hour
+      },
+      averageAqi24h: avg24,
+      bestHour24h: {
+        hour: bestHour24h.hour,
+        aqi: bestHour24h.aqi,
+        category: bestHour24h.category
+      },
+      worstHour24h: {
+        hour: worstHour24h.hour,
+        aqi: worstHour24h.aqi,
+        category: worstHour24h.category
+      },
+      tonight: {
+        time: `${tonightSlot.hour} IST`,
+        aqi: tonightSlot.aqi,
+        category: tonightSlot.category,
+        dominant: tonightSlot.dominant
+      },
+      tomorrow: {
+        date: tomorrowStr,
+        averageAqi: tomorrowAvg,
+        category: tomorrowCat.name,
+        cleanestSlot: { hour: tomorrowBest.hour, aqi: tomorrowBest.aqi, category: tomorrowBest.category },
+        peakSlot: { hour: tomorrowWorst.hour, aqi: tomorrowWorst.aqi, category: tomorrowWorst.category }
+      },
+      isSample: false,
+      source: 'Open-Meteo CAMS Model (Live Feed)'
+    };
+  } catch (err) {
+    console.warn(`Live AQI fetch failed for ${name}, using sample generator:`, err.message);
+    const sample = generateSampleTimelineData(lat, lon, name);
+    return {
+      found: true,
+      city: name,
+      admin1,
+      lat,
+      lon,
+      country: 'India',
+      timeframe,
+      current: {
+        aqi: sample.currentAqi,
+        category: getAQICategory(sample.currentAqi).name,
+        dominant: sample.dominantPollutant,
+        pm25: Math.round(sample.currentAqi * 0.48 * 10) / 10,
+        pm10: Math.round(sample.currentAqi * 0.85 * 10) / 10,
+        time: `${sample.currentHour} IST`,
+        hourStr: sample.currentHour
+      },
+      averageAqi24h: sample.averageAqi24h,
+      bestHour24h: {
+        hour: sample.bestHour24h.hour,
+        aqi: sample.bestHour24h.aqi,
+        category: getAQICategory(sample.bestHour24h.aqi).name
+      },
+      worstHour24h: {
+        hour: sample.worstHour24h.hour,
+        aqi: sample.worstHour24h.aqi,
+        category: getAQICategory(sample.worstHour24h.aqi).name
+      },
+      tonight: {
+        time: '20:00 IST',
+        aqi: Math.round(sample.currentAqi * 1.15),
+        category: getAQICategory(Math.round(sample.currentAqi * 1.15)).name,
+        dominant: 'PM2.5'
+      },
+      tomorrow: {
+        date: sample.forecast7Days[1]?.date || 'Tomorrow',
+        averageAqi: sample.forecast7Days[1]?.averageAqi || sample.currentAqi,
+        category: sample.forecast7Days[1]?.dominantCategory || 'Moderate',
+        cleanestSlot: { hour: '14:00', aqi: Math.round(sample.currentAqi * 0.75), category: 'Moderate' },
+        peakSlot: { hour: '08:00', aqi: Math.round(sample.currentAqi * 1.3), category: 'Poor' }
+      },
+      isSample: true,
+      source: 'Simulation Mode (Sample data, live data unavailable)'
+    };
+  }
+}
+
 function checkRateLimit(clientIp) {
   const now = Date.now();
   let clientRecord = ipRateLimitMap.get(clientIp);
@@ -371,9 +827,9 @@ export async function onRequestGet(context) {
 
   // 1. Geocoding search handler: ?search=city or ?q=city
   // Restricted and biased to India (country code IN)
-  const searchQuery = url.searchParams.get('search') || url.searchParams.get('q');
-  if (searchQuery) {
-    const trimmed = searchQuery.trim();
+  const rawSearch = url.searchParams.get('search') || url.searchParams.get('q');
+  if (rawSearch) {
+    const trimmed = rawSearch.trim().slice(0, 60).replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '');
     if (trimmed.length < 2) {
       return new Response(JSON.stringify({ results: [] }), {
         status: 200,
@@ -385,8 +841,9 @@ export async function onRequestGet(context) {
     }
 
     try {
+      const canonicalQuery = INDIAN_CITY_ALIASES[trimmed.toLowerCase()] || trimmed;
       // Query Open-Meteo Geocoding with countrycode=IN to restrict to India
-      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=10&language=en&format=json&countrycode=IN`;
+      const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(canonicalQuery)}&count=10&language=en&format=json&countrycode=IN`;
       const geoRes = await fetch(geoUrl, {
         headers: { 'User-Agent': 'FoggyAirQualityIndia/1.0' },
         signal: AbortSignal.timeout(6000)
@@ -399,18 +856,21 @@ export async function onRequestGet(context) {
       const geoData = await geoRes.json();
       let results = (geoData.results || [])
         .filter((r) => !r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India')
+        .sort((a, b) => (b.population || 0) - (a.population || 0))
         .map((r) => ({
           name: r.name,
           country: 'India',
           admin1: r.admin1 || '',
           latitude: r.latitude,
           longitude: r.longitude,
+          population: r.population || 0,
           timezone: r.timezone || 'Asia/Kolkata'
         }));
 
       // If no online results, check Indian Metros preset list
       if (results.length === 0) {
         results = INDIAN_METROS.filter((m) =>
+          m.name.toLowerCase().includes(canonicalQuery.toLowerCase()) ||
           m.name.toLowerCase().includes(trimmed.toLowerCase())
         ).map((m) => ({
           name: m.name,
@@ -456,7 +916,8 @@ export async function onRequestGet(context) {
   // Default to Kolkata (22.5726, 88.3639)
   const latStr = url.searchParams.get('lat') || url.searchParams.get('latitude');
   const lonStr = url.searchParams.get('lon') || url.searchParams.get('longitude');
-  const cityName = url.searchParams.get('city') || 'Kolkata';
+  const rawCity = url.searchParams.get('city') || 'Kolkata';
+  const cityName = rawCity.trim().slice(0, 60).replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '') || 'Kolkata';
 
   const lat = parseFloat(latStr || '22.5726');
   const lon = parseFloat(lonStr || '88.3639');
@@ -702,7 +1163,7 @@ export async function onRequestGet(context) {
   } catch (err) {
     console.warn('Open-Meteo request failed, serving clearly labelled sample data:', err);
     const sampleData = generateSampleTimelineData(lat, lon, cityName);
-    sampleData.simulationReason = err.message || 'Upstream network timeout or connection failure';
+    sampleData.simulationReason = 'Upstream atmospheric service temporarily unavailable; using atmospheric simulation model.';
     return new Response(JSON.stringify(sampleData), {
       status: 200,
       headers: {

@@ -1,9 +1,10 @@
 // src/components/CompactChatModal.jsx
-import React, { useRef, useEffect } from 'react';
-import { Send, Trash2, X, Sparkles, User as UserIcon, Minus } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Send, Trash2, X, Sparkles, User as UserIcon, Minus, MapPin, Check } from 'lucide-react';
 import MascotAvatar from './MascotAvatar';
 import { useChat } from '../context/ChatContext';
 import { useProfile } from '../context/ProfileContext';
+import { getStoredCity } from '../services/api';
 
 const STARTER_PROMPTS = [
   'Plan my low-pollution day',
@@ -23,12 +24,44 @@ export default function CompactChatModal({ isEmbedded = false }) {
     setInputMessage,
     sendMessage,
     clearChatHistory,
-    aqiData
+    aqiData,
+    chatCityData,
+    switchDashboardToChatCity
   } = useChat();
 
   const { pendingFacts, acceptPendingFact, dismissPendingFact, profile } = useProfile();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const [hasSwitched, setHasSwitched] = useState(false);
+  const [currentSelectedCity, setCurrentSelectedCity] = useState(() => getStoredCity());
+
+  useEffect(() => {
+    const handleCity = (e) => {
+      setCurrentSelectedCity(e.detail || getStoredCity());
+      setHasSwitched(false);
+    };
+    window.addEventListener('foggy_city_changed', handleCity);
+    return () => window.removeEventListener('foggy_city_changed', handleCity);
+  }, []);
+
+  const activeCityName = chatCityData?.name || currentSelectedCity?.name || aqiData?.city || profile?.location || 'Kolkata';
+  const activeCityAqi = chatCityData?.aqi != null ? chatCityData.aqi : (aqiData?.aqi || 165);
+  const activeCityCat = chatCityData?.category || aqiData?.category || 'Moderate';
+
+  const isDifferentFromDashboard = Boolean(
+    chatCityData?.name &&
+    currentSelectedCity?.name &&
+    chatCityData.name.toLowerCase() !== currentSelectedCity.name.toLowerCase()
+  );
+
+  const handleSwitch = () => {
+    if (chatCityData) {
+      switchDashboardToChatCity(chatCityData);
+      setHasSwitched(true);
+      setTimeout(() => setHasSwitched(false), 3000);
+    }
+  };
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -143,8 +176,19 @@ export default function CompactChatModal({ isEmbedded = false }) {
                 </span>
               </div>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-0.5">
-                {aqiData?.city || profile?.location || 'Kolkata'} • AQI {aqiData?.aqi || 125}
+                {activeCityName} • AQI {activeCityAqi}, {activeCityCat}
               </p>
+              {isDifferentFromDashboard && (
+                <button
+                  type="button"
+                  onClick={handleSwitch}
+                  className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500 hover:bg-sky-600 active:scale-95 text-white transition-all shadow-xs"
+                  title={`Switch dashboard to ${activeCityName}`}
+                >
+                  {hasSwitched ? <Check className="w-3 h-3 text-emerald-200" /> : <MapPin className="w-3 h-3" />}
+                  <span>{hasSwitched ? `Switched to ${activeCityName}!` : `Switch dashboard to ${activeCityName}`}</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -227,7 +271,7 @@ export default function CompactChatModal({ isEmbedded = false }) {
                 {!isUser && (
                   <div className="flex items-center justify-between gap-1 mb-1 pb-1 border-b border-slate-200/50 dark:border-slate-700/50 text-[9px] text-slate-400">
                     <span className="font-bold text-sky-600 dark:text-sky-400">Foggy</span>
-                    <span>{msg.provider || 'Gemini 1.5'}</span>
+                    <span>{msg.provider || (msg.model && msg.model.includes('gemini') ? 'Gemini 1.5 Flash' : 'Foggy Atmospheric Core')}</span>
                   </div>
                 )}
 

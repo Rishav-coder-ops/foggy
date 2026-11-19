@@ -2,6 +2,8 @@
 // Client API Service for Foggy communicating with /api/ Endpoints
 // Configured with Indian default city (Kolkata) and CPCB National AQI standards
 
+import { auth } from '../firebase';
+
 export const INDIAN_METROS = [
   { name: 'Kolkata', lat: 22.5726, lon: 88.3639, country: 'India', admin1: 'West Bengal' },
   { name: 'Delhi', lat: 28.6139, lon: 77.2090, country: 'India', admin1: 'Delhi' },
@@ -79,30 +81,56 @@ export async function fetchAQIData(city = 'Kolkata') {
   }
 }
 
-export async function sendChatMessage({ message, history = [], user, aqiData, profile }) {
+export async function sendChatMessage({ message, history = [], user, aqiData, profile, selectedCity }) {
   try {
+    let idToken = null;
+    if (auth && auth.currentUser && typeof auth.currentUser.getIdToken === 'function') {
+      try {
+        idToken = await auth.currentUser.getIdToken();
+      } catch (err) {
+        // Token retrieval failure defaults to anonymous rate limit
+      }
+    }
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (idToken) {
+      headers['Authorization'] = `Bearer ${idToken}`;
+    }
+
     const payload = JSON.stringify({
       message,
       history,
       user,
       aqiData,
-      profile
+      profile,
+      selectedCity: selectedCity || getStoredCity()
     });
 
     const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: payload
     });
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || errorData.error || `Chat service unavailable (Status ${res.status})`);
+      const errObj = new Error(errorData.message || errorData.error || `Chat service unavailable (Status ${res.status})`);
+      if (res.status === 429) {
+        errObj.isRateLimited = true;
+      }
+      throw errObj;
     }
 
     return await res.json();
   } catch (err) {
-    console.warn('Chat request failed, providing supportive client fallback:', err);
+    if (err.isRateLimited) {
+      return {
+        reply: `⚠️ **Rate Limit Notice**\n\n${err.message}\n\n> 💡 *Signed-in users enjoy a higher limit (60 messages/hour). Please sign in or try again shortly.*`,
+        extractedFacts: [],
+        provider: 'System Rate Limiter'
+      };
+    }
+    console.warn('Chat request failed, providing supportive client fallback:', err.message);
     return {
       reply: `Hello ${user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide.\n\n` +
         `Current air quality in **${aqiData?.city || 'Kolkata'}** is **Estimated NAQI ${aqiData?.aqi || 165} (${aqiData?.category || 'Moderate'})**.\n\n` +

@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useProfile } from './ProfileContext';
-import { sendChatMessage, fetchAQIData } from '../services/api';
+import { sendChatMessage, fetchAQIData, getStoredCity, setStoredCity } from '../services/api';
 
 const ChatContext = createContext();
 
@@ -13,6 +13,7 @@ export function ChatProvider({ children }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [aqiData, setAqiData] = useState(null);
+  const [chatCityData, setChatCityData] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
 
@@ -61,11 +62,39 @@ export function ChatProvider({ children }) {
   // Sync AQI context
   useEffect(() => {
     async function load() {
-      const data = await fetchAQIData(profile?.location || 'Kolkata');
+      const stored = getStoredCity();
+      const city = stored?.name || profile?.location || 'Kolkata';
+      const data = await fetchAQIData(city);
       setAqiData(data);
     }
     load();
+
+    const handleCityChange = (e) => {
+      const city = e.detail?.name || getStoredCity()?.name || 'Kolkata';
+      fetchAQIData(city).then(d => setAqiData(d));
+    };
+
+    window.addEventListener('foggy_city_changed', handleCityChange);
+    return () => window.removeEventListener('foggy_city_changed', handleCityChange);
   }, [profile?.location]);
+
+  // Switch dashboard city to the city currently discussed in chat
+  const switchDashboardToChatCity = (target) => {
+    const cityObj = target || chatCityData;
+    if (!cityObj || !cityObj.name) return;
+    const formatted = {
+      name: cityObj.name,
+      lat: cityObj.lat || 22.5726,
+      lon: cityObj.lon || 88.3639,
+      admin1: cityObj.admin1 || '',
+      country: 'India'
+    };
+    setStoredCity(formatted);
+    window.dispatchEvent(new CustomEvent('foggy_city_changed', { detail: formatted }));
+    fetchAQIData(cityObj.name).then(data => {
+      setAqiData(data);
+    });
+  };
 
   // Persist messages across sessions
   useEffect(() => {
@@ -96,19 +125,27 @@ export function ChatProvider({ children }) {
     setIsTyping(true);
 
     try {
+      const storedCity = getStoredCity();
       const response = await sendChatMessage({
         message: text,
         history: messages,
         user,
         aqiData,
-        profile
+        profile,
+        selectedCity: storedCity
       });
+
+      if (response.cityData) {
+        setChatCityData(response.cityData);
+      }
 
       const foggyReply = {
         id: 'msg_f_' + Date.now(),
         sender: 'foggy',
         text: response.reply,
-        provider: response.provider,
+        provider: response.provider || (response.isLive ? 'Gemini 1.5 Flash' : 'Foggy Atmospheric Core'),
+        model: response.model || (response.isLive ? 'gemini-1.5-flash' : 'foggy-atmospheric-core'),
+        cityData: response.cityData,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
@@ -144,6 +181,7 @@ export function ChatProvider({ children }) {
         }
       ];
       setMessages(initial);
+      setChatCityData(null);
       localStorage.removeItem(`foggy_chat_history_${userUid}`);
     }
   };
@@ -162,7 +200,10 @@ export function ChatProvider({ children }) {
         setInputMessage,
         sendMessage,
         clearChatHistory,
-        aqiData
+        aqiData,
+        chatCityData,
+        setChatCityData,
+        switchDashboardToChatCity
       }}
     >
       {children}

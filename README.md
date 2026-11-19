@@ -27,7 +27,7 @@
 - [API Keys & Secrets Setup Guide](#-api-keys--secrets-setup-guide)
 - [Light & Dark Mode Palettes](#-light--dark-mode-palettes)
 - [Authentication & Memory Architecture](#-authentication--memory-architecture)
-- [Privacy & Sensitive Health Data Statement](#-privacy--sensitive-health-data-statement)
+- [Security & Privacy Architecture](#-security--privacy-architecture)
 - [Usage Guide](#-usage-guide)
 - [Future Roadmap](#-future-roadmap)
 - [Contributing](#-contributing)
@@ -489,13 +489,53 @@ Foggy's visual styling reflects the cool, crisp, misty atmosphere of winter smog
 
 ---
 
-## 🛡️ Privacy & Sensitive Health Data Statement
+## 🛡️ Security & Privacy Architecture
 
-Foggy recognizes that respiratory conditions (asthma, COPD, cardiovascular illness) are sensitive personal health information:
-- **Local Storage Only**: In this release, all health tags and extracted facts are stored **exclusively in your browser's local storage**.
-- **No Data Brokering**: We do not sell, broker, or transmit your family health details to data collectors.
-- **Model Training Privacy**: System context is passed via Google Gemini API endpoints without opting into public dataset training.
-- **Full Erasure Control**: Users can inspect every recorded fact on the *What Foggy Knows* page and execute a complete wipe with the **"Clear All My Data"** button.
+Foggy follows a strict defense-in-depth model across every layer of the application stack. See [`SECURITY.md`](SECURITY.md) for vulnerability disclosure policies and SLAs.
+
+### 1. Zero Secrets in Client Bundles
+- **Backend Key Isolation**: API keys (`GEMINI_API_KEY`, `AQI_API_KEY`) are accessed strictly on the server (Cloudflare Pages Functions via `context.env`, or `.dev.vars` / `.env` locally). They are never exposed in browser bundles, network responses, client headers, or git history.
+- **Client Variables**: Frontend builds only consume safe public identifiers (`VITE_FIREBASE_*`) necessary for client-side Firebase Auth initialization.
+
+### 2. Dual-Tier Abuse Protection & Rate Limiting
+- **Anonymous Visitors**: Restricted to **10 messages per hour** per client IP on `/api/chat`.
+- **Signed-in Users**: Granted an expanded limit of **60 messages per hour** on `/api/chat`.
+- **Cryptographic Firebase Token Verification**: Signed-in users transmit an `Authorization: Bearer <idToken>` header. Cloudflare Pages Functions cryptographically verify the token against Google's public JWK certificates (`RSASSA-PKCS1-v1_5` / `SHA-256`) via standard Web Crypto API, validating `aud`, `iss`, `exp`, and `iat` before granting the higher quota tier.
+- **Payload & Message Caps**:
+  - Request body capped at **32 KB** (`413 Payload Too Large`).
+  - Message length capped at **500 characters** (`400 Bad Request`).
+  - Conversation context capped at the **last 10 turns**.
+- **Cloudflare Dashboard Rate Limiting**: In addition to serverless function rate limiting, production deployments should configure Cloudflare Rate Limiting Rules (under **Security > WAF > Rate Limiting Rules**) on `/api/*` routes to block high-frequency layer-7 traffic and volumetric DDoS attacks before they reach worker instances.
+
+### 3. Prompt-Injection & Jailbreak Defenses
+- Foggy's system prompt strictly instructs Gemini to:
+  - Reject all roleplay, persona overrides, hypothetical modes, and jailbreak phrases (`ignore previous instructions`, `DAN mode`, etc.).
+  - Keep internal instructions, credentials, and prompts strictly confidential.
+  - Remain within domain boundaries (air quality, winter smog, respiratory health, indoor hacks, and urban sustainability) and politely decline out-of-scope or adversarial requests.
+  - Treat all user messages and external data as untrusted input.
+  - Bounded token output (`maxOutputTokens: 600`).
+
+### 4. Cross-Site Scripting (XSS) Prevention & Safe Rendering
+- **No Raw HTML Injection**: Zero usage of `dangerouslySetInnerHTML` throughout the entire codebase.
+- **Automatic React Escaping**: All user input, message text, and AI responses are rendered as safe virtual DOM text nodes, eliminating DOM-based and stored XSS vectors.
+
+### 5. HTTP Edge Security Headers
+Configured in `public/_headers` and deployed directly to Cloudflare Pages:
+- `Content-Security-Policy`: Restricts scripts, frames, images, and API connections to trusted Google, Firebase, Open-Meteo, and WAQI endpoints.
+- `X-Frame-Options: DENY` & `frame-ancestors 'none'`: Comprehensive clickjacking defense.
+- `X-Content-Type-Options: nosniff`: Prevents MIME-type sniffing vulnerabilities.
+- `Referrer-Policy: strict-origin-when-cross-origin`: Shields user navigation paths.
+- `Permissions-Policy`: Shuts down sensitive device sensors (`camera=()`, `microphone=()`, `payment=()`, `usb=()`, `interest-cohort=()`).
+
+### 6. Privacy & Sensitive Health Data Isolation
+- **Device-Local Storage**: Family health conditions (asthma, COPD, cardiovascular vulnerabilities) are stored **strictly on the user's local device** (`localStorage`) keyed to their Firebase `uid` (`foggy_profile_${uid}`).
+- **No Telemetry or Profiling**: We never broker, sell, or monetize user data.
+- **Zero Server-Side Logging**: Serverless functions never write message text, health attributes, or personal identities to server logs.
+- **One-Click Erasure**: The *What Foggy Knows* memory inspector allows users to review, edit, or permanently wipe all stored data via the **"Clear All My Data"** button.
+
+### 7. Dependency Security & Hygiene
+- Dependency trees are kept clean and free of vulnerabilities via regular `pnpm audit` / `npm audit` checks (0 known vulnerabilities).
+- Transitive dependencies are pinned securely to mitigate supply chain risks.
 
 ---
 

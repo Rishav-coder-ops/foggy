@@ -276,8 +276,8 @@ export async function onRequestGet(context) {
   let requestedCity = 'Kolkata';
 
   if (rawCity !== null && rawCity !== undefined) {
-    const trimmed = rawCity.trim();
-    if (trimmed.length > 0 && trimmed.length <= 100 && !/<[^>]*>|[<>]|javascript:/i.test(trimmed)) {
+    const trimmed = rawCity.trim().slice(0, 60).replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '');
+    if (trimmed.length > 0) {
       requestedCity = trimmed;
     }
   }
@@ -440,7 +440,7 @@ export async function onRequestGet(context) {
         updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isMock: true,
         source: 'Simulation Mode (Sample data, live data unavailable)',
-        simulationReason: err.message || 'Upstream service temporarily unreachable',
+        simulationReason: 'Upstream air quality service temporarily unavailable; using atmospheric simulation model.',
         attribution: 'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
         disclaimer: 'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
         medicalDisclaimer: 'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.',
