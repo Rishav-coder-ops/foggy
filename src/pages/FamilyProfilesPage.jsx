@@ -238,7 +238,7 @@ export default function FamilyProfilesPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aarav (Son), Dadi Meera, Rajesh (Papa), Sheru (Pet)"
+                  placeholder="e.g. Spandan (Son), Grandma Shreyashi, Rusty (Dog)"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 />
               </div>
@@ -281,7 +281,7 @@ export default function FamilyProfilesPage() {
                   type="text"
                   value={condition}
                   onChange={(e) => setCondition(e.target.value)}
-                  placeholder="e.g. Asthma (Uses salbutamol inhaler), Bronchitis, Allergies, None"
+                  placeholder="e.g. Asthma (uses a salbutamol inhaler), Hypertension, Allergies, None"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 />
               </div>
@@ -307,7 +307,7 @@ export default function FamilyProfilesPage() {
                   rows="2"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Morning school run at 7:30am, walks Sheru at 7am, needs indoor substitute during winter smog."
+                  placeholder="e.g. Morning cricket practice at 7:30am, walks Rusty at 7am, needs indoor substitute during winter smog."
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 ></textarea>
               </div>

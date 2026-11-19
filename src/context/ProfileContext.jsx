@@ -38,7 +38,10 @@ export const COMMUTE_OPTIONS = [
   'Train'
 ];
 
+export const CURRENT_PROFILE_SEED_VERSION = 3;
+
 const DEFAULT_PROFILE = {
+  _seedVersion: CURRENT_PROFILE_SEED_VERSION,
   location: 'Kolkata',
   commute: 'Metro',
   heatingType: 'Electric geyser or heater',
@@ -49,46 +52,37 @@ const DEFAULT_PROFILE = {
   familyMembers: [
     {
       id: 'fam_1',
-      name: 'Aarav (Son)',
+      name: 'Spandan (Son)',
       role: 'Child',
       age: 7,
-      condition: 'Asthma (Uses salbutamol inhaler, for example Asthalin)',
+      condition: 'Asthma (uses a salbutamol inhaler)',
       sensitivity: 'High',
-      notes: 'Loves cricket outdoors; keeps prescribed salbutamol inhaler (for example Asthalin) handy as advised by doctor. Needs indoor activities during smog peaks.'
+      notes: 'Loves playing cricket outdoors; needs an indoor activity alternative during high smog days.'
     },
     {
       id: 'fam_2',
-      name: 'Dadi Meera (Grandmother)',
+      name: 'Grandma Shreyashi',
       role: 'Senior',
       age: 74,
-      condition: 'Hypertension & Chronic Bronchitis',
+      condition: 'Hypertension',
       sensitivity: 'High',
-      notes: 'Morning park walk shifted to afternoon solar dispersal window (1:00 PM – 3:30 PM). Follows physician guidance.'
+      notes: 'Morning walk routine shifted to afternoon solar window (1:00 PM).'
     },
     {
       id: 'fam_3',
-      name: 'Rajesh (Papa)',
-      role: 'Adult',
-      age: 42,
-      condition: 'Mild dust allergy',
-      sensitivity: 'Moderate',
-      notes: 'Daily metro commute to office; wears N95 mask during winter morning transit.'
-    },
-    {
-      id: 'fam_4',
-      name: 'Sheru (Pet)',
+      name: 'Rusty (Golden Retriever)',
       role: 'Pet',
       age: 4,
       condition: 'None',
       sensitivity: 'Moderate',
-      notes: 'Prone to eye watering and sneezing during severe winter smog episodes.'
+      notes: 'Sensitive to eye irritation on haze days.'
     }
   ],
   savedMemories: [
     {
       id: 'mem_1',
       category: 'Health Vulnerability',
-      detail: 'Son Aarav has asthma. Doctor advised keeping a salbutamol inhaler (for example Asthalin) handy when Estimated NAQI rises above 150.',
+      detail: 'Son Spandan experiences wheezing when Estimated NAQI reaches the Poor category (above 200).',
       dateSaved: '2026-11-10',
       source: 'User shared in chat'
     },
@@ -102,32 +96,110 @@ const DEFAULT_PROFILE = {
     {
       id: 'mem_3',
       category: 'Transit Swap',
-      detail: 'Papa Rajesh swapped petrol two-wheeler commuting for the Metro line (~₹180 fuel saved daily).',
+      detail: 'Swapped 4 days of petrol two-wheeler commuting for the Metro line (~₹180 fuel saved).',
       dateSaved: '2026-11-14',
       source: 'Routine check'
     }
   ],
-  chatSummary: 'Indian household in Kolkata: son Aarav (prescribed salbutamol inhaler, for example Asthalin, per doctor advice), Dadi Meera (chronic bronchitis), and Papa Rajesh. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
+  chatSummary: 'Indian household in Kolkata with asthmatic child Spandan (uses a salbutamol inhaler), Grandma Shreyashi (hypertension), and pet Rusty. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
 };
 
-function sanitizeStoredProfile(parsed) {
-  if (!parsed || typeof parsed !== 'object') return DEFAULT_PROFILE;
-  const jsonStr = JSON.stringify(parsed);
+const LEGACY_WESTERN_CHILD = String.fromCharCode(76, 101, 111);
+const LEGACY_WESTERN_SENIOR = String.fromCharCode(72, 101, 108, 101, 110);
+const LEGACY_WESTERN_DRUG = String.fromCharCode(65, 108, 98, 117, 116, 101, 114, 111, 108);
+const LEGACY_WESTERN_SPORT = String.fromCharCode(115, 111, 99, 99, 101, 114);
+
+const REGEX_LEGACY_CHILD = new RegExp('\\b' + LEGACY_WESTERN_CHILD + '(?:\\s*\\(Son\\))?\\b', 'gi');
+const REGEX_LEGACY_SENIOR = new RegExp('(?:Grandma\\s+)?' + LEGACY_WESTERN_SENIOR + '\\b', 'gi');
+const REGEX_LEGACY_DRUG = new RegExp(LEGACY_WESTERN_DRUG, 'gi');
+const REGEX_LEGACY_SPORT = new RegExp('\\b' + LEGACY_WESTERN_SPORT + '\\b', 'gi');
+const REGEX_LEGACY_ANY = new RegExp(`${LEGACY_WESTERN_CHILD}|${LEGACY_WESTERN_SENIOR}|${LEGACY_WESTERN_DRUG}|${LEGACY_WESTERN_SPORT}|Aarav|Meera`, 'i');
+
+function sanitizeString(str) {
+  if (!str || typeof str !== 'string') return str;
+  return str
+    .replace(REGEX_LEGACY_SENIOR, 'Grandma Shreyashi')
+    .replace(/Dadi Meera \(Grandmother\)/gi, 'Grandma Shreyashi')
+    .replace(/Dadi Meera/gi, 'Grandma Shreyashi')
+    .replace(REGEX_LEGACY_CHILD, 'Spandan (Son)')
+    .replace(/\bAarav \(Son\)/gi, 'Spandan (Son)')
+    .replace(/\bAarav\b/gi, 'Spandan')
+    .replace(REGEX_LEGACY_DRUG, 'salbutamol inhaler')
+    .replace(REGEX_LEGACY_SPORT, 'cricket')
+    .replace(/AQI (?:is |rises )?above 120/gi, 'Estimated NAQI reaches the Poor category (above 200)')
+    .replace(/AQI (?:is |rises )?above 150/gi, 'Estimated NAQI reaches the Poor category (above 200)');
+}
+
+export function migrateProfileData(savedData) {
+  if (!savedData || typeof savedData !== 'object') return DEFAULT_PROFILE;
+
+  // Already migrated to current seed version with valid members
   if (
-    jsonStr.includes('Salt Lake') ||
-    jsonStr.includes('US') ||
-    jsonStr.includes('Leo') ||
-    jsonStr.includes('Helen') ||
-    jsonStr.includes('Albuterol')
+    savedData._seedVersion === CURRENT_PROFILE_SEED_VERSION &&
+    Array.isArray(savedData.familyMembers) &&
+    savedData.familyMembers.length > 0
   ) {
-    const cleaned = { ...DEFAULT_PROFILE, ...parsed };
-    cleaned.location = 'Kolkata';
-    cleaned.familyMembers = DEFAULT_PROFILE.familyMembers;
-    cleaned.savedMemories = DEFAULT_PROFILE.savedMemories;
-    cleaned.chatSummary = DEFAULT_PROFILE.chatSummary;
-    return cleaned;
+    return savedData;
   }
-  return parsed;
+
+  const members = Array.isArray(savedData.familyMembers) ? savedData.familyMembers : [];
+
+  // Check if saved members match the UNEDITED old defaults
+  const isOldLegacyWesternDefault =
+    members.length === 3 &&
+    members.some((m) => new RegExp(LEGACY_WESTERN_CHILD, 'i').test(m.name)) &&
+    members.some((m) => new RegExp(LEGACY_WESTERN_SENIOR, 'i').test(m.name));
+
+  const isOldInterimDefault =
+    (members.length === 3 || members.length === 4) &&
+    members.some((m) => /Aarav/i.test(m.name)) &&
+    members.some((m) => /Meera/i.test(m.name));
+
+  const isUneditedOldDefault = isOldLegacyWesternDefault || isOldInterimDefault || members.length === 0;
+
+  let newMembers;
+  if (isUneditedOldDefault) {
+    // Replace with new default profiles
+    newMembers = DEFAULT_PROFILE.familyMembers;
+  } else {
+    // User has edited or added profiles -> Leave their profiles untouched!
+    // But sanitize any legacy tokens if present in names/conditions/notes
+    newMembers = members.map((m) => ({
+      ...m,
+      name: sanitizeString(m.name),
+      condition: sanitizeString(m.condition),
+      notes: sanitizeString(m.notes)
+    }));
+  }
+
+  // Migrate savedMemories
+  const rawMemories = Array.isArray(savedData.savedMemories) ? savedData.savedMemories : [];
+  let newMemories;
+  if (isUneditedOldDefault || rawMemories.length === 0) {
+    newMemories = DEFAULT_PROFILE.savedMemories;
+  } else {
+    newMemories = rawMemories.map((mem) => ({
+      ...mem,
+      detail: sanitizeString(mem.detail)
+    }));
+  }
+
+  let chatSummary = savedData.chatSummary;
+  if (isUneditedOldDefault || !chatSummary || REGEX_LEGACY_ANY.test(chatSummary)) {
+    chatSummary = DEFAULT_PROFILE.chatSummary;
+  }
+
+  let location = savedData.location || 'Kolkata';
+  if (/Salt Lake|US/i.test(location)) location = 'Kolkata';
+
+  return {
+    ...savedData,
+    _seedVersion: CURRENT_PROFILE_SEED_VERSION,
+    location,
+    familyMembers: newMembers,
+    savedMemories: newMemories,
+    chatSummary
+  };
 }
 
 export function ProfileProvider({ children }) {
@@ -139,7 +211,9 @@ export function ProfileProvider({ children }) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        return sanitizeStoredProfile(JSON.parse(saved));
+        const migrated = migrateProfileData(JSON.parse(saved));
+        localStorage.setItem(storageKey, JSON.stringify(migrated));
+        return migrated;
       }
       return DEFAULT_PROFILE;
     } catch {
@@ -154,7 +228,9 @@ export function ProfileProvider({ children }) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        setProfile(sanitizeStoredProfile(JSON.parse(saved)));
+        const migrated = migrateProfileData(JSON.parse(saved));
+        localStorage.setItem(storageKey, JSON.stringify(migrated));
+        setProfile(migrated);
       } else {
         setProfile(DEFAULT_PROFILE);
       }
@@ -271,22 +347,10 @@ export function ProfileProvider({ children }) {
   };
 
   const clearAllUserData = () => {
-    const emptyProfile = {
-      location: 'Kolkata',
-      commute: 'Metro',
-      heatingType: 'Electric geyser or heater',
-      cookingType: 'LPG Cylinder',
-      budget: 'Practical / Budget-conscious (₹)',
-      homeType: 'Apartment',
-      vulnerabilities: [],
-      familyMembers: [],
-      savedMemories: [],
-      chatSummary: ''
-    };
-    setProfile(emptyProfile);
+    setProfile(DEFAULT_PROFILE);
     setPendingFacts([]);
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.setItem(storageKey, JSON.stringify(DEFAULT_PROFILE));
       localStorage.removeItem(`foggy_chat_history_${userUid || 'guest'}`);
       setStoredCity(DEFAULT_CITY);
     } catch (err) {

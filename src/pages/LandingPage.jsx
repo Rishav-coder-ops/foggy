@@ -227,14 +227,14 @@ export default function LandingPage() {
                     Foggy Memory Assistant
                   </h4>
                   <p className="text-[10px] text-slate-600 dark:text-slate-400">
-                    Context synced with Aarav (Asthma) & Kolkata (Estimated NAQI 165)
+                    Context synced with Spandan (Asthma) & Kolkata (Estimated NAQI 165)
                   </p>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-2">
                 <p>
-                  "Namaste Aarav! Since the morning inversion layer has pushed the Estimated NAQI to <strong>165 (Moderate)</strong> in Kolkata, let's shift your outdoor cricket practice to the afternoon solar window (1:30 PM)."
+                  "Namaste Spandan! Since the morning inversion layer has pushed the Estimated NAQI to <strong>165 (Moderate)</strong> in Kolkata, let's shift your outdoor cricket practice to the afternoon solar window (1:30 PM)."
                 </p>
                 <ImpactBadge
                   pmReduced="-72% PM2.5 lung intake"
@@ -243,7 +243,7 @@ export default function LandingPage() {
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 text-[11px] text-amber-900 dark:text-amber-300 flex items-center justify-between">
-                <span>💡 Foggy noticed: Child Aarav (Asthma) saved to family profile.</span>
+                <span>💡 Foggy noticed: Child Spandan (Asthma) saved to family profile.</span>
                 <span className="font-bold underline cursor-pointer">Edit</span>
               </div>
             </div>

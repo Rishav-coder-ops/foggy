@@ -543,7 +543,7 @@ Configured in `public/_headers` and deployed directly to Cloudflare Pages:
 
 1. **Sign In**: Launch the app and click **"Try 1-Click Demo Profile"** or create a new account.
 2. **Check the Dashboard**: Review your local AQI score, the 24-hour inversion curve, and the recommended low-emission daily routine.
-3. **Chat with Foggy**: Ask Foggy to plan your day, provide a budget DIY purifier recipe, or evaluate if it is safe for your child to play soccer outside today.
+3. **Chat with Foggy**: Ask Foggy to plan your day, provide a budget DIY purifier recipe, or evaluate if it is safe for your child to play cricket outside today.
 4. **Explore Indoor Hacks**: Select the *Indoor Hacks* page to view instructions for building a Corsi-Rosenthal box for ~₹2,500–₹3,500.
 5. **Manage Family**: Add household members with conditions like asthma so Foggy automatically factors them into outdoor advisories.
 6. **Inspect Memory**: Open *What Foggy Knows* to inspect and manage the facts Foggy has learned.
