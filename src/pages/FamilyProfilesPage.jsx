@@ -238,7 +238,7 @@ export default function FamilyProfilesPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Spandan (Son), Grandma Shreyashi, Rusty (Dog)"
+                  placeholder="e.g. Beta (Son), Dadi, Rusty (Dog)"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                 />
               </div>

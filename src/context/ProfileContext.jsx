@@ -38,7 +38,7 @@ export const COMMUTE_OPTIONS = [
   'Train'
 ];
 
-export const CURRENT_PROFILE_SEED_VERSION = 3;
+export const CURRENT_PROFILE_SEED_VERSION = 4;
 
 const DEFAULT_PROFILE = {
   _seedVersion: CURRENT_PROFILE_SEED_VERSION,
@@ -52,7 +52,7 @@ const DEFAULT_PROFILE = {
   familyMembers: [
     {
       id: 'fam_1',
-      name: 'Spandan (Son)',
+      name: 'Beta (Son)',
       role: 'Child',
       age: 7,
       condition: 'Asthma (uses a salbutamol inhaler)',
@@ -61,7 +61,7 @@ const DEFAULT_PROFILE = {
     },
     {
       id: 'fam_2',
-      name: 'Grandma Shreyashi',
+      name: 'Dadi',
       role: 'Senior',
       age: 74,
       condition: 'Hypertension',
@@ -82,7 +82,7 @@ const DEFAULT_PROFILE = {
     {
       id: 'mem_1',
       category: 'Health Vulnerability',
-      detail: 'Son Spandan experiences wheezing when Estimated NAQI reaches the Poor category (above 200).',
+      detail: 'Son Beta experiences wheezing when Estimated NAQI reaches the Poor category (above 200).',
       dateSaved: '2026-11-10',
       source: 'User shared in chat'
     },
@@ -101,29 +101,31 @@ const DEFAULT_PROFILE = {
       source: 'Routine check'
     }
   ],
-  chatSummary: 'Indian household in Kolkata with asthmatic child Spandan (uses a salbutamol inhaler), Grandma Shreyashi (hypertension), and pet Rusty. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
+  chatSummary: 'Indian household in Kolkata with asthmatic child Beta (uses a salbutamol inhaler), Dadi (hypertension), and pet Rusty. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
 };
 
-const LEGACY_WESTERN_CHILD = String.fromCharCode(76, 101, 111);
-const LEGACY_WESTERN_SENIOR = String.fromCharCode(72, 101, 108, 101, 110);
-const LEGACY_WESTERN_DRUG = String.fromCharCode(65, 108, 98, 117, 116, 101, 114, 111, 108);
-const LEGACY_WESTERN_SPORT = String.fromCharCode(115, 111, 99, 99, 101, 114);
+const LEGACY_V1_CHILD = String.fromCharCode(76, 101, 111);
+const LEGACY_V1_SENIOR = String.fromCharCode(72, 101, 108, 101, 110);
+const LEGACY_V1_DRUG = String.fromCharCode(65, 108, 98, 117, 116, 101, 114, 111, 108);
+const LEGACY_V1_SPORT = String.fromCharCode(115, 111, 99, 99, 101, 114);
 
-const REGEX_LEGACY_CHILD = new RegExp('\\b' + LEGACY_WESTERN_CHILD + '(?:\\s*\\(Son\\))?\\b', 'gi');
-const REGEX_LEGACY_SENIOR = new RegExp('(?:Grandma\\s+)?' + LEGACY_WESTERN_SENIOR + '\\b', 'gi');
-const REGEX_LEGACY_DRUG = new RegExp(LEGACY_WESTERN_DRUG, 'gi');
-const REGEX_LEGACY_SPORT = new RegExp('\\b' + LEGACY_WESTERN_SPORT + '\\b', 'gi');
-const REGEX_LEGACY_ANY = new RegExp(`${LEGACY_WESTERN_CHILD}|${LEGACY_WESTERN_SENIOR}|${LEGACY_WESTERN_DRUG}|${LEGACY_WESTERN_SPORT}|Aarav|Meera`, 'i');
+const LEGACY_V3_CHILD = String.fromCharCode(83, 112, 97, 110, 100, 97, 110);
+const LEGACY_V3_SENIOR = String.fromCharCode(83, 104, 114, 101, 121, 97, 115, 104, 105);
 
-function sanitizeString(str) {
+const REGEX_CHILD_WITH_ROLE = new RegExp('\\b(?:' + LEGACY_V3_CHILD + '|' + LEGACY_V1_CHILD + '|Aarav)\\s*\\(Son\\)', 'gi');
+const REGEX_CHILD_STANDALONE = new RegExp('\\b(?:' + LEGACY_V3_CHILD + '|' + LEGACY_V1_CHILD + '|Aarav)\\b', 'gi');
+
+const REGEX_SENIOR_ALL = new RegExp('(?:Grandma\\s+)?(?:' + LEGACY_V3_SENIOR + '|' + LEGACY_V1_SENIOR + ')|Dadi\\s+Meera(?:\\s*\\(Grandmother\\))?|Grandma\\s+Dadi', 'gi');
+const REGEX_LEGACY_DRUG = new RegExp(LEGACY_V1_DRUG, 'gi');
+const REGEX_LEGACY_SPORT = new RegExp('\\b' + LEGACY_V1_SPORT + '\\b', 'gi');
+const REGEX_LEGACY_ANY = new RegExp(`${LEGACY_V1_CHILD}|${LEGACY_V1_SENIOR}|${LEGACY_V3_CHILD}|${LEGACY_V3_SENIOR}|${LEGACY_V1_DRUG}|${LEGACY_V1_SPORT}|Aarav|Meera`, 'i');
+
+export function sanitizeString(str) {
   if (!str || typeof str !== 'string') return str;
   return str
-    .replace(REGEX_LEGACY_SENIOR, 'Grandma Shreyashi')
-    .replace(/Dadi Meera \(Grandmother\)/gi, 'Grandma Shreyashi')
-    .replace(/Dadi Meera/gi, 'Grandma Shreyashi')
-    .replace(REGEX_LEGACY_CHILD, 'Spandan (Son)')
-    .replace(/\bAarav \(Son\)/gi, 'Spandan (Son)')
-    .replace(/\bAarav\b/gi, 'Spandan')
+    .replace(REGEX_CHILD_WITH_ROLE, 'Beta (Son)')
+    .replace(REGEX_CHILD_STANDALONE, 'Beta')
+    .replace(REGEX_SENIOR_ALL, 'Dadi')
     .replace(REGEX_LEGACY_DRUG, 'salbutamol inhaler')
     .replace(REGEX_LEGACY_SPORT, 'cricket')
     .replace(/AQI (?:is |rises )?above 120/gi, 'Estimated NAQI reaches the Poor category (above 200)')
@@ -145,17 +147,23 @@ export function migrateProfileData(savedData) {
   const members = Array.isArray(savedData.familyMembers) ? savedData.familyMembers : [];
 
   // Check if saved members match the UNEDITED old defaults
-  const isOldLegacyWesternDefault =
+  const isOldV3Default =
     members.length === 3 &&
-    members.some((m) => new RegExp(LEGACY_WESTERN_CHILD, 'i').test(m.name)) &&
-    members.some((m) => new RegExp(LEGACY_WESTERN_SENIOR, 'i').test(m.name));
+    members.some((m) => new RegExp(LEGACY_V3_CHILD, 'i').test(m.name)) &&
+    members.some((m) => new RegExp(LEGACY_V3_SENIOR, 'i').test(m.name));
+
+  const isOldV1Default =
+    members.length === 3 &&
+    members.some((m) => new RegExp(LEGACY_V1_CHILD, 'i').test(m.name)) &&
+    members.some((m) => new RegExp(LEGACY_V1_SENIOR, 'i').test(m.name));
 
   const isOldInterimDefault =
     (members.length === 3 || members.length === 4) &&
     members.some((m) => /Aarav/i.test(m.name)) &&
     members.some((m) => /Meera/i.test(m.name));
 
-  const isUneditedOldDefault = isOldLegacyWesternDefault || isOldInterimDefault || members.length === 0;
+  const isUneditedOldDefault =
+    isOldV3Default || isOldV1Default || isOldInterimDefault || members.length === 0;
 
   let newMembers;
   if (isUneditedOldDefault) {
