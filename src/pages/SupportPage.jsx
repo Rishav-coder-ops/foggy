@@ -154,10 +154,10 @@ export default function SupportPage() {
             </p>
           </div>
           <a
-            href="mailto:support@foggy.app?subject=Foggy%20Assistant%20Feedback"
+            href="mailto:support.foggy@gmail.com?subject=Foggy%20Assistant%20Feedback"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline pt-1"
           >
-            <span>support@foggy.app</span>
+            <span>support.foggy@gmail.com</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
