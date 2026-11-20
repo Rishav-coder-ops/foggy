@@ -1,6 +1,6 @@
 // src/components/panels/Curve24hPanel.jsx
 // 24-Hour AQI Curve Feature Box & Expanded Modal using CPCB National AQI (0-500)
-import React, { useState, useId } from 'react';
+import React, { useState, useRef, useId } from 'react';
 import { Wind, Table, BarChart2, CheckCircle2, Clock } from 'lucide-react';
 import ExpandablePanelModal from '../ExpandablePanelModal';
 import PanelCitySearch from '../PanelCitySearch';

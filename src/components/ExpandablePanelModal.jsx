@@ -63,12 +63,14 @@ export default function ExpandablePanelModal({
       }
     }, 50);
 
+    const triggerEl = triggerRef?.current;
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
       clearTimeout(timer);
-      if (triggerRef?.current) {
-        triggerRef.current.focus();
+      if (triggerEl) {
+        triggerEl.focus();
       }
     };
   }, [isOpen, onClose, triggerRef]);

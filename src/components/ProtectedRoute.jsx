@@ -3,7 +3,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
-import MascotAvatar from './MascotAvatar';
+import RouteGuardLoading from './RouteGuardLoading';
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -11,12 +11,7 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (authLoading || loadingProfile) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
-        <MascotAvatar size="md" className="animate-bounce mb-3" />
-        <p className="text-xs text-slate-500 dark:text-slate-400">Verifying session & air profile...</p>
-      </div>
-    );
+    return <RouteGuardLoading message="Verifying session & air profile..." />;
   }
 
   if (!isAuthenticated) {

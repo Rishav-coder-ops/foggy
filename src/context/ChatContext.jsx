@@ -72,6 +72,8 @@ export function ChatProvider({ children }) {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
+    // Only reset chat messages when the active user ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userUid]);
 
   // Sync AQI context

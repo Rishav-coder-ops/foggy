@@ -1,6 +1,6 @@
 // src/pages/DashboardPage.jsx
 // Main Dashboard for Indian Air Quality Monitoring with CPCB NAQI and Low-Emission Routines
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Flame, Bus, Wind, Sun, AlertTriangle, ShieldCheck, ArrowRight, Sparkles, Check, Users, Bot } from 'lucide-react';
 import AQICard from '../components/AQICard';
@@ -26,16 +26,16 @@ export default function DashboardPage() {
   const greetingName = profile?.preferredName || (user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend');
 
   // Load AQI Data for saved location
-  const loadAQI = async () => {
+  const loadAQI = useCallback(async () => {
     setLoading(true);
     const data = await fetchAQIData(savedCity, profile?.latitude, profile?.longitude);
     setAqiData(data);
     setLoading(false);
-  };
+  }, [savedCity, profile?.latitude, profile?.longitude]);
 
   useEffect(() => {
     loadAQI();
-  }, [profile?.city, profile?.state, profile?.latitude, profile?.longitude]);
+  }, [loadAQI]);
 
   const sensitiveMembers = familyMembers.filter(m => m.condition && m.condition !== 'None');
 

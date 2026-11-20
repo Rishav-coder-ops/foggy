@@ -78,7 +78,7 @@ export function useSharedLocation() {
         lon: coords.lon
       });
     }
-  }, [profile?.location]);
+  }, [profile?.location, location.name]);
 
   // Listen to cross-component city changes
   useEffect(() => {

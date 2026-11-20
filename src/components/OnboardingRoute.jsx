@@ -3,19 +3,14 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
-import MascotAvatar from './MascotAvatar';
+import RouteGuardLoading from './RouteGuardLoading';
 
 export default function OnboardingRoute({ step, children }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { onboarding, loadingProfile } = useProfile();
 
   if (authLoading || loadingProfile) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
-        <MascotAvatar size="md" className="animate-bounce mb-3" />
-        <p className="text-xs text-slate-500 dark:text-slate-400">Loading your profile...</p>
-      </div>
-    );
+    return <RouteGuardLoading message="Loading your profile..." />;
   }
 
   // Logged out: go to /auth

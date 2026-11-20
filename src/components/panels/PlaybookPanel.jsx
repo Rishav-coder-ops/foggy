@@ -1,7 +1,7 @@
 // src/components/panels/PlaybookPanel.jsx
 // Clean Air Playbook: Free to Premium Feature Box & Expanded Modal
 // 6-8 cards per tab with realistic Indian market estimates in ₹ (en-IN formatted)
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ShieldCheck,
   Sparkles,

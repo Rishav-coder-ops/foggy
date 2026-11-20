@@ -2,7 +2,7 @@
 // Dedicated Search AQI Page: City Autocomplete (India-first, no quick picks)
 // Displays full dashboard-style atmospheric breakdown without changing user's saved location.
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, MapPin, Wind, Thermometer, Droplets, RefreshCw,
   Loader2, Shield, AlertTriangle, ArrowRight, Sun, Bus, Flame, ShieldCheck, Check
@@ -28,16 +28,16 @@ export default function SearchAQIPage() {
   const searchTimeoutRef = useRef(null);
 
   // Load AQI Data for the currently inspected city
-  const loadAQI = async (cityObj) => {
+  const loadAQI = useCallback(async (cityObj) => {
     setLoading(true);
     const data = await fetchAQIData(cityObj.name, cityObj.lat, cityObj.lon);
     setAqiData(data);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadAQI(selectedCity);
-  }, [selectedCity.name, selectedCity.lat, selectedCity.lon]);
+  }, [selectedCity, loadAQI]);
 
   // Autocomplete search handler
   const handleInputChange = (e) => {

@@ -1,5 +1,5 @@
 // src/pages/AuthPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

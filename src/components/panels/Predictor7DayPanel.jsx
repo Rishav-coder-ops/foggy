@@ -1,6 +1,6 @@
 // src/components/panels/Predictor7DayPanel.jsx
 // 7-Day AQI Predictor Feature Box & Expanded Modal using CPCB National AQI (0-500)
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Calendar,
   MessageSquare,

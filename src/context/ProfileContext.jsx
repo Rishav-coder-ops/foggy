@@ -305,7 +305,7 @@ export function ProfileProvider({ children }) {
       unsubFamily();
       unsubMemory();
     };
-  }, [isAuthenticated, uid, isDemo]);
+  }, [isAuthenticated, uid, isDemo, user?.displayName]);
 
   // Save Step 1 Profile to Firestore
   const saveOnboardingProfile = async (sanitizedProfile) => {
