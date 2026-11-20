@@ -155,4 +155,25 @@ describe('Route Smoke Tests (Render Every Route without error)', () => {
       }).not.toThrow();
     });
   });
+
+  it('renders developer profile links with correct URLs, target="_blank", rel="noopener noreferrer", and accessible labels', () => {
+    const html = renderToString(
+      <MemoryRouter initialEntries={['/about']}>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    // Verify GitHub and LinkedIn buttons in the Author & Creator card
+    expect(html).toContain('href="https://github.com/Rishav-coder-ops"');
+    expect(html).toContain('href="https://www.linkedin.com/in/rishav-nandi-2k7/"');
+    expect(html).toContain('aria-label="Rishav Nandi on GitHub (opens in a new tab)"');
+    expect(html).toContain('aria-label="Rishav Nandi on LinkedIn (opens in a new tab)"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+
+    // Verify footer link
+    expect(html).toContain('Designed &amp; developed by');
+  });
 });

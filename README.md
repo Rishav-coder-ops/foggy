@@ -1,5 +1,6 @@
 # 🌫️ Foggy — GenAI Winter Smog & Urban Air Quality Assistant
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-181717.svg?logo=github)](https://github.com/Rishav-coder-ops/foggy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)](https://vitejs.dev/)
@@ -31,6 +32,7 @@
 - [Usage Guide](#-usage-guide)
 - [Future Roadmap](#-future-roadmap)
 - [Contributing](#-contributing)
+- [Developer](#-developer)
 - [License](#-license)
 
 ---
@@ -262,7 +264,7 @@ challenge6/
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/foggy.git
+git clone https://github.com/Rishav-coder-ops/foggy.git
 cd foggy
 
 # Install dependencies with pnpm
@@ -339,15 +341,16 @@ Foggy is fully optimized for continuous deployment on **Cloudflare Pages** with 
 #### 1. Push to GitHub
 Commit your project and push to your GitHub repository:
 ```bash
+git remote add origin https://github.com/Rishav-coder-ops/foggy.git
 git add .
 git commit -m "Migrate hosting to Cloudflare Pages"
-git push origin main
+git push -u origin main
 ```
 
 #### 2. Create Cloudflare Pages Project
 1. Log in to the [Cloudflare Dashboard](https://dash.cloudflare.com/).
 2. In the left navigation, go to **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
-3. Select your GitHub account and choose the `foggy` repository.
+3. Select your GitHub account and choose the `foggy` repository (`https://github.com/Rishav-coder-ops/foggy`).
 4. Click **Begin setup**.
 
 #### 3. Configure Build Settings
@@ -591,16 +594,22 @@ Configured in `public/_headers` and deployed directly to Cloudflare Pages:
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
-1. Fork the repository.
+1. Fork the repository ([https://github.com/Rishav-coder-ops/foggy](https://github.com/Rishav-coder-ops/foggy)).
 2. Create a feature branch (`git checkout -b feature/amazing-hack`).
 3. Commit your changes (`git commit -m 'feat: Add Corsi-Rosenthal filter size calculator'`).
 4. Push to your branch (`git push origin feature/amazing-hack`).
-5. Open a Pull Request.
+5. Open a Pull Request on GitHub at [https://github.com/Rishav-coder-ops/foggy/pulls](https://github.com/Rishav-coder-ops/foggy/pulls).
 
 ---
 
-## 👨‍💻 Developer & Authors
+## 👨‍💻 Developer
+
 Developed with ❤️ by **Rishav Nandi** — empowering families and communities to navigate severe smog with accessible GenAI and practical science.
+
+- **Developer**: Rishav Nandi
+- **GitHub**: [https://github.com/Rishav-coder-ops](https://github.com/Rishav-coder-ops)
+- **LinkedIn**: [https://www.linkedin.com/in/rishav-nandi-2k7/](https://www.linkedin.com/in/rishav-nandi-2k7/)
+- **Repository**: [https://github.com/Rishav-coder-ops/foggy](https://github.com/Rishav-coder-ops/foggy)
 
 ---
 

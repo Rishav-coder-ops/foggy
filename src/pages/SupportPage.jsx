@@ -178,7 +178,8 @@ export default function SupportPage() {
           <a
             href="https://github.com/Rishav-coder-ops/foggy"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            aria-label="Foggy repository on GitHub (opens in a new tab)"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-sky-500 pt-1"
           >
             <span>github.com/Rishav-coder-ops/foggy</span>

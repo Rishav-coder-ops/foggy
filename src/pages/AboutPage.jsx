@@ -604,7 +604,7 @@ export default function AboutPage() {
             <span>Section 6: System Architecture & Credits</span>
           </div>
           <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Engineered by Rishav Nandi
+            Engineered by <a href="https://github.com/Rishav-coder-ops" target="_blank" rel="noopener noreferrer" aria-label="Rishav Nandi on GitHub (opens in a new tab)" className="hover:text-sky-500 transition-colors underline-offset-2 hover:underline">Rishav Nandi</a>
           </span>
         </div>
 
@@ -730,19 +730,21 @@ export default function AboutPage() {
 
           <div className="flex items-center gap-3 shrink-0">
             <a
-              href="https://github.com"
+              href="https://github.com/Rishav-coder-ops"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors"
+              aria-label="Rishav Nandi on GitHub (opens in a new tab)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 text-white transition-colors"
             >
               <Github className="w-3.5 h-3.5" />
               <span>GitHub</span>
             </a>
             <a
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/in/rishav-nandi-2k7/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors"
+              aria-label="Rishav Nandi on LinkedIn (opens in a new tab)"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 text-white transition-colors"
             >
               <Linkedin className="w-3.5 h-3.5" />
               <span>LinkedIn</span>

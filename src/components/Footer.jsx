@@ -77,11 +77,21 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-8 pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 dark:text-slate-400 gap-3">
-          <p>© {new Date().getFullYear()} Foggy Air Quality Assistant. Developed by <strong>Rishav Nandi</strong>. Open Source under MIT License.</p>
+          <p>© {new Date().getFullYear()} Foggy Air Quality Assistant. Designed & developed by <a href="https://github.com/Rishav-coder-ops" target="_blank" rel="noopener noreferrer" aria-label="Rishav Nandi on GitHub (opens in a new tab)" className="font-semibold text-slate-800 dark:text-slate-200 hover:text-sky-500 dark:hover:text-sky-400 transition-colors underline-offset-2 hover:underline">Rishav Nandi</a>. Open Source under MIT License.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span> India-First • CPCB NAQI Standard
             </span>
+            <a
+              href="https://github.com/Rishav-coder-ops/foggy"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Foggy on GitHub (opens in a new tab)"
+              className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors"
+            >
+              <Github className="w-3.5 h-3.5" />
+              <span>GitHub</span>
+            </a>
           </div>
         </div>
       </div>

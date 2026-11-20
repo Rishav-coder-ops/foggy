@@ -3,6 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "description": "Foggy - A GenAI-powered assistant helping families and communities navigate severe winter smog and urban air pollution with personalized, practical guidance.",
+  "author": {
+    "name": "Rishav Nandi",
+    "url": "https://github.com/Rishav-coder-ops",
+    "github": "https://github.com/Rishav-coder-ops",
+    "linkedin": "https://www.linkedin.com/in/rishav-nandi-2k7/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rishav-coder-ops/foggy.git"
+  },
+  "homepage": "https://github.com/Rishav-coder-ops/foggy#readme",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"node server/index.js\" \"vite\"",
