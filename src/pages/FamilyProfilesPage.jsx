@@ -5,10 +5,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Plus, Edit2, Trash2, Heart, Shield, AlertTriangle, Check,
   X, Sparkles, ChevronDown, ChevronUp, Clock, AlertCircle, Phone,
-  Loader2, Activity, Compass, Wind, Coffee
+  Loader2, Activity, Compass, Wind, Coffee, RefreshCw
 } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
+import { auth } from '../firebase';
 import MascotAvatar from '../components/MascotAvatar';
 import { fetchAQIData } from '../services/api';
 import { generateMemberCarePlan } from '../utils/carePlanEngine';
@@ -212,16 +213,17 @@ export default function FamilyProfilesPage() {
     }));
   };
 
-  // AI Personalization with Foggy via /api/chat
+  // AI Personalization with Foggy via /api/personalize (fallback /api/chat)
   const handlePersonalizeWithFoggy = async (member) => {
+    if (!member) return;
     setPersonalizingMember(member);
     setAiMemo(null);
     setAiError('');
     setLoadingAi(true);
 
     try {
-      const sanitizedName = sanitizeText(member.name, 40);
-      const sanitizedRel = sanitizeText(member.relationship, 30);
+      const sanitizedName = sanitizeText(member.name, 50) || 'Family Member';
+      const sanitizedRel = sanitizeText(member.relationship, 40) || 'Dependent';
       const ageStr = member.age ? `${member.age} years old` : 'age unspecified';
       const condsStr = Array.isArray(member.conditions) ? member.conditions.join(', ') : (member.condition || 'None');
       const commuteStr = Array.isArray(member.commute) ? member.commute.join(', ') : 'Not specified';
@@ -236,7 +238,7 @@ Current CPCB National AQI: ${aqiNum} (${aqiCat}).
 Respiratory Conditions: ${condsStr}.
 Sensitivity: ${member.sensitivity || 'Moderate'}.
 Daily Commute: ${commuteStr}.
-Outdoor Activities / Habits: ${lifeStr}.
+Outdoor Activities / Habits: ${lifeStr}.${member.notes ? `\nSpecial notes: ${sanitizeText(member.notes, 300)}.` : ''}
 
 Please include:
 1. Optimal outdoor timing window based on diurnal inversion.
@@ -246,29 +248,92 @@ Please include:
 5. Hydration and indoor air filtration steps.
 6. Clear not-a-doctor medical disclaimer and 112 emergency notice. Keep it warm and actionable.`;
 
-      const idToken = user && typeof user.getIdToken === 'function' ? await user.getIdToken() : null;
+      let idToken = null;
+      try {
+        if (user && typeof user.getIdToken === 'function') {
+          idToken = await user.getIdToken();
+        } else if (auth?.currentUser && typeof auth.currentUser.getIdToken === 'function') {
+          idToken = await auth.currentUser.getIdToken();
+        }
+      } catch (tokenErr) {
+        console.warn('Could not retrieve Firebase ID token:', tokenErr);
+      }
+
       const headers = { 'Content-Type': 'application/json' };
       if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
 
-      const res = await fetch('/api/chat', {
+      const requestPayload = {
+        message: prompt,
+        prompt,
+        member: {
+          name: sanitizedName,
+          relationship: sanitizedRel,
+          age: member.age,
+          city: member.city || profile?.city || 'Kolkata',
+          state: member.state || profile?.state || 'India',
+          conditions: member.conditions || member.condition || 'None',
+          sensitivity: member.sensitivity || 'Moderate',
+          commute: member.commute || 'Not specified',
+          lifestyle: member.lifestyle || 'Not specified',
+          notes: member.notes || ''
+        },
+        aqiData: {
+          aqi: aqiNum,
+          category: aqiCat,
+          city: member.city || profile?.city || 'Kolkata'
+        },
+        city: member.city || profile?.city || 'Kolkata',
+        history: []
+      };
+
+      let res = await fetch('/api/personalize', {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          message: prompt,
-          city: member.city || profile?.city || 'Kolkata',
-          conversationHistory: []
-        })
+        body: JSON.stringify(requestPayload)
       });
 
+      // Fallback to /api/chat if /api/personalize is not routed
+      if (res.status === 404) {
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestPayload)
+        });
+      }
+
       if (!res.ok) {
-        throw new Error(`Chat API responded with status ${res.status}`);
+        let errJson = {};
+        try {
+          errJson = await res.json();
+        } catch {}
+
+        if (res.status === 429 || errJson.isRateLimited || errJson.code === 'RATE_LIMITED') {
+          throw new Error('Foggy is busy, try again in a minute.');
+        } else if (res.status === 401 || res.status === 403) {
+          throw new Error('Sign-in required: please sign in to personalize advice with Foggy.');
+        } else if (res.status >= 500) {
+          throw new Error('Server problem: Foggy experienced a temporary issue. Please try again.');
+        } else {
+          throw new Error(errJson.message || `API error (${res.status})`);
+        }
       }
 
       const json = await res.json();
-      setAiMemo(json.reply || json.message || 'Foggy could not generate personalized advice at this time.');
+      setAiMemo(json.memo || json.reply || json.message || 'Foggy personalized precautions generated.');
     } catch (err) {
-      console.error('Personalization error:', err);
-      setAiError('Unable to connect with Foggy right now. You can consult the deterministic care plan below.');
+      console.error('Personalization failed with error:', err);
+      const msg = err.message || '';
+      if (msg.includes('busy') || msg.includes('minute') || msg.includes('limit') || msg.includes('429')) {
+        setAiError('Foggy is busy, try again in a minute.');
+      } else if (msg.includes('Sign-in') || msg.includes('sign in') || msg.includes('auth') || msg.includes('401') || msg.includes('403')) {
+        setAiError('Sign-in problem: please sign in or refresh your session.');
+      } else if (msg.includes('Server') || msg.includes('server') || msg.includes('500') || msg.includes('502') || msg.includes('503')) {
+        setAiError('Server problem: Foggy is temporarily unavailable. Please try again.');
+      } else if (err.name === 'TypeError' || msg.includes('fetch') || msg.includes('Network') || msg.includes('network') || msg.includes('offline') || msg.includes('connection')) {
+        setAiError('Network problem: Please check your internet connection.');
+      } else {
+        setAiError(msg || 'Unable to connect with Foggy right now.');
+      }
     } finally {
       setLoadingAi(false);
     }
@@ -631,71 +696,172 @@ Please include:
       )}
 
       {/* AI Personalization Modal / Bottom Sheet */}
-      {personalizingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="max-w-xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <MascotAvatar size="sm" mood="thinking" />
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Foggy's Air Memo for {personalizingMember.name}
-                  </h3>
-                  <span className="text-[11px] text-slate-500">
-                    Live AI analysis based on profile & today's CPCB AQI
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPersonalizingMember(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {personalizingMember && (() => {
+        const modalCarePlan = generateMemberCarePlan(personalizingMember, aqiData || { aqi: 165, category: 'Moderate' });
 
-            {loadingAi ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-                <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  Foggy is tailoring precautions for {personalizingMember.name}...
-                </p>
-                <span className="text-[10px] text-slate-400">
-                  Evaluating diurnal inversion and specific respiratory sensitivities
-                </span>
-              </div>
-            ) : aiError ? (
-              <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-300">
-                {aiError}
-              </div>
-            ) : (
-              <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-slate-800/60 border border-sky-100 dark:border-slate-700/60 leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-line">
-                  {aiMemo}
-                </div>
-
-                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <MascotAvatar size="sm" mood={loadingAi ? 'thinking' : aiError ? 'concerned' : 'happy'} />
                   <div>
-                    <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant, not a doctor. Never change prescribed medications without consulting your doctor. In case of severe breathlessness or emergency, call <strong>112</strong> immediately.
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Foggy's Air Memo for {personalizingMember.name}
+                    </h3>
+                    <span className="text-[11px] text-slate-500">
+                      Live AI analysis based on profile & today's CPCB AQI
+                    </span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setPersonalizingMember(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            )}
 
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setPersonalizingMember(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-              >
-                Close Memo
-              </button>
+              {loadingAi ? (
+                <div className="py-10 flex flex-col items-center justify-center text-center space-y-3">
+                  <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Foggy is tailoring precautions for {personalizingMember.name}...
+                  </p>
+                  <span className="text-[11px] text-slate-400">
+                    Evaluating diurnal inversion and specific respiratory sensitivities
+                  </span>
+                </div>
+              ) : aiError ? (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-800 dark:text-rose-300">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span className="font-medium">{aiError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handlePersonalizeWithFoggy(personalizingMember)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shrink-0 transition-colors cursor-pointer self-start sm:self-auto"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Try again</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-slate-800/60 border border-sky-100 dark:border-slate-700/60 leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-line">
+                    {aiMemo}
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant, not a doctor. Never change prescribed medications without consulting your doctor. In case of severe breathlessness or emergency, call <strong>112</strong> immediately.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Deterministic Today's Care Plan - Always kept visible below */}
+              {modalCarePlan && (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                        CPCB Deterministic Protocol
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        Today's Care Plan for {personalizingMember.name}
+                      </h4>
+                    </div>
+                    <span className="text-xs text-slate-500">
+                      CPCB AQI: <strong className="text-slate-700 dark:text-slate-300">{modalCarePlan.aqi} ({modalCarePlan.category})</strong>
+                    </span>
+                  </div>
+
+                  {/* Diurnal Time Slots */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    {modalCarePlan.timeSlots.map((ts, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs flex flex-col justify-between space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{ts.slot}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300">
+                            {ts.forecastBadge}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                          {ts.guidance}
+                        </p>
+                        <div className="pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                          ⚡ {ts.lifestyleAdjustment}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Do's & Don'ts */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200 block mb-1.5">
+                        ✓ Recommended Actions
+                      </span>
+                      <ul className="space-y-1 text-emerald-900/90 dark:text-emerald-300/90 text-[11px]">
+                        {modalCarePlan.doList.slice(0, 3).map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-emerald-600 font-bold">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60">
+                      <span className="font-bold text-rose-900 dark:text-rose-200 block mb-1.5">
+                        ✕ Activities to Avoid
+                      </span>
+                      <ul className="space-y-1 text-rose-900/90 dark:text-rose-300/90 text-[11px]">
+                        {modalCarePlan.avoidList.slice(0, 3).map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-rose-600 font-bold">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Certified Mask Guidance */}
+                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs space-y-1">
+                    <div className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-sky-500" />
+                      <span>Certified Mask Guidance (N95 / FFP2)</span>
+                    </div>
+                    <p className="text-sky-800 dark:text-sky-300 text-[11px] leading-relaxed">
+                      {modalCarePlan.maskAdvice}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPersonalizingMember(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                >
+                  Close Memo
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Add / Edit Family Member Modal */}
       {modalOpen && (

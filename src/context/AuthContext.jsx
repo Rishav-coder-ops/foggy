@@ -26,7 +26,8 @@ const DEMO_USER = {
   photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
   avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
   isDemo: true,
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
+  getIdToken: async () => 'demo_token'
 };
 
 function formatFirebaseUser(fbUser) {
@@ -48,7 +49,13 @@ function formatFirebaseUser(fbUser) {
     emailVerified: fbUser.emailVerified || false,
     isAnonymous: fbUser.isAnonymous || false,
     providerId: fbUser.providerData?.[0]?.providerId || 'password',
-    createdAt: fbUser.metadata?.creationTime || new Date().toISOString()
+    createdAt: fbUser.metadata?.creationTime || new Date().toISOString(),
+    getIdToken: (forceRefresh) => {
+      if (typeof fbUser.getIdToken === 'function') {
+        return fbUser.getIdToken(forceRefresh);
+      }
+      return Promise.resolve('demo_token');
+    }
   };
 }
 

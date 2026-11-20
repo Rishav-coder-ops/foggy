@@ -8,6 +8,7 @@ import fs from 'fs';
 
 import aqiRouter from './routes/aqi.js';
 import chatRouter from './routes/chat.js';
+import personalizeRouter from './routes/personalize.js';
 import aqiTimelineRouter from './routes/aqiTimeline.js';
 import geocodeRouter from './routes/geocode.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
@@ -43,6 +44,7 @@ app.get('/api/health', (req, res) => {
 // Mount Routes
 app.use('/api/aqi', aqiRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/personalize', personalizeRouter);
 app.use('/api/aqi-timeline', aqiTimelineRouter);
 app.use('/api/geocode', geocodeRouter);
 
