@@ -207,5 +207,10 @@ describe('Route Smoke Tests (Render Every Route without error)', () => {
     expect(html).toContain('https://caqm.nic.in');
     expect(html).toContain('https://mausam.imd.gov.in');
     expect(html).toContain('https://sachet.ndma.gov.in');
+
+    // Verify "Engineered with ❤️ by Rishav Nandi" in Section 5 header with accessible emoji element
+    expect(html).toContain('Engineered with');
+    expect(html).toContain('role="img"');
+    expect(html).toContain('aria-label="love"');
   });
 });

@@ -531,13 +531,13 @@ export default function AboutPage() {
       {/* SECTION 5: ARCHITECTURE DIAGRAM & DEVELOPER CREDITS                       */}
       {/* ========================================================================= */}
       <section className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
             <Terminal className="w-4 h-4" />
             <span>Section 5: System Architecture & Credits</span>
           </div>
           <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Engineered by <a href="https://github.com/Rishav-coder-ops" target="_blank" rel="noopener noreferrer" aria-label="Rishav Nandi on GitHub (opens in a new tab)" className="hover:text-sky-500 transition-colors underline-offset-2 hover:underline">Rishav Nandi</a>
+            Engineered with <span role="img" aria-label="love">❤️</span> by <a href="https://github.com/Rishav-coder-ops" target="_blank" rel="noopener noreferrer" aria-label="Rishav Nandi on GitHub (opens in a new tab)" className="hover:text-sky-500 transition-colors underline-offset-2 hover:underline">Rishav Nandi</a>
           </span>
         </div>
 
