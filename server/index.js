@@ -10,8 +10,6 @@ import aqiRouter from './routes/aqi.js';
 import chatRouter from './routes/chat.js';
 import aqiTimelineRouter from './routes/aqiTimeline.js';
 import geocodeRouter from './routes/geocode.js';
-import newsRouter from './routes/news.js';
-import alertsRouter from './routes/alerts.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);

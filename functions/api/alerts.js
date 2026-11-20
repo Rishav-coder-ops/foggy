@@ -1,80 +1,56 @@
 // functions/api/alerts.js
-// Cloudflare Pages Function: Official Government of India Environmental & Meteorological Alerts
-// Checks official public sources (CPCB, CAQM, IMD, NDMA SACHET) and provides dated informational alert cards.
+// Official Government of India Statutory Portals Directory
+// Direct links to statutory bodies (CPCB, CAQM, IMD, NDMA SACHET) for live alerts.
 
-let alertsCache = null;
-let alertsCacheExpiry = 0;
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-const OFFICIAL_ALERT_SOURCES = [
+const OFFICIAL_PORTALS = [
   {
-    id: 'caqm-grap',
-    source: 'Commission for Air Quality Management (CAQM)',
-    title: 'Graded Response Action Plan (GRAP) Stage Enforcement Orders',
-    category: 'Regulatory Directive',
-    summary: 'Active winter emergency measures restricting non-essential diesel generator usage, dust control mandates at construction sites, and enhanced mechanized road sweeping.',
-    link: 'https://caqm.nic.in',
-    date: new Date().toISOString().split('T')[0],
-    badge: 'Official CAQM'
-  },
-  {
-    id: 'cpcb-bulletin',
+    id: 'cpcb',
     source: 'Central Pollution Control Board (CPCB)',
-    title: 'Daily National Air Quality Index (NAQI) Bulletin for Indian Cities',
-    category: 'National Environmental Bulletin',
-    summary: 'Comprehensive 4:00 PM daily bulletin evaluating 24-hour average PM2.5, PM10, NO2, and dominant pollutants across 250+ continuous ambient monitoring stations.',
+    title: 'National Air Quality Index (NAQI) Bulletins',
+    description: 'Statutory authority under MoEFCC governing National Ambient Air Quality Standards and daily 4:00 PM NAQI bulletins across Indian cities.',
     link: 'https://cpcb.nic.in',
-    date: new Date().toISOString().split('T')[0],
-    badge: 'Official CPCB'
+    badge: 'Official CPCB',
+    status: 'Check the official page for live alerts'
   },
   {
-    id: 'imd-fog-warning',
+    id: 'caqm',
+    source: 'Commission for Air Quality Management (CAQM)',
+    title: 'Graded Response Action Plan (GRAP) Enforcement Orders',
+    description: 'Statutory body coordinating air quality measures and emergency GRAP Stage I–IV enforcement directives across NCR and adjoining areas.',
+    link: 'https://caqm.nic.in',
+    badge: 'Official CAQM',
+    status: 'Check the official page for live alerts'
+  },
+  {
+    id: 'imd',
     source: 'India Meteorological Department (IMD)',
-    title: 'Seasonal Dense Fog & Boundary Inversion Layer Advisory',
-    category: 'Meteorological Warning',
-    summary: 'Nocturnal radiation fog and thermal boundary layer inversion forecasts for the Indo-Gangetic Plains impacting surface-level particulate dispersion.',
+    title: 'National Weather & Seasonal Dense Fog Advisories',
+    description: 'National meteorological agency publishing nocturnal radiation fog forecasts and atmospheric inversion warnings.',
     link: 'https://mausam.imd.gov.in',
-    date: new Date().toISOString().split('T')[0],
-    badge: 'Official IMD'
+    badge: 'Official IMD',
+    status: 'Check the official page for live alerts'
   },
   {
     id: 'ndma-sachet',
     source: 'National Disaster Management Authority (NDMA)',
-    title: 'SACHET Real-Time Multi-Hazard Public Warning Portal',
-    category: 'Disaster & Hazard Alert',
-    summary: 'Integrated CAP (Common Alerting Protocol) warnings for public health, air pollution episodes, and adverse severe weather across all Indian states.',
+    title: 'SACHET Real-Time Multi-Hazard Warning Portal',
+    description: 'Apex statutory disaster agency hosting the nationwide CAP platform for real-time geographic hazard bulletins and public health advisories.',
     link: 'https://sachet.ndma.gov.in',
-    date: new Date().toISOString().split('T')[0],
-    badge: 'Official NDMA'
+    badge: 'Official NDMA',
+    status: 'Check the official page for live alerts'
   }
 ];
 
 export async function onRequest() {
-  const now = Date.now();
-
-  if (alertsCache && alertsCacheExpiry > now) {
-    return new Response(JSON.stringify(alertsCache), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=1800'
-      }
-    });
-  }
-
-  const payload = {
-    alerts: OFFICIAL_ALERT_SOURCES,
-    lastChecked: new Date().toISOString(),
-    isInformational: true,
-    disclaimer: 'This section is informational. Live statutory warnings should always be verified on the official department portals.'
-  };
-
-  alertsCache = payload;
-  alertsCacheExpiry = now + CACHE_TTL_MS;
-
-  return new Response(JSON.stringify(payload), {
+  return new Response(JSON.stringify({
+    portals: OFFICIAL_PORTALS,
+    status: 'Check the official page for live alerts',
+    disclaimer: 'Live statutory warnings must be verified directly on official department portals.'
+  }), {
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=1800'
+      'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*'
     }
   });
 }

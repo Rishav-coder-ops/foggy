@@ -176,4 +176,36 @@ describe('Route Smoke Tests (Render Every Route without error)', () => {
     // Verify footer link
     expect(html).toContain('Designed &amp; developed by');
   });
+
+  it('verifies About page sections are renumbered sequentially with no news section and official portal alerts', () => {
+    const html = renderToString(
+      <MemoryRouter initialEntries={['/about']}>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    // Ensure news section is completely deleted
+    expect(html).not.toContain('Latest AQI &amp; Smog News Across India');
+    expect(html).not.toContain('Latest AQI & Smog News Across India');
+    expect(html).not.toContain('Read full dispatch');
+
+    // Ensure sequential section numbering 1 to 5
+    expect(html).toContain('Section 1: What is National AQI (CPCB NAQI)?');
+    expect(html).toContain('Section 2: Fog, Smog &amp; Atmospheric Inversions');
+    expect(html).toContain('Section 3: Government of India Official Portals &amp; Alerts');
+    expect(html).toContain('Section 4: Verified Emergency Helplines (Pan-India)');
+    expect(html).toContain('Section 5: System Architecture &amp; Credits');
+
+    // Ensure Section 6 is gone
+    expect(html).not.toContain('Section 6');
+
+    // Ensure official portal cards contain "Check the official page for live alerts" and no fake dates/headlines
+    expect(html).toContain('Check the official page for live alerts');
+    expect(html).toContain('https://cpcb.nic.in');
+    expect(html).toContain('https://caqm.nic.in');
+    expect(html).toContain('https://mausam.imd.gov.in');
+    expect(html).toContain('https://sachet.ndma.gov.in');
+  });
 });

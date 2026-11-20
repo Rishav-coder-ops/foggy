@@ -1,61 +1,53 @@
 // src/pages/AboutPage.jsx
 // Comprehensive Educational & Scientific Reference for Indian Air Quality & Foggy Architecture
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Wind, ShieldAlert, Heart, BookOpen, Layers, Terminal, Sparkles,
-  ExternalLink, Shield, AlertTriangle, Phone, Newspaper, Bell,
-  RefreshCw, CheckCircle2, ArrowRight, Github, Linkedin, Info
+  ExternalLink, Shield, AlertTriangle, Phone, Bell,
+  CheckCircle2, ArrowRight, Github, Linkedin, Info
 } from 'lucide-react';
 import MascotAvatar from '../components/MascotAvatar';
 
 export default function AboutPage() {
-  // News state
-  const [newsList, setNewsList] = useState([]);
-  const [loadingNews, setLoadingNews] = useState(true);
-  const [newsUpdated, setNewsUpdated] = useState('');
-
-  // Alerts state
-  const [alertsList, setAlertsList] = useState([]);
-  const [loadingAlerts, setLoadingAlerts] = useState(true);
-
-  // Fetch News
-  const loadNews = async () => {
-    setLoadingNews(true);
-    try {
-      const res = await fetch('/api/news');
-      if (res.ok) {
-        const data = await res.json();
-        setNewsList(data.articles || data.news || []);
-        setNewsUpdated(data.cachedAt ? new Date(data.cachedAt).toLocaleTimeString() : new Date().toLocaleTimeString());
-      }
-    } catch (err) {
-      console.warn('Failed to load news:', err);
-    } finally {
-      setLoadingNews(false);
+  const officialPortals = [
+    {
+      id: 'cpcb',
+      source: 'Central Pollution Control Board (CPCB)',
+      title: 'National Air Quality Index (NAQI) Bulletins',
+      description: 'Statutory authority under the Ministry of Environment, Forest and Climate Change (MoEFCC) governing National Ambient Air Quality Standards and publishing daily 4:00 PM NAQI bulletins across Indian cities.',
+      link: 'https://cpcb.nic.in',
+      badge: 'Official CPCB',
+      status: 'Check the official page for live alerts'
+    },
+    {
+      id: 'caqm',
+      source: 'Commission for Air Quality Management (CAQM)',
+      title: 'Graded Response Action Plan (GRAP) Enforcement Orders',
+      description: 'Statutory body constituted for air quality management in National Capital Region and adjoining areas, issuing binding emergency GRAP Stage I–IV enforcement directives.',
+      link: 'https://caqm.nic.in',
+      badge: 'Official CAQM',
+      status: 'Check the official page for live alerts'
+    },
+    {
+      id: 'imd',
+      source: 'India Meteorological Department (IMD)',
+      title: 'National Weather & Seasonal Dense Fog Advisories',
+      description: 'National meteorological agency providing official winter dense fog warnings, nocturnal temperature inversion forecasts, and atmospheric boundary layer ventilation indices.',
+      link: 'https://mausam.imd.gov.in',
+      badge: 'Official IMD',
+      status: 'Check the official page for live alerts'
+    },
+    {
+      id: 'ndma-sachet',
+      source: 'National Disaster Management Authority (NDMA)',
+      title: 'SACHET Real-Time Multi-Hazard Warning Portal',
+      description: 'Apex statutory disaster agency hosting the nationwide Common Alerting Protocol (CAP) platform for real-time geographic hazard bulletins and public health advisories.',
+      link: 'https://sachet.ndma.gov.in',
+      badge: 'Official NDMA',
+      status: 'Check the official page for live alerts'
     }
-  };
-
-  // Fetch Alerts
-  const loadAlerts = async () => {
-    setLoadingAlerts(true);
-    try {
-      const res = await fetch('/api/alerts');
-      if (res.ok) {
-        const data = await res.json();
-        setAlertsList(data.alerts || []);
-      }
-    } catch (err) {
-      console.warn('Failed to load alerts:', err);
-    } finally {
-      setLoadingAlerts(false);
-    }
-  };
-
-  useEffect(() => {
-    loadNews();
-    loadAlerts();
-  }, []);
+  ];
 
   const cpcbTable = [
     { range: '0 – 50', status: 'Good', color: 'bg-emerald-500', text: 'Minimal impact. Clean, pristine air safe for all activities.' },
@@ -136,7 +128,7 @@ export default function AboutPage() {
           About Foggy & Indian Air Quality Science
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-          The physics of winter thermal inversions across the Indo-Gangetic plains, official CPCB National AQI (NAQI) standards, live government bulletins, verified emergency helplines, and system architecture.
+          The physics of winter thermal inversions across the Indo-Gangetic plains, official CPCB National AQI (NAQI) standards, statutory regulatory portals, verified emergency helplines, and system architecture.
         </p>
       </div>
 
@@ -417,117 +409,58 @@ export default function AboutPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 3: LATEST AQI NEWS FROM INDIA                                      */}
-      {/* ========================================================================= */}
-      <section className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
-            <Newspaper className="w-4 h-4" />
-            <span>Section 3: Latest AQI & Smog News Across India</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {newsUpdated && (
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Updated: {newsUpdated}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={loadNews}
-              disabled={loadingNews}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Refresh News"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingNews ? 'animate-spin text-sky-500' : ''}`} />
-            </button>
-          </div>
-        </div>
-
-        {loadingNews ? (
-          <div className="py-12 flex justify-center text-slate-500 text-xs gap-2 items-center">
-            <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
-            <span>Fetching latest verified air quality dispatches...</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {newsList.slice(0, 10).map((article, idx) => (
-              <a
-                key={idx}
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 hover:border-sky-300 dark:hover:border-sky-600 transition-all flex flex-col justify-between group space-y-2 cursor-pointer"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1.5">
-                    <span className="font-semibold text-sky-700 dark:text-sky-400">{article.source || 'India Air News'}</span>
-                    <span>{article.date ? new Date(article.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recent'}</span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 leading-snug">
-                    {article.title}
-                  </h3>
-                </div>
-                <div className="pt-2 flex items-center justify-between text-[11px] font-semibold text-sky-600 dark:text-sky-400">
-                  <span>Read full dispatch</span>
-                  <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ========================================================================= */}
-      {/* SECTION 4: GOVERNMENT OF INDIA OFFICIAL ALERTS                             */}
+      {/* SECTION 3: GOVERNMENT OF INDIA OFFICIAL PORTALS & ALERTS                    */}
       {/* ========================================================================= */}
       <section className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
         <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
           <Bell className="w-4 h-4" />
-          <span>Section 4: Government of India Official Portals & Alerts</span>
+          <span>Section 3: Government of India Official Portals & Alerts</span>
         </div>
 
         <div>
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white">
-            Official Regulatory Advisories & Emergency Directives
+            Official Regulatory Authorities & Portals
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-1">
-            Official links to statutory regulatory bodies, Graded Response Action Plan (GRAP) orders, and national weather bulletins. Information is strictly non-promotional and directly sourced from GoI authorities.
+            Direct links to statutory regulatory bodies, Graded Response Action Plan (GRAP) authorities, and national weather bureaus. Never rely on unofficial summaries for regulatory directives — always verify live statutory orders directly on official government portals.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {alertsList.map((alert) => (
+          {officialPortals.map((portal) => (
             <div
-              key={alert.id}
+              key={portal.id}
               className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/60 flex flex-col justify-between space-y-3"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
-                    {alert.badge}
+                    {portal.badge}
                   </span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                    {alert.category}
+                    Statutory Portal
                   </span>
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
-                  {alert.title}
+                  {portal.title}
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
-                  {alert.summary}
+                  {portal.description}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-amber-200/60 dark:border-amber-800/60 flex items-center justify-between text-xs">
-                <span className="text-[11px] text-slate-500 font-semibold">{alert.source}</span>
+                <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                  {portal.status}
+                </span>
                 <a
-                  href={alert.link}
+                  href={portal.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  aria-label={`${portal.source} official portal (opens in a new tab)`}
+                  className="font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 rounded"
                 >
-                  <span>Official Portal</span>
+                  <span>Official Page</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -537,12 +470,12 @@ export default function AboutPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: VERIFIED EMERGENCY NUMBERS                                     */}
+      {/* SECTION 4: VERIFIED EMERGENCY NUMBERS                                     */}
       {/* ========================================================================= */}
-      <section className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
+      <section id="emergency" className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
         <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
           <Phone className="w-4 h-4" />
-          <span>Section 5: Verified Emergency Helplines (Pan-India)</span>
+          <span>Section 4: Verified Emergency Helplines (Pan-India)</span>
         </div>
 
         <div>
@@ -595,13 +528,13 @@ export default function AboutPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 6: ARCHITECTURE DIAGRAM & DEVELOPER CREDITS                       */}
+      {/* SECTION 5: ARCHITECTURE DIAGRAM & DEVELOPER CREDITS                       */}
       {/* ========================================================================= */}
       <section className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
             <Terminal className="w-4 h-4" />
-            <span>Section 6: System Architecture & Credits</span>
+            <span>Section 5: System Architecture & Credits</span>
           </div>
           <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
             Engineered by <a href="https://github.com/Rishav-coder-ops" target="_blank" rel="noopener noreferrer" aria-label="Rishav Nandi on GitHub (opens in a new tab)" className="hover:text-sky-500 transition-colors underline-offset-2 hover:underline">Rishav Nandi</a>
@@ -669,8 +602,8 @@ export default function AboutPage() {
             <text x="335" y="198" fontSize="9" fill="#059669">Gemini prompt-injection defense</text>
 
             <rect x="325" y="215" width="210" height="42" rx="8" fill="#ecfdf5" className="dark:fill-slate-800" />
-            <text x="335" y="235" fontSize="11" fontWeight="bold" fill="#047857" className="dark:fill-emerald-300">/api/news & /api/alerts</text>
-            <text x="335" y="248" fontSize="9" fill="#059669">RSS aggregator & 30m cache</text>
+            <text x="335" y="235" fontSize="11" fontWeight="bold" fill="#047857" className="dark:fill-emerald-300">/api/aqi-timeline</text>
+            <text x="335" y="248" fontSize="9" fill="#059669">24h rolling curves & diurnal shifts</text>
 
             <rect x="325" y="265" width="210" height="45" rx="8" fill="#ecfdf5" className="dark:fill-slate-800" />
             <text x="335" y="285" fontSize="11" fontWeight="bold" fill="#047857" className="dark:fill-emerald-300">Rate Limiter & Security</text>
@@ -704,7 +637,7 @@ export default function AboutPage() {
             <text x="635" y="230" fontSize="9" fill="#64748b">English, Hindi & Hinglish</text>
 
             <rect x="625" y="245" width="200" height="45" rx="8" fill="#fffbeb" className="dark:fill-slate-800" />
-            <text x="635" y="266" fontSize="11" fontWeight="bold" fill="#b45309" className="dark:fill-amber-300">Government RSS Feeds</text>
+            <text x="635" y="266" fontSize="11" fontWeight="bold" fill="#b45309" className="dark:fill-amber-300">Statutory Portals</text>
             <text x="635" y="280" fontSize="9" fill="#78350f">CPCB, CAQM, IMD, NDMA SACHET</text>
           </svg>
         </div>
