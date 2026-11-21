@@ -1,8 +1,8 @@
 # 🌫️ Foggy — GenAI Winter Smog & Urban Air Quality Assistant
 
-[![CI Status](https://github.com/Rishav-coder-ops/foggy/actions/workflows/ci.yml/badge.svg)](https://github.com/Rishav-coder-ops/foggy/actions/workflows/ci.yml)
-[![Test Coverage](https://img.shields.io/badge/Coverage-76%25-brightgreen.svg)](https://github.com/Rishav-coder-ops/foggy)
-[![Node.js](https://img.shields.io/badge/Node-20.x-green.svg?logo=node.js)](https://nodejs.org/)
+[![CI](https://github.com/Rishav-coder-ops/foggy/actions/workflows/ci.yml/badge.svg)](https://github.com/Rishav-coder-ops/foggy/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/badge/Coverage-78%25-brightgreen.svg)](https://github.com/Rishav-coder-ops/foggy)
+[![Node.js](https://img.shields.io/badge/Node-22.x-green.svg?logo=node.js)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.3-61dafb.svg?logo=react)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)](https://vitejs.dev/)
@@ -10,6 +10,8 @@
 [![Express.js](https://img.shields.io/badge/Express-4.21-000000.svg?logo=express)](https://expressjs.com/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-1.5_Flash-4285F4.svg?logo=google)](https://aistudio.google.com/)
 [![WCAG AA](https://img.shields.io/badge/Accessibility-WCAG_AA_Compliant-blue.svg)](https://www.w3.org/WAI/WCAG2AA-Conformance)
+
+🌐 **Live Production Application**: [https://foggy-278.pages.dev](https://foggy-278.pages.dev)
 
 > **"Breathe easier, live cleaner, protect who you love."**  
 > Foggy is a friendly, knowledgeable, and reassuring GenAI companion designed to help families and urban communities navigate severe winter smog and urban air pollution with personalized routines, budget-friendly indoor hacks, and transparent impact metrics.
@@ -315,47 +317,94 @@ Foggy features a comprehensive, deterministic test suite designed to run 100% of
 ### Test Scripts
 
 ```bash
-# Run all 170 tests
+# Run all 177 tests
 npm test
+# or with pnpm
+pnpm test
 
 # Run tests in interactive watch mode
 npm run test:watch
+# or with pnpm
+pnpm run test:watch
 
 # Run test coverage analysis (generates coverage/ HTML report)
 npm run test:coverage
+# or with pnpm
+pnpm run test:coverage
 ```
 
-### Test Suite Overview (13 Suites / 170 Passing Tests)
+### Coverage Report (Fresh Run Metrics)
 
-| Test File                                | Tests | Focus Areas & Invariants Verified                                                                                                                                                                           |
-| :--------------------------------------- | :---: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/aqi.test.js`                      |  27   | CPCB NAQI breakpoints for $PM_{2.5}$ and $PM_{10}$, highest-sub-index rule, dominant pollutant, missing or partial data, rolling 24-hr average, official hex colors.                                        |
-| `tests/geocode.test.js`                  |  13   | Indian state/city aliases (`Orissa` $\to$ `Odisha`, `Bangalore` $\to$ `Bengaluru`, `Pondicherry` $\to$ `Puducherry`), state matching, fallback cities dictionary.                                           |
-| `tests/care-plan.test.js`                |  12   | Combinations of age, respiratory conditions (asthma, COPD, cardiac), commute, diurnal time slots. **Strictly verifies care plans never prescribe or alter medications**.                                    |
-| `tests/chat-intents.test.js`             |  38   | 31 intent classification queries across English, Hindi, and Hinglish across all 7 user intent categories; compact prompt builder; fallback generator.                                                       |
-| `tests/chat.test.js`                     |  14   | Payload size caps ($>32\text{ KB} \to 413$), message character limits ($>500 \text{ chars} \to 400$), rate limits (10/hr anon vs 60/hr auth), prompt injection sanitization, model AQI number verification. |
-| `tests/backend-functions.test.js`        |   4   | **Coordinate-based cache isolation regression test**: Verifies that requests for Delhi and Chennai return distinct, isolated data and never share cached AQI state.                                         |
-| `tests/auth-onboarding-settings.test.js` |  12   | Profile validation, "None" health condition exclusivity, age limits (1-120), pet profiles, Danger Zone account deletion order.                                                                              |
-| `tests/components.test.jsx`              |   9   | `ErrorBoundary` fallback and console logging, `ExpandablePanelModal` accessibility and Escape key handling, `ThemeToggle`, `ImpactBadge`, `AQICard`.                                                        |
-| `tests/services-api.test.js`             |  10   | Client API offline fallbacks, city storage in localStorage, timeline ingestion.                                                                                                                             |
-| `tests/routes.test.jsx`                  |  13   | In-memory React Router DOM smoke testing verifying Landing, About, Auth, and 404 routes render cleanly.                                                                                                     |
-| `tests/personalize-endpoint.test.js`     |   9   | Parity between `/api/personalize` and `/api/chat`, Bearer token validation, rate limit responses.                                                                                                           |
-| `tests/verify-firebase-token.test.js`    |   7   | RS256 JWT claims validation: expiry, future issue dates, audience, issuer, and malformed headers.                                                                                                           |
-| `tests/alerts.test.js`                   |   2   | Official Government of India portals and live alert link verification.                                                                                                                                      |
+| Metric         |  Measured  | Global CI Threshold |   Status   |
+| :------------- | :--------: | :-----------------: | :--------: |
+| **Lines**      | **78.11%** |         70%         | ✅ Passing |
+| **Functions**  | **78.48%** |         70%         | ✅ Passing |
+| **Statements** | **76.74%** |         70%         | ✅ Passing |
+| **Branches**   | **66.33%** |          —          | ✅ Passing |
 
-### End-to-End & Playwright Analysis
+Core modules (`src/utils`, `shared`, `src/services`, `functions/api`) all meet or exceed the ~80% target threshold.
 
-Full browser automation frameworks (such as Playwright or Cypress) require downloading heavy browser engine binaries (~400 MB for Chromium, Firefox, WebKit). In continuous integration runners and constrained sandbox environments:
+### Test Coverage Areas
 
-1. Binary downloads frequently time out or fail on restricted egress proxies.
-2. Headless GPU rendering on virtualized display drivers without X11/Wayland display servers produces flaky test crashes unrelated to application code.
-3. Cold browser spin-up takes 30–60 seconds compared to sub-second jsdom execution.
+1. **National AQI Calculation (`shared/aqi.js`, `functions/api/aqi.js`)**:
+   - CPCB NAQI breakpoints for $PM_{2.5}$ (0-30, 31-60, 61-90, 91-120, 121-250, 250+) and $PM_{10}$ (0-50, 51-100, 101-250, 251-350, 351-430, 430+).
+   - Dominant pollutant selection via highest-sub-index rule.
+   - 24-hour rolling averages from hourly timeseries with missing or partial pollutant data.
+   - Official hex color mappings and severity categorizations (Good, Satisfactory, Moderate, Poor, Very Poor, Severe).
 
-**Foggy's Strategy**: We achieve 100% deterministic, instant smoke testing using **React Testing Library** paired with **`MemoryRouter`** (`tests/routes.test.jsx`). This executes full React component mounting, route guard timeouts, context providers, DOM accessibility checks, and error boundaries in under 1 second without external browser binary dependencies.
+2. **Location Matching & Aliases (`shared/geocode.js`, `functions/api/geocode.js`)**:
+   - Indian state and city alias normalization (`Bangalore` $\to$ `Bengaluru`, `Orissa` $\to$ `Odisha`, `Pondicherry` $\to$ `Puducherry`, `Bombay` $\to$ `Mumbai`, `Calcutta` $\to$ `Kolkata`).
+   - State matching and fallback to bundled offline Indian cities dataset when upstream geocoders fail.
+   - Canonical display place name formatting (`City, State` or `City, India`) preventing raw input string leakage.
+
+3. **Care Plan Engine (`src/utils/carePlanEngine.js`)**:
+   - Combinations of age brackets (infants, children, adults, seniors $\ge 65$), sensitive conditions (asthma, COPD, cardiac, pregnancy), commute methods, and diurnal smog windows.
+   - **Strict medical safety invariant**: Care plans never prescribe or alter medications; rescue inhaler mentions are strictly conditioned on doctor prescriptions with 112/108 emergency escalation.
+
+4. **Chat Intent & Prompt Construction (`functions/api/chatIntent.js`, `functions/api/chat.js`)**:
+   - Intent classification across English, Hindi, and Hinglish for all 7 intent types: `aqi_status`, `budget_cleaning`, `mask_advice`, `outdoor_exercise`, `kids_seniors_safety`, `symptoms_medical`, and `general_smog_faq`.
+   - Compact JSON context builder prioritizing the user's specific question over repetitive AQI recitation.
+   - Security guards: 413 on payloads $>32\text{ KB}$, 400 on messages $>500$ characters, prompt injection sanitization.
+   - Rate limiting: 10 queries/hour for anonymous users, 60 queries/hour for authenticated users.
+
+5. **Backend Functions & Coordinate Isolation (`functions/api/*.js`)**:
+   - Cloudflare Pages Functions (`/api/aqi`, `/api/chat`, `/api/personalize`, `/api/aqi-timeline`, `/api/alerts`).
+   - Coordinate-based cache isolation (`aqi_{lat}_{lon}`) ensuring queries for distinct coordinates (e.g. Kolkata, Varanasi, Patna, Delhi) never collide or return cross-city stale cache hits.
+   - RS256 Firebase ID token verification (`verifyFirebaseToken.js`).
+
+6. **Route Guards & Navigation (`src/App.jsx`, `tests/routes.test.jsx`)**:
+   - In-memory React Router DOM smoke tests verifying Landing, About, Auth, Search, and 404 routes render cleanly with proper navigation and authentication guards.
+
+7. **Onboarding & Settings (`src/pages/OnboardingPage.jsx`, `src/pages/SettingsPage.jsx`)**:
+   - Step-by-step profile onboarding validation, health condition exclusivity ("None" exclusively resets other conditions), age validation (1–120), pet profiles, and Danger Zone irreversible account deletion order.
+
+### Test Suite Overview (14 Suites / 177 Passing Tests)
+
+| Test File                                | Tests | Focus Areas & Invariants Verified                                                                                                                                            |
+| :--------------------------------------- | :---: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/aqi.test.js`                      |  27   | CPCB NAQI breakpoints for $PM_{2.5}$ and $PM_{10}$, highest-sub-index rule, dominant pollutant, missing data, 24-hr rolling averages, official hex colors.                   |
+| `tests/geocode.test.js`                  |  13   | Indian state/city aliases, state matching, fallback offline Indian cities dictionary.                                                                                        |
+| `tests/care-plan.test.js`                |  12   | Combinations of age, respiratory conditions, commute, diurnal time slots. Strictly verifies non-prescription invariant.                                                      |
+| `tests/chat-intents.test.js`             |  38   | 31 intent classification queries across English, Hindi, and Hinglish across all 7 user intent categories; compact prompt builder; fallback generator.                        |
+| `tests/chat.test.js`                     |  14   | Payload size caps ($>32\text{ KB} \to 413$), message character limits ($>500 \text{ chars} \to 400$), rate limits (10/hr anon vs 60/hr auth), prompt injection sanitization. |
+| `tests/backend-functions.test.js`        |   4   | Coordinate-based cache isolation regression test: Verifies that requests for Delhi and Chennai return distinct, isolated data.                                               |
+| `tests/aqi-locality-cache.test.jsx`      |   7   | Coordinate locality, cache isolation, canonical place title formatting, and race condition prevention across fast city searches.                                             |
+| `tests/auth-onboarding-settings.test.js` |  12   | Profile validation, "None" health condition exclusivity, age limits (1-120), pet profiles, Danger Zone account deletion order.                                               |
+| `tests/components.test.jsx`              |   9   | `ErrorBoundary` fallback and logging, `ExpandablePanelModal` accessibility and Escape key handling, `ThemeToggle`, `ImpactBadge`, `AQICard`.                                 |
+| `tests/services-api.test.js`             |  10   | Client API offline fallbacks, city storage in localStorage, timeline ingestion.                                                                                              |
+| `tests/routes.test.jsx`                  |  13   | In-memory React Router DOM smoke testing verifying Landing, About, Auth, and 404 routes render cleanly.                                                                      |
+| `tests/personalize-endpoint.test.js`     |   9   | Parity between `/api/personalize` and `/api/chat`, Bearer token validation, rate limit responses.                                                                            |
+| `tests/verify-firebase-token.test.js`    |   7   | RS256 JWT claims validation: expiry, future issue dates, audience, issuer, and malformed headers.                                                                            |
+| `tests/alerts.test.js`                   |   2   | Official Government of India portals and live alert link verification.                                                                                                       |
+
+### Known Test Gaps & Trade-offs
+
+1. **Live External Services**: Production Firebase Authentication / Cloud Firestore and external upstream weather endpoints (Open-Meteo live APIs) are mocked or intercepted with offline fixtures and in-memory caches to prevent rate limiting, flaky networks, and third-party outages from failing CI.
+2. **Headless Browser Snapshots**: Heavy end-to-end browser engines (Playwright/Cypress) requiring ~400 MB binary downloads and GPU virtualization are intentionally omitted from standard CI runs in favor of sub-second jsdom and React Testing Library tests that execute in under 11 seconds.
 
 ### Prerequisites
 
-- **Node.js** v20.0.0 or later (configured in `.node-version`)
+- **Node.js** v22.0.0 or later (configured in `.nvmrc`)
 - **pnpm** (or `npm` / `yarn`)
 
 ### 1. Clone & Install
@@ -469,14 +518,14 @@ git push -u origin main
 
 Fill in the build configuration:
 
-| Setting                    | Value              | Notes                                        |
-| :------------------------- | :----------------- | :------------------------------------------- |
-| **Project Name**           | `foggy`            | Or your preferred subdomain                  |
-| **Production Branch**      | `main`             | Continuous deployment branch                 |
-| **Framework Preset**       | `Vite` (or `None`) | Configured via `package.json`                |
-| **Build Command**          | `npm run build`    | Produces production assets in `dist/`        |
-| **Build Output Directory** | `dist`             | Static asset output directory                |
-| **Node.js Version**        | `20`               | Automatically picked up from `.node-version` |
+| Setting                    | Value              | Notes                                 |
+| :------------------------- | :----------------- | :------------------------------------ |
+| **Project Name**           | `foggy`            | Or your preferred subdomain           |
+| **Production Branch**      | `main`             | Continuous deployment branch          |
+| **Framework Preset**       | `Vite` (or `None`) | Configured via `package.json`         |
+| **Build Command**          | `npm run build`    | Produces production assets in `dist/` |
+| **Build Output Directory** | `dist`             | Static asset output directory         |
+| **Node.js Version**        | `22`               | Automatically picked up from `.nvmrc` |
 
 #### 4. Configure Environment Variables & Secrets
 
@@ -500,11 +549,11 @@ Under **Environment variables (advanced)**:
 
 #### 5. Deploy & Authorize Firebase Domain
 
-1. Click **Save and Deploy**. Cloudflare Pages will build the frontend, deploy the `functions/api/` edge routes, and provide your live URL (e.g. `https://foggy.pages.dev`).
+1. Click **Save and Deploy**. Cloudflare Pages will build the frontend, deploy the `functions/api/` edge routes, and provide your live URL (e.g. `https://foggy-278.pages.dev`).
 2. **Authorize Domain in Firebase**:
    - Go to [Firebase Console](https://console.firebase.google.com/) > Select your Project.
    - Navigate to **Authentication** > **Settings** > **Authorized domains**.
-   - Click **Add domain** and enter your Cloudflare Pages domain (e.g. `foggy.pages.dev`).
+   - Click **Add domain** and enter your Cloudflare Pages domain (e.g. `foggy-278.pages.dev`).
    - This ensures Google OAuth popups and redirects function without origin rejection.
 
 ---
