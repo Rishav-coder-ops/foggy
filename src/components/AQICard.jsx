@@ -1,7 +1,7 @@
 // src/components/AQICard.jsx
 // Atmospheric Monitoring Station Card using CPCB National AQI Scale (0-500)
-import React, { useState } from 'react';
-import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin } from 'lucide-react';
 import { INDIAN_METROS } from '../services/api';
 
 const PRESET_CITIES = INDIAN_METROS.map((m) => m.name);
@@ -24,10 +24,6 @@ export default function AQICard({
     }
   };
 
-  const getAQIRangeIndicator = (aqi) => {
-    return Math.min(100, Math.round((aqi / 500) * 100));
-  };
-
   return (
     <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark transition-all">
       {/* Top Header: City Selector & Live Source Badge */}
@@ -40,8 +36,29 @@ export default function AQICard({
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white mt-1">
             {locationTitle || aqiData?.city || 'Kolkata, West Bengal'}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-            Updated: {aqiData?.updatedAt || 'Just now'} • Dominant Pollutant: <span className="font-semibold text-slate-700 dark:text-slate-200">{aqiData?.dominantPollutant || 'PM2.5'}</span>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
+            {aqiData?.gridPoint?.lat != null && aqiData?.gridPoint?.lon != null ? (
+              <span>
+                Model grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}N,{' '}
+                {Number(aqiData.gridPoint.lon).toFixed(2)}E • Updated{' '}
+                {aqiData?.updatedAt || 'Just now'}
+              </span>
+            ) : aqiData?.latitude != null && aqiData?.longitude != null ? (
+              <span>
+                Model grid point: {Number(aqiData.latitude).toFixed(2)}N,{' '}
+                {Number(aqiData.longitude).toFixed(2)}E • Updated{' '}
+                {aqiData?.updatedAt || 'Just now'}
+              </span>
+            ) : (
+              <span>Updated: {aqiData?.updatedAt || 'Just now'}</span>
+            )}
+            <span>•</span>
+            <span>
+              Dominant Pollutant:{' '}
+              <strong className="font-semibold text-slate-700 dark:text-slate-200">
+                {aqiData?.dominantPollutant || 'PM2.5'}
+              </strong>
+            </span>
           </p>
         </div>
 
@@ -122,7 +139,9 @@ export default function AQICard({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               National AQI (CPCB Scale)
             </span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${aqiData?.badgeClass || 'bg-amber-100 text-amber-800'}`}>
+            <span
+              className={`text-xs px-2.5 py-1 rounded-full font-bold border ${aqiData?.badgeClass || 'bg-amber-100 text-amber-800'}`}
+            >
               {aqiData?.category || 'Moderate'}
             </span>
           </div>
@@ -198,7 +217,9 @@ export default function AQICard({
               <span>CPCB Health Guidance & Impact</span>
             </div>
             <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-              {aqiData?.healthImpact || aqiData?.advisory || 'Air quality is monitored continuously according to CPCB guidelines.'}
+              {aqiData?.healthImpact ||
+                aqiData?.advisory ||
+                'Air quality is monitored continuously according to CPCB guidelines.'}
             </p>
             {aqiData?.advisory && aqiData?.advisory !== aqiData?.healthImpact && (
               <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">
@@ -213,7 +234,11 @@ export default function AQICard({
               <span className="text-xl">😷</span>
               <div>
                 <p className="font-bold text-sky-900 dark:text-sky-200">
-                  {aqiData?.aqi > 200 ? 'Certified N95 / FFP2 Mask Advised Outdoors' : aqiData?.aqi > 100 ? 'Mask Recommended for Sensitive Groups' : 'Mask Optional Outdoors'}
+                  {aqiData?.aqi > 200
+                    ? 'Certified N95 / FFP2 Mask Advised Outdoors'
+                    : aqiData?.aqi > 100
+                      ? 'Mask Recommended for Sensitive Groups'
+                      : 'Mask Optional Outdoors'}
                 </p>
                 <p className="text-sky-700 dark:text-sky-300/80 text-[11px]">
                   Cloth and surgical masks do not block fine PM2.5 particulates.
@@ -221,7 +246,13 @@ export default function AQICard({
               </div>
             </div>
             <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/60 px-2 py-1 rounded-md">
-              {aqiData?.aqi > 300 ? 'Mandatory' : aqiData?.aqi > 200 ? 'Strongly Advised' : aqiData?.aqi > 100 ? 'Recommended' : 'Optional'}
+              {aqiData?.aqi > 300
+                ? 'Mandatory'
+                : aqiData?.aqi > 200
+                  ? 'Strongly Advised'
+                  : aqiData?.aqi > 100
+                    ? 'Recommended'
+                    : 'Optional'}
             </span>
           </div>
 
@@ -248,12 +279,12 @@ export default function AQICard({
                     <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                       {p.label}
                     </div>
-                    <div className={`text-sm font-extrabold mt-0.5 ${isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                    <div
+                      className={`text-sm font-extrabold mt-0.5 ${isOver ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}
+                    >
                       {p.val ?? '--'}
                     </div>
-                    <div className="text-[9px] text-slate-600 dark:text-slate-400">
-                      {p.unit}
-                    </div>
+                    <div className="text-[9px] text-slate-600 dark:text-slate-400">{p.unit}</div>
                   </div>
                 );
               })}
@@ -263,10 +294,12 @@ export default function AQICard({
           {/* Attribution & Official CPCB Guidance Note */}
           <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-1 pt-1">
             <p>
-              <strong>Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data.
+              <strong>Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus
+              Atmosphere Monitoring Service (CAMS) model data.
             </p>
             <p className="italic">
-              Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.
+              Estimated from modelled data; official CPCB station readings may differ. Check the
+              official CPCB bulletin or the SAMEER app for authoritative values.
             </p>
           </div>
         </div>

@@ -13,30 +13,65 @@ import {
 describe('Foggy Chat Intent Classification (20+ Sample Questions)', () => {
   const sampleTestCases = [
     { query: 'How do I clean my home air on a budget?', expected: INTENT_TYPES.BUDGET_OPTIONS },
-    { query: 'What are some cheap ways to purify indoor air under Rs 1000?', expected: INTENT_TYPES.BUDGET_OPTIONS },
+    {
+      query: 'What are some cheap ways to purify indoor air under Rs 1000?',
+      expected: INTENT_TYPES.BUDGET_OPTIONS
+    },
     { query: 'Can kids play outside today?', expected: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY },
     { query: 'Tips for my child with asthma', expected: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY },
-    { query: 'Is it safe for Dadi to go outside for her walk?', expected: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY },
+    {
+      query: 'Is it safe for Dadi to go outside for her walk?',
+      expected: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY
+    },
     { query: 'What mask should I wear?', expected: INTENT_TYPES.MASK_ADVICE },
     { query: 'What mask should I wear today?', expected: INTENT_TYPES.MASK_ADVICE },
-    { query: 'Should I buy an N95 respirator or a cloth mask?', expected: INTENT_TYPES.MASK_ADVICE },
+    {
+      query: 'Should I buy an N95 respirator or a cloth mask?',
+      expected: INTENT_TYPES.MASK_ADVICE
+    },
     { query: 'Plan my low-pollution day', expected: INTENT_TYPES.PLAN_MY_DAY },
-    { query: 'Help me plan my day schedule around the smog curve', expected: INTENT_TYPES.PLAN_MY_DAY },
+    {
+      query: 'Help me plan my day schedule around the smog curve',
+      expected: INTENT_TYPES.PLAN_MY_DAY
+    },
     { query: 'Is it safe to run tomorrow morning?', expected: INTENT_TYPES.ACTIVITY_SAFETY },
     { query: 'Can I go jogging in the park this evening?', expected: INTENT_TYPES.ACTIVITY_SAFETY },
     { query: 'Is it safe to play cricket outdoors today?', expected: INTENT_TYPES.ACTIVITY_SAFETY },
     { query: 'Delhi aqi', expected: INTENT_TYPES.AQI_STATUS },
-    { query: 'What is the air quality reading in Mumbai right now?', expected: INTENT_TYPES.AQI_STATUS },
+    {
+      query: 'What is the air quality reading in Mumbai right now?',
+      expected: INTENT_TYPES.AQI_STATUS
+    },
     { query: 'what about tomorrow?', expected: INTENT_TYPES.FORECAST },
     { query: 'Will smog increase tonight or tomorrow?', expected: INTENT_TYPES.FORECAST },
     { query: 'How to build a Corsi-Rosenthal filter?', expected: INTENT_TYPES.INDOOR_AIR_TIPS },
-    { query: 'Should I damp-mop or dry sweep my room during winter smog?', expected: INTENT_TYPES.INDOOR_AIR_TIPS },
-    { query: 'Is taking the AC metro safer than riding my scooter to work?', expected: INTENT_TYPES.COMMUTE_OPTIONS },
-    { query: 'My throat is burning and I cannot stop coughing', expected: INTENT_TYPES.HEALTH_SYMPTOM_CONCERN },
-    { query: 'Is Delhi cleaner than Mumbai today?', expected: INTENT_TYPES.COMPARISON_BETWEEN_CITIES },
+    {
+      query: 'Should I damp-mop or dry sweep my room during winter smog?',
+      expected: INTENT_TYPES.INDOOR_AIR_TIPS
+    },
+    {
+      query: 'Is taking the AC metro safer than riding my scooter to work?',
+      expected: INTENT_TYPES.COMMUTE_OPTIONS
+    },
+    {
+      query: 'My throat is burning and I cannot stop coughing',
+      expected: INTENT_TYPES.HEALTH_SYMPTOM_CONCERN
+    },
+    {
+      query: 'Is Delhi cleaner than Mumbai today?',
+      expected: INTENT_TYPES.COMPARISON_BETWEEN_CITIES
+    },
     { query: 'Who are you and how do you work?', expected: INTENT_TYPES.ABOUT_FOGGY },
     { query: 'Namaste Foggy', expected: INTENT_TYPES.SMALL_TALK },
-    { query: 'Write a python script to solve two sum problem', expected: INTENT_TYPES.OFF_TOPIC }
+    { query: 'Write a python script to solve two sum problem', expected: INTENT_TYPES.OFF_TOPIC },
+    { query: 'Aaj subah bahar daudna safe hai kya?', expected: INTENT_TYPES.ACTIVITY_SAFETY },
+    {
+      query: 'Gale mein kharash aur khansi ho rahi hai',
+      expected: INTENT_TYPES.HEALTH_SYMPTOM_CONCERN
+    },
+    { query: 'Ghar ki hawa kaise saaf karein saste mein?', expected: INTENT_TYPES.BUDGET_OPTIONS },
+    { query: 'Kal ka aqi kaisa rahega?', expected: INTENT_TYPES.FORECAST },
+    { query: 'Baccho ko park bhejna theek hai kya?', expected: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY }
   ];
 
   sampleTestCases.forEach(({ query, expected }, idx) => {
@@ -49,7 +84,10 @@ describe('Foggy Chat Intent Classification (20+ Sample Questions)', () => {
   it('correctly handles multi-turn follow-up queries using history', () => {
     const history = [
       { role: 'user', parts: [{ text: 'What is the AQI in Delhi?' }] },
-      { role: 'model', parts: [{ text: 'In Delhi, the current estimated CPCB NAQI is 280 (Poor).' }] }
+      {
+        role: 'model',
+        parts: [{ text: 'In Delhi, the current estimated CPCB NAQI is 280 (Poor).' }]
+      }
     ];
     const followUpIntent = classifyIntent('what about tomorrow?', history);
     expect(followUpIntent).toBe(INTENT_TYPES.FORECAST);
@@ -82,7 +120,12 @@ describe('Prompt Construction & Compact Context Serialization', () => {
     commute: 'Metro',
     cookingType: 'LPG',
     familyMembers: [
-      { name: 'Beta', relationship: 'Child (Son)', age: 7, condition: 'Asthma (uses salbutamol inhaler)' },
+      {
+        name: 'Beta',
+        relationship: 'Child (Son)',
+        age: 7,
+        condition: 'Asthma (uses salbutamol inhaler)'
+      },
       { name: 'Dadi', relationship: 'Senior', age: 74, condition: 'Hypertension' },
       { name: 'Rusty', relationship: 'Pet (Dog)', age: 4, condition: 'None' }
     ]
@@ -90,14 +133,18 @@ describe('Prompt Construction & Compact Context Serialization', () => {
 
   it('builds system prompt focused on persona, rules, and tone only', () => {
     const prompt = buildSystemPrompt({ isHindi: false, isHinglish: false });
-    expect(prompt).toContain('Answer the user\'s question first and directly');
+    expect(prompt).toContain("Answer the user's question first and directly");
     expect(prompt).toContain('Never open with a greeting after the first message');
     expect(prompt).toContain('Never repeat the AQI report unless the user asks for the AQI');
     expect(prompt).not.toContain('PROVIDED LIVE AIR QUALITY DATA');
   });
 
   it('builds compact JSON context filtering only relevant family members', () => {
-    const context = buildCompactContext(mockReport, mockProfile, INTENT_TYPES.KIDS_OR_SENIORS_SAFETY);
+    const context = buildCompactContext(
+      mockReport,
+      mockProfile,
+      INTENT_TYPES.KIDS_OR_SENIORS_SAFETY
+    );
     expect(context.city).toBe('Kolkata');
     expect(context.estimatedNAQI).toBe(45);
     expect(context.category).toBe('Good');
@@ -167,12 +214,14 @@ describe('Smart Fallback Answers adhere strictly to guidelines', () => {
       message: 'How do I clean my home air on a budget?'
     });
 
-    expect(reply.startsWith('You can improve your indoor air a lot without spending much.')).toBe(true);
+    expect(reply.startsWith('You can improve your indoor air a lot without spending much.')).toBe(
+      true
+    );
     expect(reply).toContain('Free (₹0)');
     expect(reply).toContain('Budget (under ₹1,000)');
     expect(reply).toContain('Premium (₹1,000+)');
     expect(reply).toContain('Corsi-Rosenthal');
-    expect(reply).toContain('Today Kolkata\'s air is Good');
+    expect(reply).toContain("Today Kolkata's air is Good");
     expect(reply).not.toContain('### 🛡️ Recommended Safeguards:');
   });
 

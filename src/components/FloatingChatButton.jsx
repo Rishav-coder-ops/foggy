@@ -1,6 +1,6 @@
 // src/components/FloatingChatButton.jsx
-import React, { useState } from 'react';
-import { Sparkles, X, MessageSquare } from 'lucide-react';
+import { useState } from 'react';
+import { Sparkles, X } from 'lucide-react';
 import MascotAvatar from './MascotAvatar';
 import { useChat } from '../context/ChatContext';
 

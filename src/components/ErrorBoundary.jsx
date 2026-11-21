@@ -54,7 +54,8 @@ export default class ErrorBoundary extends React.Component {
                 Something Went Foggy
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                We encountered an unexpected interface error. Don't worry, your saved household profiles and air quality data are completely safe.
+                We encountered an unexpected interface error. Don't worry, your saved household
+                profiles and air quality data are completely safe.
               </p>
             </div>
 

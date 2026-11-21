@@ -1,5 +1,4 @@
 // src/components/MascotAvatar.jsx
-import React from 'react';
 
 export default function MascotAvatar({ size = 'md', mood = 'happy', className = '' }) {
   const sizeMap = {
@@ -45,12 +44,7 @@ export default function MascotAvatar({ size = 'md', mood = 'happy', className = 
 
           {/* Cheerful reassuring smile */}
           {mood === 'thinking' ? (
-            <path
-              d="M49 57Q54 55 59 57"
-              stroke="#0F172A"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
+            <path d="M49 57Q54 55 59 57" stroke="#0F172A" strokeWidth="2.2" strokeLinecap="round" />
           ) : (
             <path
               d="M48 56C51 60 57 60 60 56"
@@ -62,7 +56,14 @@ export default function MascotAvatar({ size = 'md', mood = 'happy', className = 
 
           {/* Gradients */}
           <defs>
-            <linearGradient id="cloudGrad" x1="17" y1="28" x2="93" y2="71" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="cloudGrad"
+              x1="17"
+              y1="28"
+              x2="93"
+              y2="71"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop stopColor="#E0F2FE" />
               <stop offset="0.6" stopColor="#BAE6FD" />
               <stop offset="1" stopColor="#FDE68A" />

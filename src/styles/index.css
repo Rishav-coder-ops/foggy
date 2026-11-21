@@ -9,18 +9,18 @@
      Primary Text: #334155 (Slate Charcoal)
      Accent Color: #D97706 (Haze Orange)
   */
-  --bg-primary: #F1F5F9;
-  --bg-secondary: #E2E8F0;
-  --bg-card: #FFFFFF;
-  --bg-card-subtle: #F8FAFC;
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #e2e8f0;
+  --bg-card: #ffffff;
+  --bg-card-subtle: #f8fafc;
   --text-primary: #334155;
-  --text-muted: #64748B;
-  --border-color: #CBD5E1;
-  --accent-color: #D97706;
-  --accent-hover: #B45309;
-  --accent-light: #FEF3C7;
-  --alert-color: #DC2626;
-  --alert-light: #FEE2E2;
+  --text-muted: #64748b;
+  --border-color: #cbd5e1;
+  --accent-color: #d97706;
+  --accent-hover: #b45309;
+  --accent-light: #fef3c7;
+  --alert-color: #dc2626;
+  --alert-light: #fee2e2;
   --shadow-subtle: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
 }
 
@@ -32,23 +32,30 @@
      Accent Color: #38BDF8 (Ozone Blue)
      Alert Color: #FBBF24 (Toxic Yellow)
   */
-  --bg-primary: #0F172A;
-  --bg-secondary: #1E293B;
-  --bg-card: #1E293B;
-  --bg-card-subtle: #151F32;
-  --text-primary: #F8FAFC;
-  --text-muted: #94A3B8;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-card-subtle: #151f32;
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
   --border-color: #334155;
-  --accent-color: #38BDF8;
-  --accent-hover: #0284C7;
+  --accent-color: #38bdf8;
+  --accent-hover: #0284c7;
   --accent-light: rgba(56, 189, 248, 0.15);
-  --alert-color: #FBBF24;
+  --alert-color: #fbbf24;
   --alert-light: rgba(251, 191, 36, 0.15);
   --shadow-subtle: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Plus Jakarta Sans',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -84,9 +91,15 @@ body {
 
 /* Atmospheric misty animations */
 @keyframes drift {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(15px, -10px) scale(1.05); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(15px, -10px) scale(1.05);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 .animate-mist {
@@ -95,8 +108,15 @@ body {
 
 /* Subtle pulse for AQI indicator */
 @keyframes aqi-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
 }
 
 .animate-aqi-pulse {
@@ -106,7 +126,10 @@ body {
 /* Cursor-reactive Card Illumination & Lift (Desktop / fine pointer only) */
 .interactive-card {
   position: relative;
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+  transition:
+    transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease,
+    border-color 0.2s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -115,21 +138,30 @@ body {
   }
 
   .dark .interactive-card:hover {
-    box-shadow: 0 10px 30px -5px rgba(56, 189, 248, 0.15), 0 0 0 1px rgba(56, 189, 248, 0.2);
+    box-shadow:
+      0 10px 30px -5px rgba(56, 189, 248, 0.15),
+      0 0 0 1px rgba(56, 189, 248, 0.2);
   }
 
   .light .interactive-card:hover {
-    box-shadow: 0 10px 25px -4px rgba(217, 119, 6, 0.12), 0 0 0 1px rgba(217, 119, 6, 0.2);
+    box-shadow:
+      0 10px 25px -4px rgba(217, 119, 6, 0.12),
+      0 0 0 1px rgba(217, 119, 6, 0.2);
   }
 }
 
 /* Button micro-bounce for responsive feel on both touch and mouse */
-button, a {
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+button,
+a {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
   touch-action: manipulation;
 }
 
-button:active, a:active {
+button:active,
+a:active {
   transform: scale(0.97) !important;
 }
 
@@ -141,4 +173,3 @@ button:active, a:active {
   opacity: 0 !important;
   pointer-events: none !important;
 }
-

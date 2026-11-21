@@ -12,10 +12,13 @@ async function getGoogleJwks() {
   }
 
   try {
-    const res = await fetch('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com', {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(6000)
-    });
+    const res = await fetch(
+      'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+      {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(6000)
+      }
+    );
     if (!res.ok) throw new Error(`Google JWKS responded with HTTP ${res.status}`);
     const data = await res.json();
     jwksCache = {
@@ -124,7 +127,7 @@ export async function verifyFirebaseIdToken(token, projectId = 'foggy-air') {
       email: payload.email || '',
       name: payload.name || ''
     };
-  } catch (err) {
+  } catch (_err) {
     return { valid: false, error: 'Cryptographic verification error' };
   }
 }

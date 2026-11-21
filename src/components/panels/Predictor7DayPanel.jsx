@@ -1,14 +1,13 @@
 // src/components/panels/Predictor7DayPanel.jsx
 // 7-Day AQI Predictor Feature Box & Expanded Modal using CPCB National AQI (0-500)
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Calendar,
   MessageSquare,
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
-  Sparkles
+  Minus
 } from 'lucide-react';
 import ExpandablePanelModal from '../ExpandablePanelModal';
 import PanelCitySearch from '../PanelCitySearch';
@@ -20,30 +19,39 @@ export function CategoryBadge({ aqi, categoryName }) {
   const cat = getAQICategory(aqi);
   const name = categoryName || cat.name;
 
-  let badgeStyles = 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
+  let badgeStyles =
+    'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
 
   if (aqi <= 50) {
     // Good (Green)
-    badgeStyles = 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+    badgeStyles =
+      'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
   } else if (aqi <= 100) {
     // Satisfactory (Light Green)
-    badgeStyles = 'bg-green-100 text-green-950 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800';
+    badgeStyles =
+      'bg-green-100 text-green-950 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800';
   } else if (aqi <= 200) {
     // Moderate (Yellow)
-    badgeStyles = 'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800';
+    badgeStyles =
+      'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800';
   } else if (aqi <= 300) {
     // Poor (Orange)
-    badgeStyles = 'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800';
+    badgeStyles =
+      'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800';
   } else if (aqi <= 400) {
     // Very Poor (Red)
-    badgeStyles = 'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800';
+    badgeStyles =
+      'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800';
   } else {
     // Severe (Maroon)
-    badgeStyles = 'bg-rose-200 text-rose-950 dark:bg-rose-950/90 dark:text-rose-200 border-rose-400 dark:border-rose-800';
+    badgeStyles =
+      'bg-rose-200 text-rose-950 dark:bg-rose-950/90 dark:text-rose-200 border-rose-400 dark:border-rose-800';
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${badgeStyles}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${badgeStyles}`}
+    >
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
       <span>{name}</span>
     </span>
@@ -55,7 +63,10 @@ export function Strip7DayPreview({ days = [] }) {
     return (
       <div className="flex gap-1.5 pt-1">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex-1 h-10 rounded-xl bg-[#E2E8F0] dark:bg-[#1E293B] animate-pulse" />
+          <div
+            key={i}
+            className="flex-1 h-10 rounded-xl bg-[#E2E8F0] dark:bg-[#1E293B] animate-pulse"
+          />
         ))}
       </div>
     );
@@ -90,7 +101,7 @@ export function Strip7DayPreview({ days = [] }) {
 
 export default function Predictor7DayPanel({
   timelineData,
-  loading = false,
+  _loading = false,
   location,
   onCitySelect,
   onUseMyLocation,
@@ -99,7 +110,7 @@ export default function Predictor7DayPanel({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
-  const cardRef = React.useRef(null);
+  const cardRef = useRef(null);
   const { openChat, setInputMessage } = useChat();
 
   const days = timelineData?.forecast7Days || [];
@@ -148,7 +159,8 @@ export default function Predictor7DayPanel({
           </h3>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Multi-day CAMS forecast model tracks incoming atmospheric inversions and weather fronts, helping you schedule outdoor activities and commute swaps in advance.
+            Multi-day CAMS forecast model tracks incoming atmospheric inversions and weather fronts,
+            helping you schedule outdoor activities and commute swaps in advance.
           </p>
 
           {/* Compact 7-Day Preview Strip */}
@@ -159,7 +171,9 @@ export default function Predictor7DayPanel({
 
         <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold text-sky-600 dark:text-sky-400">
           <span>Click to explore 7-day forecast</span>
-          <span className="text-slate-400 group-hover:text-sky-500 transition-all duration-300 motion-safe:group-hover:translate-x-1.5">→</span>
+          <span className="text-slate-400 group-hover:text-sky-500 transition-all duration-300 motion-safe:group-hover:translate-x-1.5">
+            →
+          </span>
         </div>
       </div>
 
@@ -200,7 +214,8 @@ export default function Predictor7DayPanel({
               <span>7-Day Daily Mean Trajectory (CPCB NAQI)</span>
             </span>
             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 font-mono">
-              Min: {Math.min(...days.map((d) => d.minAqi || 100), 100)} • Max: {Math.max(...days.map((d) => d.maxAqi || 250), 250)} NAQI
+              Min: {Math.min(...days.map((d) => d.minAqi || 100), 100)} • Max:{' '}
+              {Math.max(...days.map((d) => d.maxAqi || 250), 250)} NAQI
             </span>
           </div>
 
@@ -208,7 +223,10 @@ export default function Predictor7DayPanel({
             {days.map((day, idx) => {
               const isSelected = idx === selectedDayIndex;
               const cat = getAQICategory(day.averageAqi);
-              const heightPct = Math.max(20, Math.min(100, Math.round((day.averageAqi / 500) * 100)));
+              const heightPct = Math.max(
+                20,
+                Math.min(100, Math.round((day.averageAqi / 500) * 100))
+              );
 
               return (
                 <button
@@ -241,7 +259,8 @@ export default function Predictor7DayPanel({
           </div>
 
           <p className="text-[10px] text-slate-600 dark:text-slate-400 italic pt-1 text-center">
-            *Forecast confidence is highest for Today & Tomorrow; accuracy decreases for days further ahead as atmospheric dynamics evolve.
+            *Forecast confidence is highest for Today & Tomorrow; accuracy decreases for days
+            further ahead as atmospheric dynamics evolve.
           </p>
         </div>
 
@@ -258,7 +277,12 @@ export default function Predictor7DayPanel({
                 </span>
               </div>
               <p className="text-xs text-slate-700 dark:text-slate-300 mt-0.5">
-                Daily Mean: <strong className="text-slate-900 dark:text-white">{selectedDay?.averageAqi} NAQI</strong> • Range: {selectedDay?.minAqi} – {selectedDay?.maxAqi} NAQI ({selectedDay?.dominantCategory})
+                Daily Mean:{' '}
+                <strong className="text-slate-900 dark:text-white">
+                  {selectedDay?.averageAqi} NAQI
+                </strong>{' '}
+                • Range: {selectedDay?.minAqi} – {selectedDay?.maxAqi} NAQI (
+                {selectedDay?.dominantCategory})
               </p>
             </div>
 
@@ -309,21 +333,27 @@ export default function Predictor7DayPanel({
               const isBest = selectedDay?.bestSlot?.time === slot.time;
               const isWorst = selectedDay?.worstSlot?.time === slot.time;
 
-              let cardClasses = 'bg-[#E2E8F0] dark:bg-[#1E293B] border-[#CBD5E1] dark:border-[#334155]';
+              let cardClasses =
+                'bg-[#E2E8F0] dark:bg-[#1E293B] border-[#CBD5E1] dark:border-[#334155]';
               let timeClasses = 'text-[#334155] dark:text-[#CBD5E1]';
               let aqiClasses = 'text-[#334155] dark:text-[#F8FAFC]';
-              let adviceClasses = 'text-[#334155] dark:text-[#CBD5E1] border-[#CBD5E1] dark:border-[#334155]';
+              let adviceClasses =
+                'text-[#334155] dark:text-[#CBD5E1] border-[#CBD5E1] dark:border-[#334155]';
 
               if (isBest) {
-                cardClasses = 'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 ring-2 ring-emerald-500/40';
+                cardClasses =
+                  'bg-emerald-100/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 ring-2 ring-emerald-500/40';
                 timeClasses = 'text-emerald-950 dark:text-emerald-100';
                 aqiClasses = 'text-emerald-950 dark:text-emerald-50';
-                adviceClasses = 'text-emerald-950 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800/80';
+                adviceClasses =
+                  'text-emerald-950 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800/80';
               } else if (isWorst) {
-                cardClasses = 'bg-rose-100/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 ring-2 ring-rose-500/40';
+                cardClasses =
+                  'bg-rose-100/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-700 ring-2 ring-rose-500/40';
                 timeClasses = 'text-rose-950 dark:text-rose-100';
                 aqiClasses = 'text-rose-950 dark:text-rose-50';
-                adviceClasses = 'text-rose-950 dark:text-rose-200 border-rose-300 dark:border-rose-800/80';
+                adviceClasses =
+                  'text-rose-950 dark:text-rose-200 border-rose-300 dark:border-rose-800/80';
               }
 
               return (
@@ -364,8 +394,8 @@ export default function Predictor7DayPanel({
                         </span>
                       ) : slot.diffFromAvg > 0 ? (
                         <span className="text-rose-800 dark:text-rose-400 font-semibold flex items-center">
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                          +{slot.diffFromAvg} pts worse than avg
+                          <ArrowUpRight className="w-3.5 h-3.5" />+{slot.diffFromAvg} pts worse than
+                          avg
                         </span>
                       ) : (
                         <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center">
@@ -375,7 +405,9 @@ export default function Predictor7DayPanel({
                     </div>
                   </div>
 
-                  <div className={`pt-2 border-t text-[11px] leading-snug font-medium ${adviceClasses}`}>
+                  <div
+                    className={`pt-2 border-t text-[11px] leading-snug font-medium ${adviceClasses}`}
+                  >
                     {slot.advice}
                   </div>
                 </div>
@@ -387,10 +419,14 @@ export default function Predictor7DayPanel({
         {/* Attribution & Disclaimer */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
           <p>
-            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data.
+            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality
+            data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model
+            data.
           </p>
           <p className="italic">
-            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.
+            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station
+            readings may differ. Check the official CPCB bulletin or the SAMEER app for
+            authoritative values.
           </p>
         </div>
       </ExpandablePanelModal>

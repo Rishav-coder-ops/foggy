@@ -6,14 +6,20 @@
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 60;
 const ipRateLimitMap = new Map();
+export const timelineCache = new Map();
+export const TIMELINE_CACHE_TTL_MS = 15 * 60 * 1000;
+
+export function getTimelineCacheKey(lat, lon) {
+  return `timeline_${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
+}
 
 export const INDIAN_METROS = [
   { name: 'Kolkata', lat: 22.5726, lon: 88.3639, country: 'India', admin1: 'West Bengal' },
-  { name: 'Delhi', lat: 28.6139, lon: 77.2090, country: 'India', admin1: 'Delhi' },
-  { name: 'Mumbai', lat: 19.0760, lon: 72.8777, country: 'India', admin1: 'Maharashtra' },
+  { name: 'Delhi', lat: 28.6139, lon: 77.209, country: 'India', admin1: 'Delhi' },
+  { name: 'Mumbai', lat: 19.076, lon: 72.8777, country: 'India', admin1: 'Maharashtra' },
   { name: 'Chennai', lat: 13.0827, lon: 80.2707, country: 'India', admin1: 'Tamil Nadu' },
   { name: 'Bengaluru', lat: 12.9716, lon: 77.5946, country: 'India', admin1: 'Karnataka' },
-  { name: 'Hyderabad', lat: 17.3850, lon: 78.4867, country: 'India', admin1: 'Telangana' },
+  { name: 'Hyderabad', lat: 17.385, lon: 78.4867, country: 'India', admin1: 'Telangana' },
   { name: 'Ahmedabad', lat: 23.0225, lon: 72.5714, country: 'India', admin1: 'Gujarat' },
   { name: 'Pune', lat: 18.5204, lon: 73.8567, country: 'India', admin1: 'Maharashtra' }
 ];
@@ -21,177 +27,177 @@ export const INDIAN_METROS = [
 // Comprehensive mapping for Indian cities, old names, spelling variants, typos, and major neighbourhoods
 export const INDIAN_CITY_ALIASES = {
   // Delhi NCR
-  'delhi': 'Delhi',
+  delhi: 'Delhi',
   'new delhi': 'Delhi',
-  'dehli': 'Delhi',
-  'dilli': 'Delhi',
-  'ncr': 'Delhi',
+  dehli: 'Delhi',
+  dilli: 'Delhi',
+  ncr: 'Delhi',
   'delhi-ncr': 'Delhi',
   'delhi ncr': 'Delhi',
   'connaught place': 'Delhi',
-  'rohini': 'Delhi',
-  'dwarka': 'Delhi',
-  'saket': 'Delhi',
+  rohini: 'Delhi',
+  dwarka: 'Delhi',
+  saket: 'Delhi',
   'karol bagh': 'Delhi',
   'hauz khas': 'Delhi',
   'chandni chowk': 'Delhi',
   'anand vihar': 'Delhi',
-  'ito': 'Delhi',
+  ito: 'Delhi',
   'punjabi bagh': 'Delhi',
   'rk puram': 'Delhi',
   'lodhi road': 'Delhi',
   'nehru place': 'Delhi',
-  'noida': 'Noida',
+  noida: 'Noida',
   'greater noida': 'Noida',
-  'gurgaon': 'Gurugram',
-  'gurugram': 'Gurugram',
-  'faridabad': 'Faridabad',
-  'ghaziabad': 'Ghaziabad',
+  gurgaon: 'Gurugram',
+  gurugram: 'Gurugram',
+  faridabad: 'Faridabad',
+  ghaziabad: 'Ghaziabad',
 
   // Mumbai / Maharashtra
-  'mumbai': 'Mumbai',
-  'bombay': 'Mumbai',
-  'bambai': 'Mumbai',
-  'bandra': 'Mumbai',
-  'andheri': 'Mumbai',
-  'juhu': 'Mumbai',
-  'colaba': 'Mumbai',
-  'borivali': 'Mumbai',
-  'dadar': 'Mumbai',
-  'thane': 'Thane',
+  mumbai: 'Mumbai',
+  bombay: 'Mumbai',
+  bambai: 'Mumbai',
+  bandra: 'Mumbai',
+  andheri: 'Mumbai',
+  juhu: 'Mumbai',
+  colaba: 'Mumbai',
+  borivali: 'Mumbai',
+  dadar: 'Mumbai',
+  thane: 'Thane',
   'navi mumbai': 'Navi Mumbai',
-  'pune': 'Pune',
-  'poona': 'Pune',
-  'nagpur': 'Nagpur',
-  'nashik': 'Nashik',
+  pune: 'Pune',
+  poona: 'Pune',
+  nagpur: 'Nagpur',
+  nashik: 'Nashik',
 
   // Kolkata / West Bengal
-  'kolkata': 'Kolkata',
-  'calcutta': 'Kolkata',
-  'kolkatta': 'Kolkata',
-  'howrah': 'Howrah',
+  kolkata: 'Kolkata',
+  calcutta: 'Kolkata',
+  kolkatta: 'Kolkata',
+  howrah: 'Howrah',
   'salt lake': 'Kolkata',
   'salt lake city': 'Kolkata',
-  'newtown': 'Kolkata',
+  newtown: 'Kolkata',
   'new town': 'Kolkata',
-  'jadavpur': 'Kolkata',
+  jadavpur: 'Kolkata',
   'park street': 'Kolkata',
-  'durgapur': 'Durgapur',
-  'asansol': 'Asansol',
-  'siliguri': 'Siliguri',
+  durgapur: 'Durgapur',
+  asansol: 'Asansol',
+  siliguri: 'Siliguri',
 
   // Bengaluru / Karnataka
-  'bengaluru': 'Bengaluru',
-  'bangalore': 'Bengaluru',
-  'blr': 'Bengaluru',
-  'whitefield': 'Bengaluru',
-  'indiranagar': 'Bengaluru',
-  'koramangala': 'Bengaluru',
+  bengaluru: 'Bengaluru',
+  bangalore: 'Bengaluru',
+  blr: 'Bengaluru',
+  whitefield: 'Bengaluru',
+  indiranagar: 'Bengaluru',
+  koramangala: 'Bengaluru',
   'electronic city': 'Bengaluru',
   'hsr layout': 'Bengaluru',
-  'jayanagar': 'Bengaluru',
-  'mysore': 'Mysuru',
-  'mysuru': 'Mysuru',
-  'mangalore': 'Mangaluru',
+  jayanagar: 'Bengaluru',
+  mysore: 'Mysuru',
+  mysuru: 'Mysuru',
+  mangalore: 'Mangaluru',
 
   // Chennai / Tamil Nadu
-  'chennai': 'Chennai',
-  'madras': 'Chennai',
+  chennai: 'Chennai',
+  madras: 'Chennai',
   'anna nagar': 'Chennai',
   't nagar': 'Chennai',
-  'adyar': 'Chennai',
-  'velachery': 'Chennai',
-  'coimbatore': 'Coimbatore',
-  'madurai': 'Madurai',
-  'trichy': 'Tiruchirappalli',
+  adyar: 'Chennai',
+  velachery: 'Chennai',
+  coimbatore: 'Coimbatore',
+  madurai: 'Madurai',
+  trichy: 'Tiruchirappalli',
 
   // Hyderabad / Telangana / AP
-  'hyderabad': 'Hyderabad',
-  'secunderabad': 'Hyderabad',
-  'cyberabad': 'Hyderabad',
-  'gachibowli': 'Hyderabad',
+  hyderabad: 'Hyderabad',
+  secunderabad: 'Hyderabad',
+  cyberabad: 'Hyderabad',
+  gachibowli: 'Hyderabad',
   'hitec city': 'Hyderabad',
-  'visakhapatnam': 'Visakhapatnam',
-  'vizag': 'Visakhapatnam',
-  'vijayawada': 'Vijayawada',
-  'tirupati': 'Tirupati',
+  visakhapatnam: 'Visakhapatnam',
+  vizag: 'Visakhapatnam',
+  vijayawada: 'Vijayawada',
+  tirupati: 'Tirupati',
 
   // Gujarat
-  'ahmedabad': 'Ahmedabad',
-  'amdavad': 'Ahmedabad',
-  'surat': 'Surat',
-  'vadodara': 'Vadodara',
-  'baroda': 'Vadodara',
-  'rajkot': 'Rajkot',
+  ahmedabad: 'Ahmedabad',
+  amdavad: 'Ahmedabad',
+  surat: 'Surat',
+  vadodara: 'Vadodara',
+  baroda: 'Vadodara',
+  rajkot: 'Rajkot',
 
   // Odisha
-  'bhubaneswar': 'Bhubaneswar',
-  'bhubaneshwar': 'Bhubaneswar',
-  'bbsr': 'Bhubaneswar',
-  'cuttack': 'Cuttack',
-  'puri': 'Puri',
+  bhubaneswar: 'Bhubaneswar',
+  bhubaneshwar: 'Bhubaneswar',
+  bbsr: 'Bhubaneswar',
+  cuttack: 'Cuttack',
+  puri: 'Puri',
 
   // UP, Bihar, Central & Northern
-  'lucknow': 'Lucknow',
-  'kanpur': 'Kanpur',
-  'varanasi': 'Varanasi',
-  'banaras': 'Varanasi',
-  'kashi': 'Varanasi',
-  'prayagraj': 'Prayagraj',
-  'allahabad': 'Prayagraj',
-  'agra': 'Agra',
-  'meerut': 'Meerut',
-  'patna': 'Patna',
-  'gaya': 'Gaya',
-  'chandigarh': 'Chandigarh',
-  'amritsar': 'Amritsar',
-  'ludhiana': 'Ludhiana',
-  'dehradun': 'Dehradun',
-  'shimla': 'Shimla',
-  'srinagar': 'Srinagar',
-  'jammu': 'Jammu',
-  'jaipur': 'Jaipur',
-  'jodhpur': 'Jodhpur',
-  'bhopal': 'Bhopal',
-  'indore': 'Indore',
-  'gwalior': 'Gwalior',
-  'raipur': 'Raipur',
-  'ranchi': 'Ranchi',
-  'guwahati': 'Guwahati',
-  'kochi': 'Kochi',
-  'cochin': 'Kochi',
-  'thiruvananthapuram': 'Thiruvananthapuram',
-  'trivandrum': 'Thiruvananthapuram',
+  lucknow: 'Lucknow',
+  kanpur: 'Kanpur',
+  varanasi: 'Varanasi',
+  banaras: 'Varanasi',
+  kashi: 'Varanasi',
+  prayagraj: 'Prayagraj',
+  allahabad: 'Prayagraj',
+  agra: 'Agra',
+  meerut: 'Meerut',
+  patna: 'Patna',
+  gaya: 'Gaya',
+  chandigarh: 'Chandigarh',
+  amritsar: 'Amritsar',
+  ludhiana: 'Ludhiana',
+  dehradun: 'Dehradun',
+  shimla: 'Shimla',
+  srinagar: 'Srinagar',
+  jammu: 'Jammu',
+  jaipur: 'Jaipur',
+  jodhpur: 'Jodhpur',
+  bhopal: 'Bhopal',
+  indore: 'Indore',
+  gwalior: 'Gwalior',
+  raipur: 'Raipur',
+  ranchi: 'Ranchi',
+  guwahati: 'Guwahati',
+  kochi: 'Kochi',
+  cochin: 'Kochi',
+  thiruvananthapuram: 'Thiruvananthapuram',
+  trivandrum: 'Thiruvananthapuram',
 
   // Hindi script spellings
-  'दिल्ली': 'Delhi',
-  'दिल्लि': 'Delhi',
+  दिल्ली: 'Delhi',
+  दिल्लि: 'Delhi',
   'नई दिल्ली': 'Delhi',
-  'मुंबई': 'Mumbai',
-  'मुम्बई': 'Mumbai',
-  'बंबई': 'Mumbai',
-  'कोलकाता': 'Kolkata',
-  'कलकत्ता': 'Kolkata',
-  'बेंगलुरु': 'Bengaluru',
-  'बैंगलोर': 'Bengaluru',
-  'चेन्नई': 'Chennai',
-  'मद्रास': 'Chennai',
-  'हैदराबाद': 'Hyderabad',
-  'अहमदाबाद': 'Ahmedabad',
-  'पुणे': 'Pune',
-  'भुवनेश्वर': 'Bhubaneswar',
-  'नोएडा': 'Noida',
-  'गुड़गांव': 'Gurugram',
-  'गुरुग्राम': 'Gurugram',
-  'जयपुर': 'Jaipur',
-  'लखनऊ': 'Lucknow',
-  'कानपुर': 'Kanpur',
-  'पटना': 'Patna',
-  'चंडीगढ़': 'Chandigarh',
-  'वाराणसी': 'Varanasi',
-  'बनारस': 'Varanasi',
-  'इंदौर': 'Indore',
-  'भोपाल': 'Bhopal'
+  मुंबई: 'Mumbai',
+  मुम्बई: 'Mumbai',
+  बंबई: 'Mumbai',
+  कोलकाता: 'Kolkata',
+  कलकत्ता: 'Kolkata',
+  बेंगलुरु: 'Bengaluru',
+  बैंगलोर: 'Bengaluru',
+  चेन्नई: 'Chennai',
+  मद्रास: 'Chennai',
+  हैदराबाद: 'Hyderabad',
+  अहमदाबाद: 'Ahmedabad',
+  पुणे: 'Pune',
+  भुवनेश्वर: 'Bhubaneswar',
+  नोएडा: 'Noida',
+  गुड़गांव: 'Gurugram',
+  गुरुग्राम: 'Gurugram',
+  जयपुर: 'Jaipur',
+  लखनऊ: 'Lucknow',
+  कानपुर: 'Kanpur',
+  पटना: 'Patna',
+  चंडीगढ़: 'Chandigarh',
+  वाराणसी: 'Varanasi',
+  बनारस: 'Varanasi',
+  इंदौर: 'Indore',
+  भोपाल: 'Bhopal'
 };
 
 // Geocode any Indian city/place name with countrycode=IN, preferring most populous match
@@ -205,9 +211,8 @@ export async function geocodeIndianCity(query) {
   const canonicalLower = canonicalName.toLowerCase();
 
   // 2. Check preset Indian metros
-  const metroMatch = INDIAN_METROS.find((m) =>
-    m.name.toLowerCase() === canonicalLower ||
-    m.name.toLowerCase() === raw
+  const metroMatch = INDIAN_METROS.find(
+    (m) => m.name.toLowerCase() === canonicalLower || m.name.toLowerCase() === raw
   );
   if (metroMatch) {
     return {
@@ -230,7 +235,9 @@ export async function geocodeIndianCity(query) {
     if (res.ok) {
       const data = await res.json();
       const results = (data.results || [])
-        .filter((r) => (!r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India'))
+        .filter(
+          (r) => !r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India'
+        )
         .sort((a, b) => (b.population || 0) - (a.population || 0));
 
       if (results.length > 0) {
@@ -260,7 +267,11 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
     if (!cityInfo) {
       return { found: false, city: cityNameOrObj };
     }
-  } else if (cityNameOrObj && typeof cityNameOrObj.lat === 'number' && typeof cityNameOrObj.lon === 'number') {
+  } else if (
+    cityNameOrObj &&
+    typeof cityNameOrObj.lat === 'number' &&
+    typeof cityNameOrObj.lon === 'number'
+  ) {
     cityInfo = {
       name: cityNameOrObj.name || 'Unknown City',
       latitude: cityNameOrObj.lat,
@@ -306,7 +317,10 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
     const tz = data.timezone || 'Asia/Kolkata';
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA', { timeZone: tz });
-    const currentHourInt = parseInt(now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }), 10);
+    const currentHourInt = parseInt(
+      now.toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }),
+      10
+    );
     const targetHourStr = `${todayStr}T${String(currentHourInt).padStart(2, '0')}:00`;
 
     let currentIdx = times.indexOf(targetHourStr);
@@ -354,8 +368,14 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
 
     // Tonight slot (look for today 20:00, 21:00, 22:00, or 23:00)
     const tonightSlot =
-      points.find((p) => p.date === todayStr && (p.hour === '20:00' || p.hour === '21:00' || p.hour === '22:00' || p.hour === '23:00')) ||
-      points.find((p) => p.time > currentPoint.time && (p.hour === '20:00' || p.hour === '23:00')) ||
+      points.find(
+        (p) =>
+          p.date === todayStr &&
+          (p.hour === '20:00' || p.hour === '21:00' || p.hour === '22:00' || p.hour === '23:00')
+      ) ||
+      points.find(
+        (p) => p.time > currentPoint.time && (p.hour === '20:00' || p.hour === '23:00')
+      ) ||
       currentPoint;
 
     // Tomorrow slots
@@ -418,8 +438,16 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
         date: tomorrowStr,
         averageAqi: tomorrowAvg,
         category: tomorrowCat.name,
-        cleanestSlot: { hour: tomorrowBest.hour, aqi: tomorrowBest.aqi, category: tomorrowBest.category },
-        peakSlot: { hour: tomorrowWorst.hour, aqi: tomorrowWorst.aqi, category: tomorrowWorst.category }
+        cleanestSlot: {
+          hour: tomorrowBest.hour,
+          aqi: tomorrowBest.aqi,
+          category: tomorrowBest.category
+        },
+        peakSlot: {
+          hour: tomorrowWorst.hour,
+          aqi: tomorrowWorst.aqi,
+          category: tomorrowWorst.category
+        }
       },
       isSample: false,
       source: 'Open-Meteo CAMS Model (Live Feed)'
@@ -465,7 +493,11 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
         date: sample.forecast7Days[1]?.date || 'Tomorrow',
         averageAqi: sample.forecast7Days[1]?.averageAqi || sample.currentAqi,
         category: sample.forecast7Days[1]?.dominantCategory || 'Moderate',
-        cleanestSlot: { hour: '14:00', aqi: Math.round(sample.currentAqi * 0.75), category: 'Moderate' },
+        cleanestSlot: {
+          hour: '14:00',
+          aqi: Math.round(sample.currentAqi * 0.75),
+          category: 'Moderate'
+        },
         peakSlot: { hour: '08:00', aqi: Math.round(sample.currentAqi * 1.3), category: 'Poor' }
       },
       isSample: true,
@@ -508,10 +540,10 @@ function getCorsHeaders(request) {
     requestOrigin.endsWith('.pages.dev');
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? (requestOrigin || siteOrigin) : siteOrigin,
+    'Access-Control-Allow-Origin': isAllowed ? requestOrigin || siteOrigin : siteOrigin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Vary': 'Origin',
+    Vary: 'Origin',
     'Cache-Control': 'public, max-age=1800, s-maxage=1800',
     'X-Content-Type-Options': 'nosniff'
   };
@@ -565,7 +597,8 @@ export function getAQICategory(aqi) {
       name: 'Unknown',
       color: '#94A3B8',
       healthImpact: 'Data unavailable',
-      badgeClass: 'text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+      badgeClass:
+        'text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
     };
   }
 
@@ -577,7 +610,8 @@ export function getAQICategory(aqi) {
       color: '#10B981', // green
       healthImpact: 'Minimal impact',
       advisory: 'Air quality is good. Safe for all outdoor activities and natural ventilation.',
-      badgeClass: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+      badgeClass:
+        'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
     };
   }
   if (rounded <= 100) {
@@ -586,7 +620,8 @@ export function getAQICategory(aqi) {
       color: '#22C55E', // light green
       healthImpact: 'Minor breathing discomfort to sensitive people',
       advisory: 'Satisfactory air quality. Sensitive individuals should observe comfort levels.',
-      badgeClass: 'bg-green-100 text-green-900 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800'
+      badgeClass:
+        'bg-green-100 text-green-900 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800'
     };
   }
   if (rounded <= 200) {
@@ -595,7 +630,8 @@ export function getAQICategory(aqi) {
       color: '#EAB308', // yellow
       healthImpact: 'Breathing discomfort to the people with lungs, asthma and heart diseases',
       advisory: 'People with asthma or heart conditions should limit prolonged outdoor exertion.',
-      badgeClass: 'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800'
+      badgeClass:
+        'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800'
     };
   }
   if (rounded <= 300) {
@@ -604,7 +640,8 @@ export function getAQICategory(aqi) {
       color: '#F97316', // orange
       healthImpact: 'Breathing discomfort to most people on prolonged exposure',
       advisory: 'Avoid prolonged outdoor exertion; wear an N95 mask outdoors.',
-      badgeClass: 'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800'
+      badgeClass:
+        'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800'
     };
   }
   if (rounded <= 400) {
@@ -612,16 +649,20 @@ export function getAQICategory(aqi) {
       name: 'Very Poor',
       color: '#EF4444', // red
       healthImpact: 'Respiratory illness on prolonged exposure',
-      advisory: 'Avoid all strenuous outdoor activity. Keep windows shut and run indoor filtration.',
-      badgeClass: 'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800'
+      advisory:
+        'Avoid all strenuous outdoor activity. Keep windows shut and run indoor filtration.',
+      badgeClass:
+        'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800'
     };
   }
   return {
     name: 'Severe',
     color: '#881337', // maroon
     healthImpact: 'Affects healthy people and seriously impacts those with existing diseases',
-    advisory: 'Severe smog emergency! Stay strictly indoors. Seal door/window drafts and run air purifiers.',
-    badgeClass: 'bg-rose-200 text-rose-950 dark:bg-rose-950/90 dark:text-rose-200 border-rose-400 dark:border-rose-800'
+    advisory:
+      'Severe smog emergency! Stay strictly indoors. Seal door/window drafts and run air purifiers.',
+    badgeClass:
+      'bg-rose-200 text-rose-950 dark:bg-rose-950/90 dark:text-rose-200 border-rose-400 dark:border-rose-800'
   };
 }
 
@@ -694,9 +735,12 @@ function generateSampleTimelineData(lat = 22.5726, lon = 88.3639, cityName = 'Ko
     const intervals3h = slotTimes.map((time) => {
       const h = parseInt(time.split(':')[0], 10);
       let multiplier = 1.0;
-      if (h === 8 || h === 5) multiplier = 1.28; // morning inversion
-      else if (h === 20 || h === 23) multiplier = 1.22; // night smoke trapping
-      else if (h === 14) multiplier = 0.70; // afternoon solar breakup
+      if (h === 8 || h === 5)
+        multiplier = 1.28; // morning inversion
+      else if (h === 20 || h === 23)
+        multiplier = 1.22; // night smoke trapping
+      else if (h === 14)
+        multiplier = 0.7; // afternoon solar breakup
       else if (h === 11) multiplier = 0.86;
 
       const slotAqi = Math.max(40, Math.min(460, Math.round(dayAqiBase * multiplier)));
@@ -723,7 +767,8 @@ function generateSampleTimelineData(lat = 22.5726, lon = 88.3639, cityName = 'Ko
 
     intervals3h.forEach((slot) => {
       slot.diffFromAvg = slot.aqi - avgAqi;
-      slot.diffText = slot.diffFromAvg > 0 ? `+${slot.diffFromAvg} vs avg` : `${slot.diffFromAvg} vs avg`;
+      slot.diffText =
+        slot.diffFromAvg > 0 ? `+${slot.diffFromAvg} vs avg` : `${slot.diffFromAvg} vs avg`;
     });
 
     let bestSlot = intervals3h[0];
@@ -782,8 +827,10 @@ function generateSampleTimelineData(lat = 22.5726, lon = 88.3639, cityName = 'Ko
     cleanestWindowTip: `Cleanest window was around ${bestHour.hour} (Estimated NAQI ${bestHour.aqi}). Safest window for outdoor activity or airing your space.`,
     last24Hours,
     forecast7Days,
-    attribution: 'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
-    disclaimer: 'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
+    attribution:
+      'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
+    disclaimer:
+      'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
     medicalDisclaimer: 'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.',
     isSample: true,
     source: 'Simulation Mode (Sample data, live data unavailable)'
@@ -829,7 +876,10 @@ export async function onRequestGet(context) {
   // Restricted and biased to India (country code IN)
   const rawSearch = url.searchParams.get('search') || url.searchParams.get('q');
   if (rawSearch) {
-    const trimmed = rawSearch.trim().slice(0, 60).replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '');
+    const trimmed = rawSearch
+      .trim()
+      .slice(0, 60)
+      .replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '');
     if (trimmed.length < 2) {
       return new Response(JSON.stringify({ results: [] }), {
         status: 200,
@@ -855,7 +905,9 @@ export async function onRequestGet(context) {
 
       const geoData = await geoRes.json();
       let results = (geoData.results || [])
-        .filter((r) => !r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India')
+        .filter(
+          (r) => !r.country_code || r.country_code.toUpperCase() === 'IN' || r.country === 'India'
+        )
         .sort((a, b) => (b.population || 0) - (a.population || 0))
         .map((r) => ({
           name: r.name,
@@ -869,9 +921,10 @@ export async function onRequestGet(context) {
 
       // If no online results, check Indian Metros preset list
       if (results.length === 0) {
-        results = INDIAN_METROS.filter((m) =>
-          m.name.toLowerCase().includes(canonicalQuery.toLowerCase()) ||
-          m.name.toLowerCase().includes(trimmed.toLowerCase())
+        results = INDIAN_METROS.filter(
+          (m) =>
+            m.name.toLowerCase().includes(canonicalQuery.toLowerCase()) ||
+            m.name.toLowerCase().includes(trimmed.toLowerCase())
         ).map((m) => ({
           name: m.name,
           country: 'India',
@@ -917,7 +970,11 @@ export async function onRequestGet(context) {
   const latStr = url.searchParams.get('lat') || url.searchParams.get('latitude');
   const lonStr = url.searchParams.get('lon') || url.searchParams.get('longitude');
   const rawCity = url.searchParams.get('city') || 'Kolkata';
-  const cityName = rawCity.trim().slice(0, 60).replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '') || 'Kolkata';
+  const cityName =
+    rawCity
+      .trim()
+      .slice(0, 60)
+      .replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '') || 'Kolkata';
 
   const lat = parseFloat(latStr || '22.5726');
   const lon = parseFloat(lonStr || '88.3639');
@@ -937,6 +994,21 @@ export async function onRequestGet(context) {
         }
       }
     );
+  }
+
+  const cacheKey = getTimelineCacheKey(lat, lon);
+  const now = Date.now();
+  const cached = timelineCache.get(cacheKey);
+  if (cached && cached.expiry > now) {
+    return new Response(JSON.stringify(cached.data), {
+      status: 200,
+      headers: {
+        ...getCorsHeaders(request),
+        'Content-Type': 'application/json',
+        'X-Cache': 'HIT',
+        'X-Cache-Key': cacheKey
+      }
+    });
   }
 
   try {
@@ -1047,7 +1119,16 @@ export async function onRequestGet(context) {
 
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const targetSlotHours = ['02:00', '05:00', '08:00', '11:00', '14:00', '17:00', '20:00', '23:00'];
+    const targetSlotHours = [
+      '02:00',
+      '05:00',
+      '08:00',
+      '11:00',
+      '14:00',
+      '17:00',
+      '20:00',
+      '23:00'
+    ];
 
     const forecast7Days = forecastDates.map((dateStr, dayIndex) => {
       const dayPoints = dayMap[dateStr] || [];
@@ -1146,24 +1227,35 @@ export async function onRequestGet(context) {
       cleanestWindowTip: `Cleanest window was around ${bestHour.hour} (Estimated NAQI ${bestHour.aqi}). Safest window for outdoor activity or airing your space.`,
       last24Hours,
       forecast7Days,
-      attribution: 'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
-      disclaimer: 'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
-      medicalDisclaimer: 'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.',
+      attribution:
+        'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
+      disclaimer:
+        'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
+      medicalDisclaimer:
+        'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.',
       isSample: false,
       source: 'Open-Meteo CAMS Model (Live Feed)'
     };
+
+    timelineCache.set(cacheKey, {
+      data: responsePayload,
+      expiry: now + TIMELINE_CACHE_TTL_MS
+    });
 
     return new Response(JSON.stringify(responsePayload), {
       status: 200,
       headers: {
         ...getCorsHeaders(request),
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Cache': 'MISS',
+        'X-Cache-Key': cacheKey
       }
     });
   } catch (err) {
     console.warn('Open-Meteo request failed, serving clearly labelled sample data:', err);
     const sampleData = generateSampleTimelineData(lat, lon, cityName);
-    sampleData.simulationReason = 'Upstream atmospheric service temporarily unavailable; using atmospheric simulation model.';
+    sampleData.simulationReason =
+      'Upstream atmospheric service temporarily unavailable; using atmospheric simulation model.';
     return new Response(JSON.stringify(sampleData), {
       status: 200,
       headers: {

@@ -3,7 +3,12 @@
 import { INDIAN_STATES_AND_UTS } from '../data/onboardingData.js';
 import { statesMatch } from '../../functions/api/geocode.js';
 
-// Strip control characters, excessive whitespace, and common prompt injection wrappers
+/**
+ * Strip control characters, excessive whitespace, and common prompt injection wrappers.
+ * @param {any} input - Text to sanitize.
+ * @param {number} [maxLength=100] - Optional maximum string length.
+ * @returns {string} Clean, safe text.
+ */
 export function sanitizeText(input, maxLength = 100) {
   if (input === null || input === undefined) return '';
   let str = String(input);
@@ -20,7 +25,11 @@ export function sanitizeText(input, maxLength = 100) {
   return str;
 }
 
-// Deep sanitize an object's string properties before saving or model dispatch
+/**
+ * Deep sanitize an object's string properties before saving or model dispatch.
+ * @param {any} obj - Plain object or array.
+ * @returns {any} Sanitized object.
+ */
 export function sanitizeObject(obj) {
   if (!obj || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map((item) => sanitizeObject(item));
@@ -38,17 +47,27 @@ export function sanitizeObject(obj) {
   return clean;
 }
 
+/**
+ * Validates a user's full name (2 to 60 characters).
+ * @param {string} name
+ * @returns {string | null} Error message or null if valid.
+ */
 export function validateFullName(name) {
+  if (typeof name === 'string' && name.trim().length > 60) {
+    return 'Full name cannot exceed 60 characters.';
+  }
   const clean = sanitizeText(name, 60);
   if (!clean || clean.length < 2) {
     return 'Full name must be at least 2 characters.';
   }
-  if (clean.length > 60) {
-    return 'Full name cannot exceed 60 characters.';
-  }
   return null;
 }
 
+/**
+ * Validates age as an integer between 1 and 120.
+ * @param {any} age
+ * @returns {string | null}
+ */
 export function validateAge(age) {
   if (age === '' || age === null || age === undefined) {
     return 'Age is required.';
@@ -60,6 +79,11 @@ export function validateAge(age) {
   return null;
 }
 
+/**
+ * Validates country selection.
+ * @param {string} country
+ * @returns {string | null}
+ */
 export function validateCountry(country) {
   const clean = sanitizeText(country, 60);
   if (!clean) {
@@ -68,10 +92,18 @@ export function validateCountry(country) {
   return null;
 }
 
+/**
+ * Validates state or UT selection against official list if India.
+ * @param {string} state
+ * @param {string} country
+ * @returns {string | null}
+ */
 export function validateState(state, country) {
   const cleanState = sanitizeText(state, 60);
   if (!cleanState) {
-    return country === 'India' ? 'Please select a State or Union Territory.' : 'State or Region is required.';
+    return country === 'India'
+      ? 'Please select a State or Union Territory.'
+      : 'State or Region is required.';
   }
 
   if (country === 'India') {
@@ -83,7 +115,15 @@ export function validateState(state, country) {
   return null;
 }
 
-export function validateCity(city, locationObj, state, country) {
+/**
+ * Validates city and verifies geocoded coordinate attachment and state matching.
+ * @param {string} city
+ * @param {object} locationObj
+ * @param {string} [state]
+ * @param {string} [_country]
+ * @returns {string | null}
+ */
+export function validateCity(city, locationObj, state, _country) {
   const cleanCity = sanitizeText(city, 80);
   if (!cleanCity) {
     return 'City or town is required.';
@@ -107,6 +147,12 @@ export function validateCity(city, locationObj, state, country) {
   return null;
 }
 
+/**
+ * Validates health conditions ("None" exclusivity and required "Other" text).
+ * @param {string[]} conditions
+ * @param {string} [otherCondition]
+ * @returns {string | null}
+ */
 export function validateConditions(conditions, otherCondition) {
   if (!Array.isArray(conditions) || conditions.length === 0) {
     return 'Please select at least one health condition (or "None").';
@@ -126,6 +172,12 @@ export function validateConditions(conditions, otherCondition) {
   return null;
 }
 
+/**
+ * Validates sensitivity tier (Low, Moderate, High).
+ * @param {string} sensitivity
+ * @param {string[]} [conditions]
+ * @returns {string | null}
+ */
 export function validateSensitivity(sensitivity, conditions) {
   if (!sensitivity || !['Low', 'Moderate', 'High'].includes(sensitivity)) {
     return 'Please select a sensitivity level.';
@@ -140,6 +192,12 @@ export function validateSensitivity(sensitivity, conditions) {
   return null;
 }
 
+/**
+ * Validates commute selections.
+ * @param {string[]} commute
+ * @param {boolean} [isPet=false]
+ * @returns {string | null}
+ */
 export function validateCommute(commute, isPet = false) {
   if (isPet) return null; // Commute is optional for pets
   if (!Array.isArray(commute) || commute.length === 0) {
@@ -148,7 +206,14 @@ export function validateCommute(commute, isPet = false) {
   return null;
 }
 
-export function validateLifestyle(lifestyle, otherLifestyle, isPet = false) {
+/**
+ * Validates lifestyle activities.
+ * @param {string[]} lifestyle
+ * @param {string} [otherLifestyle]
+ * @param {boolean} [_isPet=false]
+ * @returns {string | null}
+ */
+export function validateLifestyle(lifestyle, otherLifestyle, _isPet = false) {
   if (!Array.isArray(lifestyle) || lifestyle.length === 0) {
     return 'Please select at least one lifestyle or outdoor activity.';
   }
@@ -163,6 +228,11 @@ export function validateLifestyle(lifestyle, otherLifestyle, isPet = false) {
   return null;
 }
 
+/**
+ * Validates privacy consent checkbox.
+ * @param {boolean} consent
+ * @returns {string | null}
+ */
 export function validateConsent(consent) {
   if (consent !== true) {
     return 'You must agree to store these details to personalize your guidance.';
@@ -170,6 +240,11 @@ export function validateConsent(consent) {
   return null;
 }
 
+/**
+ * Validates relationship tag for family member.
+ * @param {string} relationship
+ * @returns {string | null}
+ */
 export function validateRelationship(relationship) {
   const clean = sanitizeText(relationship, 40);
   if (!clean || clean.length < 2) {
@@ -178,7 +253,11 @@ export function validateRelationship(relationship) {
   return null;
 }
 
-// Full profile validation (Step 1)
+/**
+ * Full profile form validation (Step 1 of Onboarding & Settings).
+ * @param {object} data
+ * @returns {{ errors: Record<string, string>, isValid: boolean }}
+ */
 export function validateProfileForm(data) {
   const errors = {};
 
@@ -203,61 +282,67 @@ export function validateProfileForm(data) {
   const sensErr = validateSensitivity(data.sensitivity, data.conditions);
   if (sensErr) errors.sensitivity = sensErr;
 
-  const comErr = validateCommute(data.commute, false);
-  if (comErr) errors.commute = comErr;
+  const commErr = validateCommute(data.commute);
+  if (commErr) errors.commute = commErr;
 
-  const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle, false);
+  const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle);
   if (lifeErr) errors.lifestyle = lifeErr;
 
   const consentErr = validateConsent(data.consent);
   if (consentErr) errors.consent = consentErr;
 
-  const isValid = Object.keys(errors).length === 0;
-
-  const sanitizedData = {
+  const sanitizedData = sanitizeObject({
     fullName: sanitizeText(data.fullName, 60),
-    age: parseInt(data.age, 10),
+    age: Number(data.age) || 0,
     country: sanitizeText(data.country, 60),
     state: sanitizeText(data.state, 60),
     city: sanitizeText(data.city, 80),
-    latitude: data.locationObj?.latitude || 22.5726,
-    longitude: data.locationObj?.longitude || 88.3639,
-    timezone: data.locationObj?.timezone || 'Asia/Kolkata',
-    placeId: data.locationObj?.id || null,
+    locationObj: data.locationObj || null,
     conditions: Array.isArray(data.conditions) ? data.conditions : [],
-    otherCondition: data.conditions?.includes('Other') ? sanitizeText(data.otherCondition, 100) : '',
-    sensitivity: data.conditions?.length === 1 && data.conditions[0] === 'None' ? 'Low' : data.sensitivity,
+    otherCondition: sanitizeText(data.otherCondition, 100),
+    sensitivity: data.sensitivity || 'Moderate',
     commute: Array.isArray(data.commute) ? data.commute : [],
     lifestyle: Array.isArray(data.lifestyle) ? data.lifestyle : [],
-    otherLifestyle: data.lifestyle?.includes('Other') ? sanitizeText(data.otherLifestyle, 100) : '',
-    consentAcceptedAt: data.consent ? (data.consentAcceptedAt || new Date().toISOString()) : null
-  };
+    otherLifestyle: sanitizeText(data.otherLifestyle, 100),
+    consent: Boolean(data.consent)
+  });
 
-  return { isValid, errors, sanitizedData };
+  return {
+    errors,
+    isValid: Object.keys(errors).length === 0,
+    sanitizedData
+  };
 }
 
-// Family member validation (Step 2)
+/**
+ * Family member form validation (Step 2 of Onboarding & Family Profiles).
+ * @param {object} data
+ * @returns {{ errors: Record<string, string>, isValid: boolean, sanitizedData?: object }}
+ */
 export function validateFamilyMemberForm(data) {
   const errors = {};
   const isPet = (data.relationship || '').toLowerCase().trim() === 'pet';
 
+  const nameErr = validateFullName(data.name);
+  if (nameErr) errors.name = nameErr;
+
   const relErr = validateRelationship(data.relationship);
   if (relErr) errors.relationship = relErr;
-
-  const nameErr = validateFullName(data.name || data.fullName);
-  if (nameErr) errors.name = nameErr;
 
   const ageErr = validateAge(data.age);
   if (ageErr) errors.age = ageErr;
 
-  const countryErr = validateCountry(data.country);
-  if (countryErr) errors.country = countryErr;
+  // Location is optional if sameAsPrimary is checked
+  if (!data.sameAsPrimary) {
+    const countryErr = validateCountry(data.country);
+    if (countryErr) errors.country = countryErr;
 
-  const stateErr = validateState(data.state, data.country);
-  if (stateErr) errors.state = stateErr;
+    const stateErr = validateState(data.state, data.country);
+    if (stateErr) errors.state = stateErr;
 
-  const cityErr = validateCity(data.city, data.locationObj, data.state, data.country);
-  if (cityErr) errors.city = cityErr;
+    const cityErr = validateCity(data.city, data.locationObj, data.state, data.country);
+    if (cityErr) errors.city = cityErr;
+  }
 
   const condErr = validateConditions(data.conditions, data.otherCondition);
   if (condErr) errors.conditions = condErr;
@@ -265,34 +350,32 @@ export function validateFamilyMemberForm(data) {
   const sensErr = validateSensitivity(data.sensitivity, data.conditions);
   if (sensErr) errors.sensitivity = sensErr;
 
-  const comErr = validateCommute(data.commute, isPet);
-  if (comErr) errors.commute = comErr;
+  const commErr = validateCommute(data.commute, isPet);
+  if (commErr) errors.commute = commErr;
 
   const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle, isPet);
   if (lifeErr) errors.lifestyle = lifeErr;
 
-  const isValid = Object.keys(errors).length === 0;
-
-  const sanitizedData = {
-    id: data.id || `fam_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-    name: sanitizeText(data.name || data.fullName, 60),
+  const sanitizedData = sanitizeObject({
+    name: sanitizeText(data.name, 60),
     relationship: sanitizeText(data.relationship, 40),
-    age: parseInt(data.age, 10),
-    country: sanitizeText(data.country, 60),
-    state: sanitizeText(data.state, 60),
-    city: sanitizeText(data.city, 80),
-    latitude: data.locationObj?.latitude || 22.5726,
-    longitude: data.locationObj?.longitude || 88.3639,
-    timezone: data.locationObj?.timezone || 'Asia/Kolkata',
-    placeId: data.locationObj?.id || null,
+    age: Number(data.age) || 0,
+    country: data.sameAsPrimary ? '' : sanitizeText(data.country, 60),
+    state: data.sameAsPrimary ? '' : sanitizeText(data.state, 60),
+    city: data.sameAsPrimary ? '' : sanitizeText(data.city, 80),
+    locationObj: data.sameAsPrimary ? null : data.locationObj || null,
+    sameAsPrimary: Boolean(data.sameAsPrimary),
     conditions: Array.isArray(data.conditions) ? data.conditions : [],
-    otherCondition: data.conditions?.includes('Other') ? sanitizeText(data.otherCondition, 100) : '',
-    sensitivity: data.conditions?.length === 1 && data.conditions[0] === 'None' ? 'Low' : data.sensitivity,
+    otherCondition: sanitizeText(data.otherCondition, 100),
+    sensitivity: data.sensitivity || 'Moderate',
     commute: isPet ? [] : (Array.isArray(data.commute) ? data.commute : []),
     lifestyle: Array.isArray(data.lifestyle) ? data.lifestyle : [],
-    otherLifestyle: data.lifestyle?.includes('Other') ? sanitizeText(data.otherLifestyle, 100) : '',
-    updatedAt: new Date().toISOString()
-  };
+    otherLifestyle: sanitizeText(data.otherLifestyle, 100)
+  });
 
-  return { isValid, errors, sanitizedData };
+  return {
+    errors,
+    isValid: Object.keys(errors).length === 0,
+    sanitizedData
+  };
 }

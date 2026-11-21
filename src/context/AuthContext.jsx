@@ -1,5 +1,5 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import {
   auth,
   googleProvider,
@@ -23,8 +23,10 @@ const DEMO_USER = {
   displayName: 'Demo Account (Preview)',
   name: 'Demo Account (Preview)',
   email: 'demo@foggy.local',
-  photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
+  photoURL:
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
+  avatar:
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80',
   isDemo: true,
   createdAt: new Date().toISOString(),
   getIdToken: async () => 'demo_token'
@@ -157,7 +159,8 @@ export function AuthProvider({ children }) {
 
   const ensureFirebaseReady = () => {
     if (!isFirebaseConfigured || !auth) {
-      const missingList = missingFirebaseVars.length > 0 ? missingFirebaseVars.join(', ') : 'Firebase keys';
+      const missingList =
+        missingFirebaseVars.length > 0 ? missingFirebaseVars.join(', ') : 'Firebase keys';
       throw new Error(
         `Firebase is not configured. Missing required environment variables: ${missingList}. Please configure these in your .env or Cloudflare Pages settings.`
       );

@@ -1,16 +1,11 @@
 // src/components/panels/PlaybookPanel.jsx
 // Clean Air Playbook: Free to Premium Feature Box & Expanded Modal
 // 6-8 cards per tab with realistic Indian market estimates in ₹ (en-IN formatted)
-import React, { useState, useRef } from 'react';
-import {
-  ShieldCheck,
-  Sparkles,
-  MessageSquare
-} from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ShieldCheck, Sparkles, MessageSquare } from 'lucide-react';
 import ExpandablePanelModal from '../ExpandablePanelModal';
 import PanelCitySearch from '../PanelCitySearch';
 import { useChat } from '../../context/ChatContext';
-import { getAQICategory } from '../../../functions/api/aqi-timeline.js';
 
 const PLAYBOOK_DATA = {
   free: [
@@ -21,7 +16,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Whole household & Asthmatics',
       impact: 'Est. ~35–45% particulate draft reduction',
-      howTo: 'Keep all windows tightly closed during early morning (6–10 AM) and evening (7–10 PM) smog inversions. Open windows strictly during the 1:00 PM – 3:30 PM solar dispersal window.',
+      howTo:
+        'Keep all windows tightly closed during early morning (6–10 AM) and evening (7–10 PM) smog inversions. Open windows strictly during the 1:00 PM – 3:30 PM solar dispersal window.',
       aqiRelevance: 'Critical when NAQI > 100'
     },
     {
@@ -31,7 +27,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Children & Crawling infants',
       impact: 'Est. ~40–55% reduction in resuspended floor PM2.5',
-      howTo: 'Never use dry brooms (jhadu) or feather dusters during high smog days; they launch settled heavy metals back into breathing zones. Use a wet mop (pocha) with water.',
+      howTo:
+        'Never use dry brooms (jhadu) or feather dusters during high smog days; they launch settled heavy metals back into breathing zones. Use a wet mop (pocha) with water.',
       aqiRelevance: 'Daily necessity when NAQI > 100'
     },
     {
@@ -41,7 +38,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Seniors, COPD & Asthmatics',
       impact: 'Est. ~50–80% indoor combustion soot reduction',
-      howTo: 'Burning agarbatti (incense sticks), mosquito coils, or candles in closed rooms generates particulate densities exceeding 500+ µg/m³. Switch to electric vaporizers or non-smoke alternatives.',
+      howTo:
+        'Burning agarbatti (incense sticks), mosquito coils, or candles in closed rooms generates particulate densities exceeding 500+ µg/m³. Switch to electric vaporizers or non-smoke alternatives.',
       aqiRelevance: 'Essential when NAQI > 150'
     },
     {
@@ -51,7 +49,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Family cooks & Respiratory patients',
       impact: 'Est. ~30–50% cooking aerosol & NO2 reduction',
-      howTo: 'Turn on exhaust vents 2 minutes before igniting burners and keep running for 5 minutes after cooking. Put lids on frying pans to minimize lipid aerosolization.',
+      howTo:
+        'Turn on exhaust vents 2 minutes before igniting burners and keep running for 5 minutes after cooking. Put lids on frying pans to minimize lipid aerosolization.',
       aqiRelevance: 'Recommended for all indoor cooking'
     },
     {
@@ -61,7 +60,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Apartment dwellers & Ground floor homes',
       impact: 'Est. ~25–40% passive doorway infiltration reduction',
-      howTo: 'Roll an old damp bath towel and press firmly against the bottom crack of your main entry door and balcony doors to block ambient street smog drafts.',
+      howTo:
+        'Roll an old damp bath towel and press firmly against the bottom crack of your main entry door and balcony doors to block ambient street smog drafts.',
       aqiRelevance: 'High impact when outdoor NAQI > 150'
     },
     {
@@ -71,7 +71,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Commuters & Outdoor workers',
       impact: 'Est. ~20–30% indoor cross-contamination reduction',
-      howTo: 'Smog particulates adhere to fabric fibers and hair. Remove outer jackets at the doorway, wash your face, rinse nasal passages with clean water, and change into indoor clothes.',
+      howTo:
+        'Smog particulates adhere to fabric fibers and hair. Remove outer jackets at the doorway, wash your face, rinse nasal passages with clean water, and change into indoor clothes.',
       aqiRelevance: 'Crucial after outdoor transit'
     },
     {
@@ -81,7 +82,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'Daily commuters & Tailpipe reduction',
       impact: 'Est. ~65% personal PM2.5 inhalation cut vs street driving',
-      howTo: 'Swap solo two-wheeler or car commuting for the underground Metro or electric city bus. AC cabins filter up to 65% of street-level smoke and save ₹150–₹220 in petrol daily.',
+      howTo:
+        'Swap solo two-wheeler or car commuting for the underground Metro or electric city bus. AC cabins filter up to 65% of street-level smoke and save ₹150–₹220 in petrol daily.',
       aqiRelevance: 'High priority during severe inversions'
     }
   ],
@@ -94,7 +96,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Everyone traveling outdoors',
       impact: 'Est. >95% hazardous particulate filtration efficiency',
-      howTo: 'Label 4 breathable brown paper bags Monday through Thursday. Rotate your N95 respirator each day so trapped moisture dehydrates safely, safely extending mask lifespan up to 40 hours.',
+      howTo:
+        'Label 4 breathable brown paper bags Monday through Thursday. Rotate your N95 respirator each day so trapped moisture dehydrates safely, safely extending mask lifespan up to 40 hours.',
       aqiRelevance: 'Mandatory outdoors when NAQI > 200'
     },
     {
@@ -104,7 +107,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Older apartments & Drafty window frames',
       impact: 'Est. ~40–60% reduction in passive window draft leaks',
-      howTo: 'Wipe window and door perimeters with rubbing alcohol and stick self-adhesive V-profile or D-profile rubber tape along all gaps to seal drafts permanently.',
+      howTo:
+        'Wipe window and door perimeters with rubbing alcohol and stick self-adhesive V-profile or D-profile rubber tape along all gaps to seal drafts permanently.',
       aqiRelevance: 'Pre-winter insulation priority'
     },
     {
@@ -114,7 +118,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'Living rooms & Natural ventilation',
       impact: 'Est. ~35–50% coarse dust and particulate barrier',
-      howTo: 'Affix electrostatic pre-filter mesh over your existing sliding mosquito net frame, enabling filtered fresh air intake during the midday solar window.',
+      howTo:
+        'Affix electrostatic pre-filter mesh over your existing sliding mosquito net frame, enabling filtered fresh air intake during the midday solar window.',
       aqiRelevance: 'Ideal for homes needing ventilation'
     },
     {
@@ -124,7 +129,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Indoor air monitoring & Filter check',
       impact: 'Real-time visibility: verifies whether filters are working',
-      howTo: 'Place in the central room away from drafts. Lets you verify whether DIY filters or closed doors are maintaining healthy indoor levels below 30 µg/m³.',
+      howTo:
+        'Place in the central room away from drafts. Lets you verify whether DIY filters or closed doors are maintaining healthy indoor levels below 30 µg/m³.',
       aqiRelevance: 'Recommended for empirical validation'
     },
     {
@@ -134,7 +140,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Bedrooms & Desks',
       impact: 'Nighttime oxygenation & humidity stabilization',
-      howTo: 'Snake plants (Sansevieria) release oxygen at night via CAM metabolism. Note: plants cannot filter PM2.5 at room scale, so pair with mechanical filtration.',
+      howTo:
+        'Snake plants (Sansevieria) release oxygen at night via CAM metabolism. Note: plants cannot filter PM2.5 at room scale, so pair with mechanical filtration.',
       aqiRelevance: 'Complementary ambient indoor habit'
     },
     {
@@ -144,7 +151,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'Split A/C owners',
       impact: 'Est. ~30–45% additional filtration through existing A/C',
-      howTo: 'Attach a thin electrostatically-charged pre-filter sheet over your split AC nylon mesh filter. Run the AC in "Fan Only" mode during smog peaks for room circulation.',
+      howTo:
+        'Attach a thin electrostatically-charged pre-filter sheet over your split AC nylon mesh filter. Run the AC in "Fan Only" mode during smog peaks for room circulation.',
       aqiRelevance: 'Low-cost whole-room circulation'
     },
     {
@@ -154,7 +162,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Commuters & Outdoor workers',
       impact: 'Flushes trapped heavy metal particulates from nasal lining',
-      howTo: 'Use a sterile isotonic saline spray or neti squeeze bottle after transit to clear cilia passages, reducing sinus headaches and nighttime irritation.',
+      howTo:
+        'Use a sterile isotonic saline spray or neti squeeze bottle after transit to clear cilia passages, reducing sinus headaches and nighttime irritation.',
       aqiRelevance: 'Personal hygiene essential'
     }
   ],
@@ -167,7 +176,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'Living rooms, Classrooms & Bedrooms',
       impact: 'Est. ~75–85% indoor PM2.5 drop (Matches ₹15,000+ CADR)',
-      howTo: 'Tape 2 to 4 MERV-13 / F7 pleated furnace filters to a standard 20-inch box fan with heavy-duty duct tape. Cardboard shroud on the front face boosts airflow efficiency by 20%.',
+      howTo:
+        'Tape 2 to 4 MERV-13 / F7 pleated furnace filters to a standard 20-inch box fan with heavy-duty duct tape. Cardboard shroud on the front face boosts airflow efficiency by 20%.',
       aqiRelevance: 'Cost-effective champion when NAQI is 200–400+'
     },
     {
@@ -177,7 +187,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'All households (Eliminates indoor cooking emissions)',
       impact: 'Est. 100% elimination of indoor NO2 & unburned soot',
-      howTo: 'Plug in a 2000W magnetic induction cooktop for daily boiling and frying. Eliminates nitrogen dioxide (NO2) spikes that exacerbate child asthma by 42%.',
+      howTo:
+        'Plug in a 2000W magnetic induction cooktop for daily boiling and frying. Eliminates nitrogen dioxide (NO2) spikes that exacerbate child asthma by 42%.',
       aqiRelevance: 'Permanent indoor air quality upgrade'
     },
     {
@@ -187,7 +198,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Severe asthmatics, Newborns & Elderly',
       impact: 'Est. 99.97% particle removal down to 0.3 microns',
-      howTo: 'Select a unit with Clean Air Delivery Rate (CADR) rated for 1.5× your room area. Keep running on low 24/7 during winter inversion months.',
+      howTo:
+        'Select a unit with Clean Air Delivery Rate (CADR) rated for 1.5× your room area. Keep running on low 24/7 during winter inversion months.',
       aqiRelevance: 'High priority when NAQI > 250'
     },
     {
@@ -197,7 +209,8 @@ const PLAYBOOK_DATA = {
       effort: 'Hard',
       target: 'Sealed modern apartments with high CO2',
       impact: 'Supplies filtered outdoor oxygen while keeping CO2 < 800 ppm',
-      howTo: 'A wall-mounted ERV/HRV unit pulls outside air through a pre-filter and H13 HEPA core, creating slight positive indoor pressure so polluted air cannot leak in.',
+      howTo:
+        'A wall-mounted ERV/HRV unit pulls outside air through a pre-filter and H13 HEPA core, creating slight positive indoor pressure so polluted air cannot leak in.',
       aqiRelevance: 'Advanced multi-room solution'
     },
     {
@@ -207,7 +220,8 @@ const PLAYBOOK_DATA = {
       effort: 'Easy',
       target: 'Data-conscious families & Community hubs',
       impact: 'Dual laser sensor reads PM1.0, PM2.5, PM10, TVOC & CO2',
-      howTo: 'Connect to Wi-Fi to receive automatic smartphone notifications when indoor particulate density breaches safety thresholds.',
+      howTo:
+        'Connect to Wi-Fi to receive automatic smartphone notifications when indoor particulate density breaches safety thresholds.',
       aqiRelevance: 'Smart home automation'
     },
     {
@@ -217,7 +231,8 @@ const PLAYBOOK_DATA = {
       effort: 'Medium',
       target: 'Daily commuters & Urban tailpipe cut',
       impact: 'Zero tailpipe emissions: saves ~3.5 kg CO2 per 15 km commute',
-      howTo: 'Replace petrol 2-wheelers with a swappable battery e-scooter. Cuts direct breathing exposure to hot vehicle exhaust in standstill traffic jams.',
+      howTo:
+        'Replace petrol 2-wheelers with a swappable battery e-scooter. Cuts direct breathing exposure to hot vehicle exhaust in standstill traffic jams.',
       aqiRelevance: 'Community-scale impact'
     },
     {
@@ -227,7 +242,8 @@ const PLAYBOOK_DATA = {
       effort: 'Hard',
       target: 'Homes facing highway or arterial traffic',
       impact: 'Est. ~75% acoustic noise drop + ~60% passive particulate sealing',
-      howTo: 'Install magnetic secondary acrylic glazing panels over existing drafty window frames, creating an insulating thermal air buffer against street smog.',
+      howTo:
+        'Install magnetic secondary acrylic glazing panels over existing drafty window frames, creating an insulating thermal air buffer against street smog.',
       aqiRelevance: 'Long-term urban residence protection'
     }
   ]
@@ -243,7 +259,7 @@ export default function PlaybookPanel({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('free');
-  const cardRef = React.useRef(null);
+  const cardRef = useRef(null);
   const { openChat, setInputMessage } = useChat();
 
   const handleAskFoggy = (item) => {
@@ -254,46 +270,57 @@ export default function PlaybookPanel({
   };
 
   const getAQIAdviceBanner = (aqi) => {
-    const cat = getAQICategory(aqi);
     if (aqi <= 50) {
       return {
         level: 'Good (0-50)',
-        message: 'Air is clean today! Focus on natural ventilation (1-3 PM) and enjoy outdoor exercise.',
-        badgeClass: 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
+        message:
+          'Air is clean today! Focus on natural ventilation (1-3 PM) and enjoy outdoor exercise.',
+        badgeClass:
+          'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
       };
     }
     if (aqi <= 100) {
       return {
         level: 'Satisfactory (51-100)',
-        message: 'Satisfactory air quality: prioritize daily damp-mopping (pocha) and keep kitchen exhaust fans active.',
-        badgeClass: 'bg-green-100 text-green-950 dark:bg-green-950/50 dark:text-green-200 border-green-300 dark:border-green-800'
+        message:
+          'Satisfactory air quality: prioritize daily damp-mopping (pocha) and keep kitchen exhaust fans active.',
+        badgeClass:
+          'bg-green-100 text-green-950 dark:bg-green-950/50 dark:text-green-200 border-green-300 dark:border-green-800'
       };
     }
     if (aqi <= 200) {
       return {
         level: 'Moderate (101-200)',
-        message: 'Moderate smog alert: deploy door threshold draft sealing, plan outdoor walks for midday (1-3:30 PM), and consider a DIY box fan.',
-        badgeClass: 'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/50 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800'
+        message:
+          'Moderate smog alert: deploy door threshold draft sealing, plan outdoor walks for midday (1-3:30 PM), and consider a DIY box fan.',
+        badgeClass:
+          'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/50 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800'
       };
     }
     if (aqi <= 300) {
       return {
         level: 'Poor (201-300)',
-        message: 'Poor air alert: wear certified N95 masks outdoors, seal window drafts, and run Corsi-Rosenthal DIY box fans or HEPA purifiers.',
-        badgeClass: 'bg-orange-100 text-orange-950 dark:bg-orange-950/50 dark:text-orange-200 border-orange-300 dark:border-orange-800'
+        message:
+          'Poor air alert: wear certified N95 masks outdoors, seal window drafts, and run Corsi-Rosenthal DIY box fans or HEPA purifiers.',
+        badgeClass:
+          'bg-orange-100 text-orange-950 dark:bg-orange-950/50 dark:text-orange-200 border-orange-300 dark:border-orange-800'
       };
     }
     if (aqi <= 400) {
       return {
         level: 'Very Poor (301-400)',
-        message: 'Very Poor air quality: avoid all outdoor exercise, seal door thresholds with damp towels, and keep mechanical air filtration running continuously.',
-        badgeClass: 'bg-red-100 text-red-950 dark:bg-red-950/60 dark:text-red-200 border-red-300 dark:border-red-800'
+        message:
+          'Very Poor air quality: avoid all outdoor exercise, seal door thresholds with damp towels, and keep mechanical air filtration running continuously.',
+        badgeClass:
+          'bg-red-100 text-red-950 dark:bg-red-950/60 dark:text-red-200 border-red-300 dark:border-red-800'
       };
     }
     return {
       level: 'Severe (401-500)',
-      message: 'Severe smog emergency: stay strictly indoors, run HEPA / DIY box fans 24/7, seal all perimeter gaps, and use N95 masks if transit is unavoidable.',
-      badgeClass: 'bg-rose-100 text-rose-950 dark:bg-rose-950/60 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+      message:
+        'Severe smog emergency: stay strictly indoors, run HEPA / DIY box fans 24/7, seal all perimeter gaps, and use N95 masks if transit is unavoidable.',
+      badgeClass:
+        'bg-rose-100 text-rose-950 dark:bg-rose-950/60 dark:text-rose-200 border-rose-300 dark:border-rose-800'
     };
   };
 
@@ -334,7 +361,8 @@ export default function PlaybookPanel({
           </h3>
 
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Practical particulate reduction strategies for every budget. From zero-rupee draft sealing and damp-mopping to DIY Corsi-Rosenthal boxes and induction cooking.
+            Practical particulate reduction strategies for every budget. From zero-rupee draft
+            sealing and damp-mopping to DIY Corsi-Rosenthal boxes and induction cooking.
           </p>
 
           {/* Compact Tier Labels Preview */}
@@ -353,7 +381,9 @@ export default function PlaybookPanel({
 
         <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
           <span>Click to explore playbook</span>
-          <span className="text-slate-400 group-hover:text-emerald-500 transition-all duration-300 motion-safe:group-hover:translate-x-1.5">→</span>
+          <span className="text-slate-400 group-hover:text-emerald-500 transition-all duration-300 motion-safe:group-hover:translate-x-1.5">
+            →
+          </span>
         </div>
       </div>
 
@@ -381,15 +411,15 @@ export default function PlaybookPanel({
         />
 
         {/* Match to Today's AQI Banner */}
-        <div className={`p-4 rounded-2xl border flex items-start gap-3 shadow-xs ${aqiBanner.badgeClass}`}>
+        <div
+          className={`p-4 rounded-2xl border flex items-start gap-3 shadow-xs ${aqiBanner.badgeClass}`}
+        >
           <Sparkles className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="space-y-0.5">
             <span className="text-xs font-bold uppercase tracking-wider block">
               Match to Today’s NAQI: {currentAqi} ({aqiBanner.level})
             </span>
-            <p className="text-xs leading-relaxed font-medium">
-              {aqiBanner.message}
-            </p>
+            <p className="text-xs leading-relaxed font-medium">{aqiBanner.message}</p>
           </div>
         </div>
 
@@ -493,17 +523,25 @@ export default function PlaybookPanel({
         {/* Disclaimer Note */}
         <div className="p-3.5 rounded-2xl bg-[#E2E8F0] dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] text-[11px] text-[#334155] dark:text-[#CBD5E1] space-y-1">
           <p>
-            *<strong className="text-slate-900 dark:text-white">Note on Pricing & Impacts:</strong> All costs and PM2.5 mitigation percentages are approximate estimates based on peer-reviewed environmental engineering research (CPCB, WHO, and Corsi-Rosenthal data) and are not guaranteed results. Prices in INR (₹) are estimated for Indian retail markets and may vary by city and brand.
+            *<strong className="text-slate-900 dark:text-white">Note on Pricing & Impacts:</strong>{' '}
+            All costs and PM2.5 mitigation percentages are approximate estimates based on
+            peer-reviewed environmental engineering research (CPCB, WHO, and Corsi-Rosenthal data)
+            and are not guaranteed results. Prices in INR (₹) are estimated for Indian retail
+            markets and may vary by city and brand.
           </p>
         </div>
 
         {/* Attribution & Disclaimer */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
           <p>
-            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data.
+            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality
+            data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model
+            data.
           </p>
           <p className="italic">
-            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.
+            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station
+            readings may differ. Check the official CPCB bulletin or the SAMEER app for
+            authoritative values.
           </p>
         </div>
       </ExpandablePanelModal>

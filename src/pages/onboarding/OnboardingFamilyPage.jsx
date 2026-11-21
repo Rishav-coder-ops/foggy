@@ -1,15 +1,13 @@
 // src/pages/onboarding/OnboardingFamilyPage.jsx
 // Step 2 of 2: Compulsory Onboarding - Family & Household Members
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../../context/ProfileContext';
 import MascotAvatar from '../../components/MascotAvatar';
 import confetti from 'canvas-confetti';
 import {
-  COUNTRIES,
   INDIAN_STATES_AND_UTS,
   HEALTH_CONDITIONS,
-  SENSITIVITY_LEVELS,
   COMMUTE_STYLES,
   LIFESTYLE_ACTIVITIES,
   PET_LIFESTYLE_ACTIVITIES,
@@ -26,7 +24,6 @@ import {
   AlertCircle,
   Loader2,
   Users,
-  Heart,
   MapPin,
   Sparkles,
   X
@@ -126,7 +123,11 @@ export default function OnboardingFamilyPage() {
           }
         : defaultLocationObj
     );
-    setConditions(Array.isArray(member.conditions) && member.conditions.length > 0 ? member.conditions : ['None']);
+    setConditions(
+      Array.isArray(member.conditions) && member.conditions.length > 0
+        ? member.conditions
+        : ['None']
+    );
     setOtherCondition(member.otherCondition || '');
     setSensitivity(member.sensitivity || 'Low');
     setCommute(Array.isArray(member.commute) ? member.commute : []);
@@ -200,7 +201,9 @@ export default function OnboardingFamilyPage() {
   };
 
   const toggleModalCommute = (method) => {
-    setCommute((prev) => (prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]));
+    setCommute((prev) =>
+      prev.includes(method) ? prev.filter((m) => m !== method) : [...prev, method]
+    );
   };
 
   const toggleModalLifestyle = (act) => {
@@ -228,7 +231,11 @@ export default function OnboardingFamilyPage() {
       otherLifestyle
     };
 
-    const { isValid: memberValid, errors: mErrors, sanitizedData } = validateFamilyMemberForm(memberData);
+    const {
+      isValid: memberValid,
+      errors: mErrors,
+      sanitizedData
+    } = validateFamilyMemberForm(memberData);
 
     if (!memberValid) {
       setModalErrors(mErrors);
@@ -296,7 +303,8 @@ export default function OnboardingFamilyPage() {
           Personalising your dashboard...
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md">
-          Calibrating 24-hour inversion curves, CPCB thresholds, and personalized family air defense routines.
+          Calibrating 24-hour inversion curves, CPCB thresholds, and personalized family air defense
+          routines.
         </p>
         <Loader2 className="w-6 h-6 text-sky-500 animate-spin mt-4" />
       </div>
@@ -309,11 +317,15 @@ export default function OnboardingFamilyPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
           <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">
+              ✓
+            </span>
             Step 1: About you
           </span>
           <span className="text-sky-600 dark:text-sky-400 font-extrabold flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">2</span>
+            <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">
+              2
+            </span>
             Your family and household (Step 2 of 2)
           </span>
         </div>
@@ -330,7 +342,8 @@ export default function OnboardingFamilyPage() {
             Your family and household
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-            Add children, elderly parents, asthmatic dependents, or pets so Foggy automatically calculates their outdoor risk.
+            Add children, elderly parents, asthmatic dependents, or pets so Foggy automatically
+            calculates their outdoor risk.
           </p>
         </div>
       </div>
@@ -353,10 +366,16 @@ export default function OnboardingFamilyPage() {
           }}
           className="mt-0.5 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"
         />
-        <label htmlFor="livesAlone" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer leading-relaxed">
-          <strong className="font-bold text-slate-900 dark:text-white">I live alone / I have no family members to add.</strong>
+        <label
+          htmlFor="livesAlone"
+          className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer leading-relaxed"
+        >
+          <strong className="font-bold text-slate-900 dark:text-white">
+            I live alone / I have no family members to add.
+          </strong>
           <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Check this box if you are managing air pollution protection solely for yourself. You can add household members anytime later.
+            Check this box if you are managing air pollution protection solely for yourself. You can
+            add household members anytime later.
           </span>
         </label>
       </div>
@@ -384,7 +403,8 @@ export default function OnboardingFamilyPage() {
             <div className="p-8 text-center rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 space-y-3">
               <Users className="w-8 h-8 mx-auto text-slate-400" />
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                No household members added yet. Click <strong>"Add Family Member"</strong> above, or check <strong>"I live alone"</strong> if you don't have dependents to add.
+                No household members added yet. Click <strong>"Add Family Member"</strong> above, or
+                check <strong>"I live alone"</strong> if you don't have dependents to add.
               </p>
             </div>
           ) : (
@@ -399,9 +419,7 @@ export default function OnboardingFamilyPage() {
                       <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 mb-1">
                         {m.relationship}
                       </span>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {m.name}
-                      </h3>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{m.name}</h3>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> {m.city}, {m.state} ({m.age} yrs)
                       </p>
@@ -433,7 +451,13 @@ export default function OnboardingFamilyPage() {
                     </p>
                     <p>
                       <strong>Sensitivity:</strong>{' '}
-                      <span className={m.sensitivity === 'High' ? 'text-rose-600 dark:text-rose-400 font-bold' : ''}>
+                      <span
+                        className={
+                          m.sensitivity === 'High'
+                            ? 'text-rose-600 dark:text-rose-400 font-bold'
+                            : ''
+                        }
+                      >
                         {m.sensitivity}
                       </span>
                     </p>
@@ -499,7 +523,10 @@ export default function OnboardingFamilyPage() {
             <form onSubmit={handleSaveModalMember} noValidate className="space-y-4 text-xs">
               {/* Relationship Combobox */}
               <div>
-                <label htmlFor="memberRel" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label
+                  htmlFor="memberRel"
+                  className="block font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
                   Relationship Tag <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
@@ -520,14 +547,19 @@ export default function OnboardingFamilyPage() {
                   </datalist>
                 </div>
                 {modalErrors.relationship && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.relationship}</p>
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                    {modalErrors.relationship}
+                  </p>
                 )}
               </div>
 
               {/* Name & Age */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label htmlFor="memberName" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    htmlFor="memberName"
+                    className="block font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
                     Name <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -541,12 +573,17 @@ export default function OnboardingFamilyPage() {
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   {modalErrors.name && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.name}</p>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                      {modalErrors.name}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="memberAge" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    htmlFor="memberAge"
+                    className="block font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
                     Age <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -561,7 +598,9 @@ export default function OnboardingFamilyPage() {
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   {modalErrors.age && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.age}</p>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                      {modalErrors.age}
+                    </p>
                   )}
                 </div>
               </div>
@@ -569,7 +608,10 @@ export default function OnboardingFamilyPage() {
               {/* Location: State & City */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="memberState" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    htmlFor="memberState"
+                    className="block font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
                     State <span className="text-rose-500">*</span>
                   </label>
                   {country === 'India' ? (
@@ -602,7 +644,10 @@ export default function OnboardingFamilyPage() {
                 </div>
 
                 <div className="relative">
-                  <label htmlFor="memberCity" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <label
+                    htmlFor="memberCity"
+                    className="block font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
                     City <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -639,14 +684,17 @@ export default function OnboardingFamilyPage() {
 
                   {locationObj && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Verified: {locationObj.name} ({locationObj.latitude.toFixed(2)}°, {locationObj.longitude.toFixed(2)}°)
+                      <Check className="w-3 h-3" /> Verified: {locationObj.name} (
+                      {locationObj.latitude.toFixed(2)}°, {locationObj.longitude.toFixed(2)}°)
                     </span>
                   )}
                   {citySearchError && (
                     <p className="text-[10px] text-amber-600 mt-1">{citySearchError}</p>
                   )}
                   {modalErrors.city && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.city}</p>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                      {modalErrors.city}
+                    </p>
                   )}
                 </div>
               </div>
@@ -682,7 +730,9 @@ export default function OnboardingFamilyPage() {
                   />
                 )}
                 {modalErrors.conditions && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.conditions}</p>
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                    {modalErrors.conditions}
+                  </p>
                 )}
               </div>
 
@@ -696,7 +746,9 @@ export default function OnboardingFamilyPage() {
                     <button
                       key={lvl}
                       type="button"
-                      disabled={conditions.length === 1 && conditions[0] === 'None' && lvl !== 'Low'}
+                      disabled={
+                        conditions.length === 1 && conditions[0] === 'None' && lvl !== 'Low'
+                      }
                       onClick={() => setSensitivity(lvl)}
                       className={`py-1.5 text-xs font-bold rounded-xl border text-center ${
                         sensitivity === lvl
@@ -733,7 +785,9 @@ export default function OnboardingFamilyPage() {
                     ))}
                   </div>
                   {modalErrors.commute && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.commute}</p>
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                      {modalErrors.commute}
+                    </p>
                   )}
                 </div>
               )}
@@ -769,7 +823,9 @@ export default function OnboardingFamilyPage() {
                   />
                 )}
                 {modalErrors.lifestyle && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">{modalErrors.lifestyle}</p>
+                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
+                    {modalErrors.lifestyle}
+                  </p>
                 )}
               </div>
 

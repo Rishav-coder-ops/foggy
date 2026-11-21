@@ -1,5 +1,4 @@
 // src/pages/ChatPage.jsx
-import React from 'react';
 import CompactChatModal from '../components/CompactChatModal';
 import { Sparkles, ShieldCheck } from 'lucide-react';
 
@@ -24,7 +23,9 @@ export default function ChatPage() {
 
       <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
         <ShieldCheck className="w-4 h-4 text-emerald-500" />
-        <span>Context-aware memory active • Disclaimers: For general guidance, not medical diagnosis</span>
+        <span>
+          Context-aware memory active • Disclaimers: For general guidance, not medical diagnosis
+        </span>
       </div>
     </div>
   );

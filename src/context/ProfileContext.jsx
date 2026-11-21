@@ -3,22 +3,9 @@
 // support for 2-step onboarding, family subcollection, learned memory,
 // and offline/demo account isolation.
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import {
-  db,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-  onSnapshot,
-  query,
-  limit,
-  serverTimestamp
-} from '../firebase';
+import { db, doc, setDoc, deleteDoc, collection, getDocs, onSnapshot } from '../firebase';
 import { setStoredCity, DEFAULT_CITY } from '../services/api';
 import { sanitizeObject, sanitizeText } from '../utils/validation';
 
@@ -103,7 +90,8 @@ export const DEFAULT_DEMO_HOUSEHOLD = {
       commute: ['Walk'],
       lifestyle: ['Outdoor sports such as cricket or football'],
       otherLifestyle: '',
-      notes: 'Loves playing cricket outdoors; needs an indoor activity alternative during high smog days.'
+      notes:
+        'Loves playing cricket outdoors; needs an indoor activity alternative during high smog days.'
     },
     {
       id: 'fam_demo_2',
@@ -152,26 +140,30 @@ export const DEFAULT_DEMO_HOUSEHOLD = {
     {
       id: 'mem_demo_1',
       category: 'Health Vulnerability',
-      detail: 'Son Beta experiences wheezing when Estimated NAQI reaches the Poor category (above 200).',
+      detail:
+        'Son Beta experiences wheezing when Estimated NAQI reaches the Poor category (above 200).',
       dateSaved: '2026-11-10',
       source: 'User shared in chat'
     },
     {
       id: 'mem_demo_2',
       category: 'Home Filtration',
-      detail: 'Built a Corsi-Rosenthal DIY box fan filter with MERV-13 filters for the living room (~₹3,000).',
+      detail:
+        'Built a Corsi-Rosenthal DIY box fan filter with MERV-13 filters for the living room (~₹3,000).',
       dateSaved: '2026-11-12',
       source: 'User confirmed hack'
     },
     {
       id: 'mem_demo_3',
       category: 'Transit Swap',
-      detail: 'Swapped 4 days of petrol two-wheeler commuting for the Metro line (~₹180 fuel saved).',
+      detail:
+        'Swapped 4 days of petrol two-wheeler commuting for the Metro line (~₹180 fuel saved).',
       dateSaved: '2026-11-14',
       source: 'Routine check'
     }
   ],
-  chatSummary: 'Indian household in Kolkata with asthmatic child Beta (uses a salbutamol inhaler), Dadi (hypertension), and pet Rusty. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
+  chatSummary:
+    'Indian household in Kolkata with asthmatic child Beta (uses a salbutamol inhaler), Dadi (hypertension), and pet Rusty. Uses LPG cylinder and metro commute, prioritizes budget DIY filtration (~₹3,000), and shifts outdoor activities to the afternoon solar dispersal window.'
 };
 
 export function ProfileProvider({ children }) {
@@ -207,7 +199,9 @@ export function ProfileProvider({ children }) {
         const demoState = savedDemo ? JSON.parse(savedDemo) : DEFAULT_DEMO_HOUSEHOLD;
         setProfileData(demoState.profile);
         setPreferredName(demoState.preferredName || 'Demo User');
-        setOnboarding(demoState.onboarding || { step: 'done', completedAt: new Date().toISOString() });
+        setOnboarding(
+          demoState.onboarding || { step: 'done', completedAt: new Date().toISOString() }
+        );
         setFamilyMembers(demoState.familyMembers || []);
         setSavedMemories(demoState.savedMemories || []);
       } catch (err) {
@@ -244,7 +238,12 @@ export function ProfileProvider({ children }) {
         if (snapshot.exists()) {
           const data = snapshot.data();
           setProfileData(data.profile || null);
-          setPreferredName(data.preferredName || data.profile?.fullName?.split(' ')[0] || user.displayName?.split(' ')[0] || 'Friend');
+          setPreferredName(
+            data.preferredName ||
+              data.profile?.fullName?.split(' ')[0] ||
+              user.displayName?.split(' ')[0] ||
+              'Friend'
+          );
           setOnboarding(data.onboarding || { step: 'profile', completedAt: null });
 
           if (data.profile?.city) {
@@ -317,12 +316,15 @@ export function ProfileProvider({ children }) {
       setPreferredName(prefName);
       const nextOnb = { step: 'family', completedAt: null };
       setOnboarding(nextOnb);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: clean,
-        preferredName: prefName,
-        onboarding: nextOnb
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: clean,
+          preferredName: prefName,
+          onboarding: nextOnb
+        })
+      );
       return clean;
     }
 
@@ -352,16 +354,19 @@ export function ProfileProvider({ children }) {
     };
 
     if (isDemo) {
-      const finalMembers = livesAlone ? [] : membersList.map(m => sanitizeObject(m));
+      const finalMembers = livesAlone ? [] : membersList.map((m) => sanitizeObject(m));
       setFamilyMembers(finalMembers);
       setOnboarding(nextOnboarding);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers: finalMembers,
-        onboarding: nextOnboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers: finalMembers,
+          onboarding: nextOnboarding
+        })
+      );
       return;
     }
 
@@ -369,22 +374,31 @@ export function ProfileProvider({ children }) {
 
     const userDocRef = doc(db, 'users', uid);
     // Mark root document as onboarding done
-    await setDoc(userDocRef, {
-      onboarding: nextOnboarding,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(
+      userDocRef,
+      {
+        onboarding: nextOnboarding,
+        updatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
 
     // Save individual family members to subcollection
     if (!livesAlone && Array.isArray(membersList) && membersList.length > 0) {
       for (const m of membersList) {
         const cleanMember = sanitizeObject(m);
-        const memberId = cleanMember.id || `fam_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const memberId =
+          cleanMember.id || `fam_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         const memberDocRef = doc(db, 'users', uid, 'family', memberId);
-        await setDoc(memberDocRef, {
-          ...cleanMember,
-          id: memberId,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+        await setDoc(
+          memberDocRef,
+          {
+            ...cleanMember,
+            id: memberId,
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        );
       }
     }
 
@@ -398,23 +412,30 @@ export function ProfileProvider({ children }) {
 
     if (isDemo) {
       setProfileData(updated);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: updated,
-        preferredName,
-        familyMembers,
-        savedMemories,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: updated,
+          preferredName,
+          familyMembers,
+          savedMemories,
+          onboarding
+        })
+      );
       return;
     }
 
     if (!db || !uid) return;
     const userDocRef = doc(db, 'users', uid);
-    await setDoc(userDocRef, {
-      profile: updated,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(
+      userDocRef,
+      {
+        profile: updated,
+        updatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
   };
 
   // Update preferredName
@@ -424,23 +445,30 @@ export function ProfileProvider({ children }) {
     setPreferredName(clean);
 
     if (isDemo) {
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName: clean,
-        familyMembers,
-        savedMemories,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName: clean,
+          familyMembers,
+          savedMemories,
+          onboarding
+        })
+      );
       return;
     }
 
     if (!db || !uid) return;
     const userDocRef = doc(db, 'users', uid);
-    await setDoc(userDocRef, {
-      preferredName: clean,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
+    await setDoc(
+      userDocRef,
+      {
+        preferredName: clean,
+        updatedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
   };
 
   // Add family member
@@ -452,14 +480,17 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = [...familyMembers, fullMember];
       setFamilyMembers(next);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers: next,
-        savedMemories,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers: next,
+          savedMemories,
+          onboarding
+        })
+      );
       return fullMember;
     }
 
@@ -476,14 +507,17 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = familyMembers.map((m) => (m.id === memberId ? { ...m, ...clean } : m));
       setFamilyMembers(next);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers: next,
-        savedMemories,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers: next,
+          savedMemories,
+          onboarding
+        })
+      );
       return;
     }
 
@@ -497,14 +531,17 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = familyMembers.filter((m) => m.id !== memberId);
       setFamilyMembers(next);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers: next,
-        savedMemories,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers: next,
+          savedMemories,
+          onboarding
+        })
+      );
       return;
     }
 
@@ -530,14 +567,17 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = [newMemory, ...savedMemories].slice(0, 50);
       setSavedMemories(next);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers,
-        savedMemories: next,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers,
+          savedMemories: next,
+          onboarding
+        })
+      );
       return newMemory;
     }
 
@@ -552,14 +592,17 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = savedMemories.filter((m) => m.id !== factId);
       setSavedMemories(next);
-      localStorage.setItem('foggy_demo_profile_v4', JSON.stringify({
-        ...DEFAULT_DEMO_HOUSEHOLD,
-        profile: profileData,
-        preferredName,
-        familyMembers,
-        savedMemories: next,
-        onboarding
-      }));
+      localStorage.setItem(
+        'foggy_demo_profile_v4',
+        JSON.stringify({
+          ...DEFAULT_DEMO_HOUSEHOLD,
+          profile: profileData,
+          preferredName,
+          familyMembers,
+          savedMemories: next,
+          onboarding
+        })
+      );
       return;
     }
 
@@ -570,7 +613,10 @@ export function ProfileProvider({ children }) {
 
   const queuePendingFact = (fact) => {
     if (!fact) return;
-    setPendingFacts((prev) => [...prev, { ...fact, id: `pf_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` }]);
+    setPendingFacts((prev) => [
+      ...prev,
+      { ...fact, id: `pf_${Date.now()}_${Math.random().toString(36).substr(2, 4)}` }
+    ]);
   };
 
   const acceptPendingFact = (factId) => {
@@ -585,7 +631,10 @@ export function ProfileProvider({ children }) {
         sensitivity: 'High',
         age: fact.age || 30
       });
-      addExtractedMemory(`Added ${fact.name || 'family member'} with ${fact.condition || 'health concern'}.`, 'Family Health');
+      addExtractedMemory(
+        `Added ${fact.name || 'family member'} with ${fact.condition || 'health concern'}.`,
+        'Family Health'
+      );
     } else {
       addExtractedMemory(fact.detail || JSON.stringify(fact), 'Personal Observation');
     }
@@ -681,7 +730,9 @@ export function ProfileProvider({ children }) {
     latitude: profileData?.latitude || 22.5726,
     longitude: profileData?.longitude || 88.3639,
     timezone: profileData?.timezone || 'Asia/Kolkata',
-    commute: Array.isArray(profileData?.commute) ? profileData.commute.join(', ') : (profileData?.commute || 'Metro'),
+    commute: Array.isArray(profileData?.commute)
+      ? profileData.commute.join(', ')
+      : profileData?.commute || 'Metro',
     lifestyle: profileData?.lifestyle || [],
     conditions: profileData?.conditions || [],
     sensitivity: profileData?.sensitivity || 'Low',

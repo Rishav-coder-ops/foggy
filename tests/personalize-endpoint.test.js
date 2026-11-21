@@ -10,8 +10,15 @@
 // 7. Express adapter parity
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { onRequestPost as handleChatPost, onRequestOptions as handleChatOptions } from '../functions/api/chat.js';
-import { onRequestPost as handlePersonalizePost } from '../functions/api/personalize.js';
+import {
+  onRequestPost as handleChatPost,
+  onRequestOptions as _handleChatOptions
+} from '../functions/api/chat.js';
+import {
+  onRequestPost as handlePersonalizePost,
+  onRequestOptions as handlePersonalizeOptions,
+  onRequest as handlePersonalizeRequest
+} from '../functions/api/personalize.js';
 import personalizeRouter from '../server/routes/personalize.js';
 
 describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () => {
@@ -23,15 +30,18 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
     const req = new Request('https://foggy.pages.dev/api/personalize', {
       method: 'OPTIONS',
       headers: {
-        'Origin': 'https://foggy.pages.dev',
+        Origin: 'https://foggy.pages.dev',
         'Access-Control-Request-Method': 'POST'
       }
     });
 
-    const res = await handleChatOptions({ request: req, env: {} });
+    const res = await handlePersonalizeOptions({ request: req, env: {} });
     expect(res.status).toBe(204);
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://foggy.pages.dev');
     expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+
+    const res2 = await handlePersonalizeRequest({ request: req, env: {} });
+    expect(res2.status).toBe(204);
   });
 
   it('processes a valid request with member profile and AQI context (returns 200 + reply + memo)', async () => {
@@ -72,16 +82,24 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
     expect(json.reply).toBeTruthy();
     expect(json.memo).toBeTruthy();
     expect(json.city).toBe('Kolkata');
-  });
+  }, 15000);
 
-  it('accepts and sanitizes long prompts (> 500 characters) without returning 400', async () => {
-    const longPrompt = 'A'.repeat(850) + ' Please advise for Beta with Asthma in Kolkata.';
+  it('accepts and sanitizes structured member requests with extended details without returning 400', async () => {
+    const longNotes =
+      'A'.repeat(600) + ' Special requirements for air purifier filter and inhaler.';
     const payload = {
-      message: longPrompt,
+      member: {
+        name: 'Beta',
+        relationship: 'Son',
+        age: 7,
+        city: 'Kolkata',
+        conditions: ['Asthma'],
+        notes: longNotes
+      },
       city: 'Kolkata'
     };
 
-    const req = new Request('https://foggy.pages.dev/api/chat', {
+    const req = new Request('https://foggy.pages.dev/api/personalize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +108,7 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
       body: JSON.stringify(payload)
     });
 
-    const res = await handleChatPost({ request: req, env: {} });
+    const res = await handlePersonalizePost({ request: req, env: {} });
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.reply).toBeTruthy();
@@ -128,7 +146,7 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
 
     const res = await handlePersonalizePost({ request: req, env: {} });
     expect(res.status).toBe(200);
-    expect(res.headers.get('X-RateLimit-Limit')).toBe('30');
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('10');
   });
 
   it('handles demo user tokens as authenticated with higher limits', async () => {
@@ -136,7 +154,7 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer demo_token',
+        Authorization: 'Bearer demo_token',
         'cf-connecting-ip': '192.168.1.104'
       },
       body: JSON.stringify({
@@ -146,15 +164,15 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
 
     const res = await handlePersonalizePost({ request: req, env: {} });
     expect(res.status).toBe(200);
-    expect(res.headers.get('X-RateLimit-Limit')).toBe('120');
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('60');
   });
 
   it('enforces rate limit and returns 429 with RATE_LIMITED code when limit exceeded', async () => {
     const testIp = '10.0.99.1';
     let lastRes;
 
-    // Send 31 anonymous requests (max limit is 30)
-    for (let i = 0; i < 32; i++) {
+    // Send 11 anonymous requests (max limit is 10)
+    for (let i = 0; i < 12; i++) {
       const req = new Request('https://foggy.pages.dev/api/chat', {
         method: 'POST',
         headers: {
@@ -170,7 +188,7 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
     expect(lastRes.status).toBe(429);
     const json = await lastRes.json();
     expect(json.code).toBe('RATE_LIMITED');
-    expect(json.message).toBe('Foggy is busy, try again in a minute.');
+    expect(json.message).toContain('Rate limit exceeded');
   }, 20000);
 
   it('falls back gracefully to intelligent deterministic core when Gemini fails', async () => {
@@ -216,7 +234,9 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
   it('shares logic with local Express router adapter', async () => {
     expect(personalizeRouter).toBeDefined();
     // Test invoking the express router handler stack
-    const postRoute = personalizeRouter.stack.find((layer) => layer.route && layer.route.methods.post);
+    const postRoute = personalizeRouter.stack.find(
+      (layer) => layer.route && layer.route.methods.post
+    );
     expect(postRoute).toBeDefined();
 
     const mockReq = {

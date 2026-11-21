@@ -11,6 +11,7 @@ import chatRouter from './routes/chat.js';
 import personalizeRouter from './routes/personalize.js';
 import aqiTimelineRouter from './routes/aqiTimeline.js';
 import geocodeRouter from './routes/geocode.js';
+import alertsRouter from './routes/alerts.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,8 +36,12 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'Foggy API Proxy',
-    geminiConfigured: !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'),
-    aqiConfigured: !!(process.env.AQI_API_KEY && process.env.AQI_API_KEY !== 'your_waqi_token_here'),
+    geminiConfigured: !!(
+      process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
+    ),
+    aqiConfigured: !!(
+      process.env.AQI_API_KEY && process.env.AQI_API_KEY !== 'your_waqi_token_here'
+    ),
     timestamp: new Date().toISOString()
   });
 });
@@ -47,6 +52,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/personalize', personalizeRouter);
 app.use('/api/aqi-timeline', aqiTimelineRouter);
 app.use('/api/geocode', geocodeRouter);
+app.use('/api/alerts', alertsRouter);
 
 // Catch-all for undefined API routes
 app.all('/api/*', (req, res) => {
@@ -64,12 +70,20 @@ if (fs.existsSync(distPath)) {
 
 // Start Server
 app.listen(PORT, () => {
-  const isGeminiSet = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here');
-  const isAqiSet = !!(process.env.AQI_API_KEY && process.env.AQI_API_KEY !== 'your_waqi_token_here');
+  const isGeminiSet = !!(
+    process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here'
+  );
+  const isAqiSet = !!(
+    process.env.AQI_API_KEY && process.env.AQI_API_KEY !== 'your_waqi_token_here'
+  );
 
   console.log(`\n======================================================`);
   console.log(`🌫️  Foggy API Proxy running at: http://localhost:${PORT}`);
-  console.log(`   - Gemini AI:  ${isGeminiSet ? '✅ Live Key Loaded' : '💡 Using Intelligent Fallback Core'}`);
-  console.log(`   - WAQI Data:  ${isAqiSet ? '✅ Live Token Loaded' : '💡 Using Atmospheric Simulation Fallback'}`);
+  console.log(
+    `   - Gemini AI:  ${isGeminiSet ? '✅ Live Key Loaded' : '💡 Using Intelligent Fallback Core'}`
+  );
+  console.log(
+    `   - WAQI Data:  ${isAqiSet ? '✅ Live Token Loaded' : '💡 Using Atmospheric Simulation Fallback'}`
+  );
   console.log(`======================================================\n`);
 });

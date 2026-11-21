@@ -2,11 +2,8 @@
 // Dedicated Search AQI Page: City Autocomplete (India-first, no quick picks)
 // Displays full dashboard-style atmospheric breakdown without changing user's saved location.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Search, MapPin, Wind, Thermometer, Droplets, RefreshCw,
-  Loader2, Shield, AlertTriangle, ArrowRight, Sun, Bus, Flame, ShieldCheck, Check
-} from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, MapPin, Loader2, Sun, Bus } from 'lucide-react';
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
@@ -18,31 +15,77 @@ export default function SearchAQIPage() {
   const [selectedCity, setSelectedCity] = useState({
     name: 'Kolkata',
     state: 'West Bengal',
+    country: 'India',
     lat: 22.5726,
     lon: 88.3639
   });
   const [suggestions, setSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [aqiData, setAqiData] = useState(null);
   const [loading, setLoading] = useState(true);
   const searchTimeoutRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const requestIdRef = useRef(0);
 
-  // Load AQI Data for the currently inspected city
+  // Load AQI Data for the currently inspected city with race condition protection
   const loadAQI = useCallback(async (cityObj) => {
+    if (!cityObj || cityObj.lat == null || cityObj.lon == null) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const currentRequestId = ++requestIdRef.current;
+
+    // Clear stale data while loading new city
+    setAqiData(null);
     setLoading(true);
-    const data = await fetchAQIData(cityObj.name, cityObj.lat, cityObj.lon);
-    setAqiData(data);
-    setLoading(false);
+
+    if (import.meta.env?.DEV) {
+      console.log('[SearchAQIPage] Initiating AQI fetch for canonical city:', cityObj);
+    }
+
+    try {
+      const data = await fetchAQIData({
+        lat: cityObj.lat,
+        lon: cityObj.lon,
+        cityName: cityObj.name,
+        stateName: cityObj.state,
+        signal: controller.signal
+      });
+
+      // Avoid late out-of-order race conditions
+      if (currentRequestId === requestIdRef.current) {
+        setAqiData(data);
+        setLoading(false);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return;
+      }
+      console.warn('Search AQI fetch error:', err);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
     loadAQI(selectedCity);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [selectedCity, loadAQI]);
 
   // Autocomplete search handler
   const handleInputChange = (e) => {
     const val = e.target.value;
     setSearchInput(val);
+    setSearchError('');
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -72,33 +115,53 @@ export default function SearchAQIPage() {
   const handleSelectSuggestion = (place) => {
     const newCity = {
       name: place.name,
-      state: place.admin1 || place.country || 'India',
+      state: place.admin1 || place.admin2 || '',
+      country: place.country || 'India',
       lat: place.latitude,
       lon: place.longitude
     };
+    if (import.meta.env?.DEV) {
+      console.log('[SearchAQIPage] Selected canonical place:', newCity);
+    }
     setSelectedCity(newCity);
     setSearchInput('');
     setSuggestions([]);
+    setSearchError('');
   };
 
-  const handleManualSubmit = (e) => {
+  const handleManualSubmit = async (e) => {
     e.preventDefault();
-    if (searchInput.trim()) {
-      const clean = sanitizeText(searchInput.trim(), 60);
-      setSelectedCity({
-        name: clean,
-        state: 'India',
-        lat: null,
-        lon: null
-      });
-      setSearchInput('');
-      setSuggestions([]);
+    const query = searchInput.trim();
+    if (!query) return;
+
+    if (suggestions.length > 0) {
+      handleSelectSuggestion(suggestions[0]);
+      return;
+    }
+
+    // Geocode to resolve canonical coordinates before fetching
+    setSearching(true);
+    setSearchError('');
+    try {
+      const clean = sanitizeText(query, 60);
+      const results = await geocodeLocation(clean, 'India');
+      if (results && results.length > 0) {
+        handleSelectSuggestion(results[0]);
+      } else {
+        setSearchError(`No matching Indian location found for "${clean}". Please pick from suggestions.`);
+      }
+    } catch (err) {
+      console.warn('Geocode manual submit failed:', err);
+      setSearchError('Location search failed. Please try again.');
+    } finally {
+      setSearching(false);
     }
   };
 
-  const locationTitle = selectedCity.state
-    ? `${selectedCity.name}, ${selectedCity.state}`
-    : selectedCity.name;
+  const canonicalParts = [selectedCity.name];
+  if (selectedCity.state) canonicalParts.push(selectedCity.state);
+  canonicalParts.push(selectedCity.country || 'India');
+  const locationTitle = `${canonicalParts.join(', ')} (${selectedCity.lat.toFixed(2)}°N, ${selectedCity.lon.toFixed(2)}°E)`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -113,7 +176,9 @@ export default function SearchAQIPage() {
             Search Air Quality in Any Indian City
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
-            Explore live CPCB NAQI scores, 24-hour diurnal inversion curves, and health recommendations for any city or district across India without affecting your saved household profile.
+            Explore live CPCB NAQI scores, 24-hour diurnal inversion curves, and health
+            recommendations for any city or district across India without affecting your saved
+            household profile.
           </p>
         </div>
 
@@ -142,6 +207,12 @@ export default function SearchAQIPage() {
               Search
             </button>
           </form>
+
+          {searchError && (
+            <p className="mt-2 text-xs font-semibold text-rose-500 dark:text-rose-400">
+              {searchError}
+            </p>
+          )}
 
           {/* Autocomplete Dropdown */}
           {suggestions.length > 0 && (
@@ -182,9 +253,7 @@ export default function SearchAQIPage() {
       />
 
       {/* 24-Hour Smog Inversion Curve */}
-      {aqiData?.forecastHourly && (
-        <HourlyTimeline hourlyData={aqiData.forecastHourly} />
-      )}
+      {aqiData?.forecastHourly && <HourlyTimeline hourlyData={aqiData.forecastHourly} />}
 
       {/* Low-Emission Daily Routine Plan for Searched City */}
       <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
@@ -219,7 +288,8 @@ export default function SearchAQIPage() {
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Street-level morning traffic traps diesel exhaust and resuspended road dust. Commuting via Metro or AC bus cuts direct particulate exposure by over 60%.
+              Street-level morning traffic traps diesel exhaust and resuspended road dust. Commuting
+              via Metro or AC bus cuts direct particulate exposure by over 60%.
             </p>
             <ImpactBadge
               co2Saved="~2.4 kg CO2 saved"
@@ -244,12 +314,10 @@ export default function SearchAQIPage() {
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Solar radiation breaks the ground thermal inversion lid between 1:00 PM and 3:30 PM, providing the cleanest dispersion window for essential errands.
+              Solar radiation breaks the ground thermal inversion lid between 1:00 PM and 3:30 PM,
+              providing the cleanest dispersion window for essential errands.
             </p>
-            <ImpactBadge
-              healthBenefit="Avoids ground smog spike"
-              pmReduced="-35% ground PM2.5"
-            />
+            <ImpactBadge healthBenefit="Avoids ground smog spike" pmReduced="-35% ground PM2.5" />
           </div>
         </div>
       </div>

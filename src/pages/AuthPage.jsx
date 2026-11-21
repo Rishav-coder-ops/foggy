@@ -1,7 +1,17 @@
 // src/pages/AuthPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Shield, KeyRound } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
+  KeyRound
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import MascotAvatar from '../components/MascotAvatar';
 
@@ -18,7 +28,6 @@ export default function AuthPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const {
-    user,
     isAuthenticated,
     login,
     signup,
@@ -121,7 +130,12 @@ export default function AuthPage() {
               <span>Firebase Configuration Notice</span>
             </div>
             <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
-              Firebase environment variables are missing or unconfigured. Real Firebase Authentication requires the following variables in your <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 font-mono text-[10px]">.env</code> or Cloudflare Pages settings:
+              Firebase environment variables are missing or unconfigured. Real Firebase
+              Authentication requires the following variables in your{' '}
+              <code className="px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 font-mono text-[10px]">
+                .env
+              </code>{' '}
+              or Cloudflare Pages settings:
             </p>
             <ul className="mt-2 list-disc list-inside font-mono text-[10px] text-amber-700 dark:text-amber-400 space-y-0.5">
               {missingFirebaseVars.map((v) => (
@@ -337,7 +351,8 @@ export default function AuthPage() {
               <h3 className="text-base font-bold">Reset Your Password</h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Enter your registered email address and Firebase will send a secure password reset link.
+              Enter your registered email address and Firebase will send a secure password reset
+              link.
             </p>
 
             {forgotError && (

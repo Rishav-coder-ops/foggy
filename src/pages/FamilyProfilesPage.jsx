@@ -1,11 +1,26 @@
 // src/pages/FamilyProfilesPage.jsx
 // Comprehensive Family & Household Air Health Profiles with CPCB NAQI Care Plan Engine & Foggy Personalization
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Users, Plus, Edit2, Trash2, Heart, Shield, AlertTriangle, Check,
-  X, Sparkles, ChevronDown, ChevronUp, Clock, AlertCircle, Phone,
-  Loader2, Activity, Compass, Wind, Coffee, RefreshCw
+  Users,
+  Plus,
+  Edit2,
+  Trash2,
+  Heart,
+  Shield,
+  AlertTriangle,
+  X,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  AlertCircle,
+  Phone,
+  Loader2,
+  Activity,
+  Compass,
+  RefreshCw
 } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +32,6 @@ import { validateFamilyMemberForm, sanitizeText } from '../utils/validation';
 import {
   INDIAN_STATES_AND_UTS,
   HEALTH_CONDITIONS,
-  SENSITIVITY_LEVELS,
   COMMUTE_STYLES,
   LIFESTYLE_ACTIVITIES,
   RELATIONSHIP_SUGGESTIONS
@@ -26,10 +40,11 @@ import { geocodeLocation } from '../services/api';
 
 export default function FamilyProfilesPage() {
   const { user } = useAuth();
-  const { profile, familyMembers, addFamilyMember, updateFamilyMember, deleteFamilyMember } = useProfile();
+  const { profile, familyMembers, addFamilyMember, updateFamilyMember, deleteFamilyMember } =
+    useProfile();
 
   const [aqiData, setAqiData] = useState(null);
-  const [loadingAQI, setLoadingAQI] = useState(true);
+  const [_loadingAQI, setLoadingAQI] = useState(true);
 
   // Expanded Care Plan accordion state (memberId -> boolean)
   const [expandedPlans, setExpandedPlans] = useState({});
@@ -61,25 +76,65 @@ export default function FamilyProfilesPage() {
   const [formErrors, setFormErrors] = useState({});
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [searchingCity, setSearchingCity] = useState(false);
+  const [membersAqi, setMembersAqi] = useState({});
 
-  // Load AQI Data for household
+  // Load AQI Data for household using shared object signature
   useEffect(() => {
     let isMounted = true;
     async function load() {
       setLoadingAQI(true);
-      const data = await fetchAQIData(
-        profile?.city || 'Kolkata',
-        profile?.latitude,
-        profile?.longitude
-      );
+      const data = await fetchAQIData({
+        cityName: profile?.city || 'Kolkata',
+        stateName: profile?.state || 'West Bengal',
+        lat: profile?.latitude,
+        lon: profile?.longitude
+      });
       if (isMounted) {
         setAqiData(data);
         setLoadingAQI(false);
       }
     }
     load();
-    return () => { isMounted = false; };
-  }, [profile?.city, profile?.latitude, profile?.longitude]);
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.city, profile?.state, profile?.latitude, profile?.longitude]);
+
+  // Load member-specific AQI data for each member's own location
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMembersAqi() {
+      const updates = {};
+      await Promise.all(
+        familyMembers.map(async (m) => {
+          const mLat = m.latitude ?? profile?.latitude;
+          const mLon = m.longitude ?? profile?.longitude;
+          const mCity = m.city || profile?.city || 'Kolkata';
+          const mState = m.state || profile?.state || '';
+          try {
+            const data = await fetchAQIData({
+              lat: mLat,
+              lon: mLon,
+              cityName: mCity,
+              stateName: mState
+            });
+            updates[m.id] = data;
+          } catch {
+            // Non-blocking fallback handled inside fetchAQIData
+          }
+        })
+      );
+      if (isMounted) {
+        setMembersAqi((prev) => ({ ...prev, ...updates }));
+      }
+    }
+    if (familyMembers.length > 0) {
+      loadMembersAqi();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [familyMembers, profile?.city, profile?.state, profile?.latitude, profile?.longitude]);
 
   // City geocoding autocomplete inside modal
   const handleCityInput = async (query) => {
@@ -150,7 +205,9 @@ export default function FamilyProfilesPage() {
     setEditingId(member.id);
     const conds = Array.isArray(member.conditions)
       ? member.conditions
-      : member.condition ? [member.condition] : ['None'];
+      : member.condition
+        ? [member.condition]
+        : ['None'];
 
     setFormData({
       name: member.name || '',
@@ -201,7 +258,9 @@ export default function FamilyProfilesPage() {
   };
 
   const handleDelete = async (id, memberName) => {
-    if (window.confirm(`Are you sure you want to remove ${memberName} from your household profiles?`)) {
+    if (
+      window.confirm(`Are you sure you want to remove ${memberName} from your household profiles?`)
+    ) {
       await deleteFamilyMember(id);
     }
   };
@@ -225,12 +284,21 @@ export default function FamilyProfilesPage() {
       const sanitizedName = sanitizeText(member.name, 50) || 'Family Member';
       const sanitizedRel = sanitizeText(member.relationship, 40) || 'Dependent';
       const ageStr = member.age ? `${member.age} years old` : 'age unspecified';
-      const condsStr = Array.isArray(member.conditions) ? member.conditions.join(', ') : (member.condition || 'None');
-      const commuteStr = Array.isArray(member.commute) ? member.commute.join(', ') : 'Not specified';
-      const lifeStr = Array.isArray(member.lifestyle) ? member.lifestyle.join(', ') : 'Not specified';
-      const aqiNum = aqiData?.aqi || 165;
-      const aqiCat = aqiData?.category || 'Moderate';
-      const cityLoc = member.city ? `${member.city}, ${member.state || 'India'}` : (profile?.city || 'Kolkata');
+      const condsStr = Array.isArray(member.conditions)
+        ? member.conditions.join(', ')
+        : member.condition || 'None';
+      const commuteStr = Array.isArray(member.commute)
+        ? member.commute.join(', ')
+        : 'Not specified';
+      const lifeStr = Array.isArray(member.lifestyle)
+        ? member.lifestyle.join(', ')
+        : 'Not specified';
+      const memberAqi = membersAqi[member.id] || aqiData || { aqi: 165, category: 'Moderate' };
+      const aqiNum = memberAqi?.aqi || 165;
+      const aqiCat = memberAqi?.category || 'Moderate';
+      const cityLoc = member.city
+        ? `${member.city}, ${member.state || 'India'}`
+        : profile?.city || 'Kolkata';
 
       const prompt = `Please create a friendly, structured personalized air quality care memo for ${sanitizedName} (${sanitizedRel}, ${ageStr}).
 Location: ${cityLoc}.
@@ -319,17 +387,43 @@ Please include:
       }
 
       const json = await res.json();
-      setAiMemo(json.memo || json.reply || json.message || 'Foggy personalized precautions generated.');
+      setAiMemo(
+        json.memo || json.reply || json.message || 'Foggy personalized precautions generated.'
+      );
     } catch (err) {
       console.error('Personalization failed with error:', err);
       const msg = err.message || '';
-      if (msg.includes('busy') || msg.includes('minute') || msg.includes('limit') || msg.includes('429')) {
+      if (
+        msg.includes('busy') ||
+        msg.includes('minute') ||
+        msg.includes('limit') ||
+        msg.includes('429')
+      ) {
         setAiError('Foggy is busy, try again in a minute.');
-      } else if (msg.includes('Sign-in') || msg.includes('sign in') || msg.includes('auth') || msg.includes('401') || msg.includes('403')) {
+      } else if (
+        msg.includes('Sign-in') ||
+        msg.includes('sign in') ||
+        msg.includes('auth') ||
+        msg.includes('401') ||
+        msg.includes('403')
+      ) {
         setAiError('Sign-in problem: please sign in or refresh your session.');
-      } else if (msg.includes('Server') || msg.includes('server') || msg.includes('500') || msg.includes('502') || msg.includes('503')) {
+      } else if (
+        msg.includes('Server') ||
+        msg.includes('server') ||
+        msg.includes('500') ||
+        msg.includes('502') ||
+        msg.includes('503')
+      ) {
         setAiError('Server problem: Foggy is temporarily unavailable. Please try again.');
-      } else if (err.name === 'TypeError' || msg.includes('fetch') || msg.includes('Network') || msg.includes('network') || msg.includes('offline') || msg.includes('connection')) {
+      } else if (
+        err.name === 'TypeError' ||
+        msg.includes('fetch') ||
+        msg.includes('Network') ||
+        msg.includes('network') ||
+        msg.includes('offline') ||
+        msg.includes('connection')
+      ) {
         setAiError('Network problem: Please check your internet connection.');
       } else {
         setAiError(msg || 'Unable to connect with Foggy right now.');
@@ -343,9 +437,23 @@ Please include:
     const r = (rel || '').toLowerCase();
     if (r === 'pet' || r.includes('dog') || r.includes('cat')) return '🐾';
     if (r === 'son' || r === 'daughter' || r === 'child') return '🧒';
-    if (r.includes('dadi') || r.includes('nani') || r.includes('dada') || r.includes('nana') || r.includes('senior') || r.includes('grand')) return '👵';
+    if (
+      r.includes('dadi') ||
+      r.includes('nani') ||
+      r.includes('dada') ||
+      r.includes('nana') ||
+      r.includes('senior') ||
+      r.includes('grand')
+    )
+      return '👵';
     if (r.includes('mother') || r.includes('father') || r.includes('parent')) return '🧑';
-    if (r.includes('spouse') || r.includes('partner') || r.includes('wife') || r.includes('husband')) return '❤️';
+    if (
+      r.includes('spouse') ||
+      r.includes('partner') ||
+      r.includes('wife') ||
+      r.includes('husband')
+    )
+      return '❤️';
     return '👤';
   };
 
@@ -362,7 +470,8 @@ Please include:
             Family & Household Health Profiles
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
-            Foggy tailors every outdoor advisory, commute swap, and filter recommendation to the unique respiratory sensitivities of each loved one using official CPCB NAQI guidelines.
+            Foggy tailors every outdoor advisory, commute swap, and filter recommendation to the
+            unique respiratory sensitivities of each loved one using official CPCB NAQI guidelines.
           </p>
         </div>
 
@@ -384,7 +493,8 @@ Please include:
             No family profiles added yet
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 mb-4">
-            Add children, elders, pets, or anyone with asthma to receive deterministic care plans and personalized smog alerts.
+            Add children, elders, pets, or anyone with asthma to receive deterministic care plans
+            and personalized smog alerts.
           </p>
           <button
             type="button"
@@ -399,9 +509,17 @@ Please include:
           {familyMembers.map((member) => {
             const isHigh = member.sensitivity === 'High';
             const isMod = member.sensitivity === 'Moderate';
-            const carePlan = generateMemberCarePlan(member, aqiData || { aqi: 165, category: 'Moderate' });
+            const memberAqiData = membersAqi[member.id] || aqiData || { aqi: 165, category: 'Moderate' };
+            const carePlan = generateMemberCarePlan(
+              member,
+              memberAqiData
+            );
             const isPlanOpen = !!expandedPlans[member.id];
-            const conds = Array.isArray(member.conditions) ? member.conditions : (member.condition ? [member.condition] : ['None']);
+            const conds = Array.isArray(member.conditions)
+              ? member.conditions
+              : member.condition
+                ? [member.condition]
+                : ['None'];
             const commutes = Array.isArray(member.commute) ? member.commute : [];
             const lifestyles = Array.isArray(member.lifestyle) ? member.lifestyle : [];
 
@@ -432,7 +550,11 @@ Please include:
                       </div>
 
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Location: <span className="font-semibold text-slate-700 dark:text-slate-300">{member.city || profile?.city || 'Kolkata'}, {member.state || profile?.state || 'West Bengal'}</span>
+                        Location:{' '}
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {member.city || profile?.city || 'Kolkata'},{' '}
+                          {member.state || profile?.state || 'West Bengal'}
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -444,8 +566,8 @@ Please include:
                         isHigh
                           ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                           : isMod
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                       }`}
                     >
                       {member.sensitivity || 'Standard'} Sensitivity
@@ -553,7 +675,11 @@ Please include:
                   >
                     <Shield className="w-3.5 h-3.5 text-sky-500" />
                     <span>{isPlanOpen ? "Hide Today's Care Plan" : "View Today's Care Plan"}</span>
-                    {isPlanOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    {isPlanOpen ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
                   </button>
 
                   <button
@@ -579,7 +705,10 @@ Please include:
                         </h3>
                       </div>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Based on CPCB NAQI: <strong className="text-slate-800 dark:text-slate-200">{carePlan.aqi} ({carePlan.category})</strong>
+                        Based on CPCB NAQI:{' '}
+                        <strong className="text-slate-800 dark:text-slate-200">
+                          {carePlan.aqi} ({carePlan.category})
+                        </strong>
                       </span>
                     </div>
 
@@ -596,7 +725,9 @@ Please include:
                             className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs flex flex-col justify-between space-y-2"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-800 dark:text-slate-200">{ts.slot}</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {ts.slot}
+                              </span>
                               <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300">
                                 {ts.forecastBadge}
                               </span>
@@ -670,7 +801,10 @@ Please include:
                           <span>Condition-Specific Health Reminders</span>
                         </div>
                         {carePlan.conditionReminders.map((rem, idx) => (
-                          <p key={idx} className="text-amber-900/90 dark:text-amber-200/90 text-[11px] leading-relaxed">
+                          <p
+                            key={idx}
+                            className="text-amber-900/90 dark:text-amber-200/90 text-[11px] leading-relaxed"
+                          >
                             {rem}
                           </p>
                         ))}
@@ -696,172 +830,187 @@ Please include:
       )}
 
       {/* AI Personalization Modal / Bottom Sheet */}
-      {personalizingMember && (() => {
-        const modalCarePlan = generateMemberCarePlan(personalizingMember, aqiData || { aqi: 165, category: 'Moderate' });
+      {personalizingMember &&
+        (() => {
+          const modalCarePlan = generateMemberCarePlan(
+            personalizingMember,
+            aqiData || { aqi: 165, category: 'Moderate' }
+          );
 
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <MascotAvatar size="sm" mood={loadingAi ? 'thinking' : aiError ? 'concerned' : 'happy'} />
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      Foggy's Air Memo for {personalizingMember.name}
-                    </h3>
-                    <span className="text-[11px] text-slate-500">
-                      Live AI analysis based on profile & today's CPCB AQI
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPersonalizingMember(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {loadingAi ? (
-                <div className="py-10 flex flex-col items-center justify-center text-center space-y-3">
-                  <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    Foggy is tailoring precautions for {personalizingMember.name}...
-                  </p>
-                  <span className="text-[11px] text-slate-400">
-                    Evaluating diurnal inversion and specific respiratory sensitivities
-                  </span>
-                </div>
-              ) : aiError ? (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-800 dark:text-rose-300">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span className="font-medium">{aiError}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handlePersonalizeWithFoggy(personalizingMember)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shrink-0 transition-colors cursor-pointer self-start sm:self-auto"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Try again</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 text-xs">
-                  <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-slate-800/60 border border-sky-100 dark:border-slate-700/60 leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-line">
-                    {aiMemo}
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+              <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <MascotAvatar
+                      size="sm"
+                      mood={loadingAi ? 'thinking' : aiError ? 'concerned' : 'happy'}
+                    />
                     <div>
-                      <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant, not a doctor. Never change prescribed medications without consulting your doctor. In case of severe breathlessness or emergency, call <strong>112</strong> immediately.
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Foggy's Air Memo for {personalizingMember.name}
+                      </h3>
+                      <span className="text-[11px] text-slate-500">
+                        Live AI analysis based on profile & today's CPCB AQI
+                      </span>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setPersonalizingMember(null)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              )}
 
-              {/* Deterministic Today's Care Plan - Always kept visible below */}
-              {modalCarePlan && (
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
-                        CPCB Deterministic Protocol
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                        Today's Care Plan for {personalizingMember.name}
-                      </h4>
-                    </div>
-                    <span className="text-xs text-slate-500">
-                      CPCB AQI: <strong className="text-slate-700 dark:text-slate-300">{modalCarePlan.aqi} ({modalCarePlan.category})</strong>
-                    </span>
-                  </div>
-
-                  {/* Diurnal Time Slots */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    {modalCarePlan.timeSlots.map((ts, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs flex flex-col justify-between space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{ts.slot}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300">
-                            {ts.forecastBadge}
-                          </span>
-                        </div>
-                        <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                          {ts.guidance}
-                        </p>
-                        <div className="pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                          ⚡ {ts.lifestyleAdjustment}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Do's & Don'ts */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
-                      <span className="font-bold text-emerald-900 dark:text-emerald-200 block mb-1.5">
-                        ✓ Recommended Actions
-                      </span>
-                      <ul className="space-y-1 text-emerald-900/90 dark:text-emerald-300/90 text-[11px]">
-                        {modalCarePlan.doList.slice(0, 3).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-1">
-                            <span className="text-emerald-600 font-bold">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60">
-                      <span className="font-bold text-rose-900 dark:text-rose-200 block mb-1.5">
-                        ✕ Activities to Avoid
-                      </span>
-                      <ul className="space-y-1 text-rose-900/90 dark:text-rose-300/90 text-[11px]">
-                        {modalCarePlan.avoidList.slice(0, 3).map((item, idx) => (
-                          <li key={idx} className="flex items-start gap-1">
-                            <span className="text-rose-600 font-bold">•</span>
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Certified Mask Guidance */}
-                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs space-y-1">
-                    <div className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-sky-500" />
-                      <span>Certified Mask Guidance (N95 / FFP2)</span>
-                    </div>
-                    <p className="text-sky-800 dark:text-sky-300 text-[11px] leading-relaxed">
-                      {modalCarePlan.maskAdvice}
+                {loadingAi ? (
+                  <div className="py-10 flex flex-col items-center justify-center text-center space-y-3">
+                    <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Foggy is tailoring precautions for {personalizingMember.name}...
                     </p>
+                    <span className="text-[11px] text-slate-400">
+                      Evaluating diurnal inversion and specific respiratory sensitivities
+                    </span>
                   </div>
-                </div>
-              )}
+                ) : aiError ? (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-800 dark:text-rose-300">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span className="font-medium">{aiError}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handlePersonalizeWithFoggy(personalizingMember)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shrink-0 transition-colors cursor-pointer self-start sm:self-auto"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Try again</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-xs">
+                    <div className="p-4 rounded-2xl bg-sky-50/70 dark:bg-slate-800/60 border border-sky-100 dark:border-slate-700/60 leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-line">
+                      {aiMemo}
+                    </div>
 
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPersonalizingMember(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-                >
-                  Close Memo
-                </button>
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant,
+                        not a doctor. Never change prescribed medications without consulting your
+                        doctor. In case of severe breathlessness or emergency, call{' '}
+                        <strong>112</strong> immediately.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Deterministic Today's Care Plan - Always kept visible below */}
+                {modalCarePlan && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">
+                          CPCB Deterministic Protocol
+                        </span>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          Today's Care Plan for {personalizingMember.name}
+                        </h4>
+                      </div>
+                      <span className="text-xs text-slate-500">
+                        CPCB AQI:{' '}
+                        <strong className="text-slate-700 dark:text-slate-300">
+                          {modalCarePlan.aqi} ({modalCarePlan.category})
+                        </strong>
+                      </span>
+                    </div>
+
+                    {/* Diurnal Time Slots */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      {modalCarePlan.timeSlots.map((ts, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs flex flex-col justify-between space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                              {ts.slot}
+                            </span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300">
+                              {ts.forecastBadge}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            {ts.guidance}
+                          </p>
+                          <div className="pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                            ⚡ {ts.lifestyleAdjustment}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Do's & Don'ts */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
+                        <span className="font-bold text-emerald-900 dark:text-emerald-200 block mb-1.5">
+                          ✓ Recommended Actions
+                        </span>
+                        <ul className="space-y-1 text-emerald-900/90 dark:text-emerald-300/90 text-[11px]">
+                          {modalCarePlan.doList.slice(0, 3).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="text-emerald-600 font-bold">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60">
+                        <span className="font-bold text-rose-900 dark:text-rose-200 block mb-1.5">
+                          ✕ Activities to Avoid
+                        </span>
+                        <ul className="space-y-1 text-rose-900/90 dark:text-rose-300/90 text-[11px]">
+                          {modalCarePlan.avoidList.slice(0, 3).map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="text-rose-600 font-bold">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Certified Mask Guidance */}
+                    <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs space-y-1">
+                      <div className="font-bold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-sky-500" />
+                        <span>Certified Mask Guidance (N95 / FFP2)</span>
+                      </div>
+                      <p className="text-sky-800 dark:text-sky-300 text-[11px] leading-relaxed">
+                        {modalCarePlan.maskAdvice}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPersonalizingMember(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                  >
+                    Close Memo
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Add / Edit Family Member Modal */}
       {modalOpen && (
@@ -901,7 +1050,8 @@ Please include:
                     setFormData((prev) => ({
                       ...prev,
                       relationship: val,
-                      sensitivity: val.toLowerCase().trim() === 'pet' ? 'Standard' : prev.sensitivity
+                      sensitivity:
+                        val.toLowerCase().trim() === 'pet' ? 'Standard' : prev.sensitivity
                     }));
                   }}
                   placeholder="e.g. Son, Daughter, Dadi, Nani, Pet, Spouse"
@@ -912,7 +1062,9 @@ Please include:
                     <option key={rel} value={rel} />
                   ))}
                 </datalist>
-                {formErrors.relationship && <p className="text-rose-500 text-[10px] mt-1">{formErrors.relationship}</p>}
+                {formErrors.relationship && (
+                  <p className="text-rose-500 text-[10px] mt-1">{formErrors.relationship}</p>
+                )}
               </div>
 
               {/* Name & Age */}
@@ -928,7 +1080,9 @@ Please include:
                     placeholder="e.g. Beta, Dadi, Rusty"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                   />
-                  {formErrors.name && <p className="text-rose-500 text-[10px] mt-1">{formErrors.name}</p>}
+                  {formErrors.name && (
+                    <p className="text-rose-500 text-[10px] mt-1">{formErrors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -944,7 +1098,9 @@ Please include:
                     placeholder="e.g. 7 or 74"
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                   />
-                  {formErrors.age && <p className="text-rose-500 text-[10px] mt-1">{formErrors.age}</p>}
+                  {formErrors.age && (
+                    <p className="text-rose-500 text-[10px] mt-1">{formErrors.age}</p>
+                  )}
                 </div>
               </div>
 
@@ -960,7 +1116,9 @@ Please include:
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
                   >
                     {INDIAN_STATES_AND_UTS.map((st) => (
-                      <option key={st} value={st}>{st}</option>
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -995,7 +1153,9 @@ Please include:
                       ))}
                     </div>
                   )}
-                  {formErrors.city && <p className="text-rose-500 text-[10px] mt-1">{formErrors.city}</p>}
+                  {formErrors.city && (
+                    <p className="text-rose-500 text-[10px] mt-1">{formErrors.city}</p>
+                  )}
                 </div>
               </div>
 
@@ -1008,7 +1168,10 @@ Please include:
                   {HEALTH_CONDITIONS.map((cond) => {
                     const isChecked = formData.conditions.includes(cond);
                     return (
-                      <label key={cond} className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200">
+                      <label
+                        key={cond}
+                        className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200"
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -1039,7 +1202,9 @@ Please include:
                     );
                   })}
                 </div>
-                {formErrors.conditions && <p className="text-rose-500 text-[10px] mt-1">{formErrors.conditions}</p>}
+                {formErrors.conditions && (
+                  <p className="text-rose-500 text-[10px] mt-1">{formErrors.conditions}</p>
+                )}
               </div>
 
               {/* Sensitivity Level */}
@@ -1050,14 +1215,20 @@ Please include:
                 <select
                   value={formData.sensitivity}
                   disabled={formData.conditions.length === 1 && formData.conditions[0] === 'None'}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, sensitivity: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, sensitivity: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 disabled:opacity-60"
                 >
                   <option value="Low">Low Sensitivity (No pre-existing conditions)</option>
                   <option value="Moderate">Moderate Sensitivity</option>
-                  <option value="High">High Sensitivity (Asthma / Cardiac / Senior / Infant)</option>
+                  <option value="High">
+                    High Sensitivity (Asthma / Cardiac / Senior / Infant)
+                  </option>
                 </select>
-                {formErrors.sensitivity && <p className="text-rose-500 text-[10px] mt-1">{formErrors.sensitivity}</p>}
+                {formErrors.sensitivity && (
+                  <p className="text-rose-500 text-[10px] mt-1">{formErrors.sensitivity}</p>
+                )}
               </div>
 
               {/* Commute */}
@@ -1069,7 +1240,10 @@ Please include:
                   {COMMUTE_STYLES.map((cm) => {
                     const isChecked = formData.commute.includes(cm);
                     return (
-                      <label key={cm} className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200">
+                      <label
+                        key={cm}
+                        className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200"
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -1097,7 +1271,10 @@ Please include:
                   {LIFESTYLE_ACTIVITIES.map((ls) => {
                     const isChecked = formData.lifestyle.includes(ls);
                     return (
-                      <label key={ls} className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200">
+                      <label
+                        key={ls}
+                        className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-800 dark:text-slate-200"
+                      >
                         <input
                           type="checkbox"
                           checked={isChecked}

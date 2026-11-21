@@ -1,21 +1,17 @@
 // src/pages/MemoryPage.jsx
 // Memory and Privacy Transparency for Indian Context
-import React, { useState } from 'react';
-import { Brain, Shield, Trash2, Edit3, Check, X, AlertTriangle, Sparkles, Lock, RefreshCw } from 'lucide-react';
-import { useProfile, COOKING_OPTIONS, HEATING_OPTIONS, COMMUTE_OPTIONS } from '../context/ProfileContext';
-import { useAuth } from '../context/AuthContext';
-import MascotAvatar from '../components/MascotAvatar';
+import { useState } from 'react';
+import { Brain, Trash2, Edit3, AlertTriangle, Lock } from 'lucide-react';
+import {
+  useProfile,
+  COOKING_OPTIONS,
+  HEATING_OPTIONS,
+  COMMUTE_OPTIONS
+} from '../context/ProfileContext';
 import { getStoredCity } from '../services/api';
 
 export default function MemoryPage() {
-  const { user } = useAuth();
-  const {
-    profile,
-    updateProfile,
-    savedMemories,
-    deleteMemory,
-    clearAllUserData
-  } = useProfile();
+  const { profile, updateProfile, savedMemories, deleteMemory, clearAllUserData } = useProfile();
 
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [editingAttributes, setEditingAttributes] = useState(false);
@@ -23,9 +19,11 @@ export default function MemoryPage() {
   // Edit fields
   const [location, setLocation] = useState(profile?.location || getStoredCity()?.name || 'Kolkata');
   const [commute, setCommute] = useState(profile?.commute || 'Metro');
-  const [heatingType, setHeatingType] = useState(profile?.heatingType || 'Electric geyser or heater');
+  const [heatingType, setHeatingType] = useState(
+    profile?.heatingType || 'Electric geyser or heater'
+  );
   const [cookingType, setCookingType] = useState(profile?.cookingType || 'LPG Cylinder');
-  const [budget, setBudget] = useState(profile?.budget || 'Practical / Budget-conscious (₹)');
+  const budget = profile?.budget || 'Practical / Budget-conscious (₹)';
 
   const handleSaveAttributes = (e) => {
     e.preventDefault();
@@ -57,7 +55,8 @@ export default function MemoryPage() {
             What Foggy Knows About You
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Complete transparency into the personal preferences, health vulnerabilities, and lifestyle facts Foggy uses to personalize your recommendations.
+            Complete transparency into the personal preferences, health vulnerabilities, and
+            lifestyle facts Foggy uses to personalize your recommendations.
           </p>
         </div>
 
@@ -78,7 +77,10 @@ export default function MemoryPage() {
           <span>Privacy & Sensitive Health Data Guarantee</span>
         </div>
         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-          Health conditions (such as asthma, COPD, and cardiovascular risk) are sensitive personal details. Foggy stores this information <strong>strictly on your local device</strong> (in browser localStorage) tied to your active profile. We do not sell your data, use your family health facts to train public models, or share them with third parties.
+          Health conditions (such as asthma, COPD, and cardiovascular risk) are sensitive personal
+          details. Foggy stores this information <strong>strictly on your local device</strong> (in
+          browser localStorage) tied to your active profile. We do not sell your data, use your
+          family health facts to train public models, or share them with third parties.
         </p>
       </div>
 
@@ -105,7 +107,10 @@ export default function MemoryPage() {
         </div>
 
         {editingAttributes ? (
-          <form onSubmit={handleSaveAttributes} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <form
+            onSubmit={handleSaveAttributes}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"
+          >
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Primary City / Location
@@ -129,7 +134,9 @@ export default function MemoryPage() {
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
                 {COMMUTE_OPTIONS.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
               </select>
             </div>
@@ -144,7 +151,9 @@ export default function MemoryPage() {
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
                 {HEATING_OPTIONS.map((h) => (
-                  <option key={h} value={h}>{h}</option>
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
                 ))}
               </select>
             </div>
@@ -159,7 +168,9 @@ export default function MemoryPage() {
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               >
                 {COOKING_OPTIONS.map((ck) => (
-                  <option key={ck} value={ck}>{ck}</option>
+                  <option key={ck} value={ck}>
+                    {ck}
+                  </option>
                 ))}
               </select>
             </div>
@@ -229,14 +240,16 @@ export default function MemoryPage() {
               Remembered Facts & Inferences ({savedMemories.length})
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Facts Foggy has extracted from your conversations or verified tips. You can delete any fact anytime.
+              Facts Foggy has extracted from your conversations or verified tips. You can delete any
+              fact anytime.
             </p>
           </div>
         </div>
 
         {savedMemories.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-xs italic">
-            No memories saved yet. As you talk to Foggy about your family health, fuels, or daily routines, key facts will appear here.
+            No memories saved yet. As you talk to Foggy about your family health, fuels, or daily
+            routines, key facts will appear here.
           </div>
         ) : (
           <div className="space-y-3">
@@ -250,16 +263,10 @@ export default function MemoryPage() {
                     <span className="font-bold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 text-[10px]">
                       {mem.category}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {mem.dateSaved}
-                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">{mem.dateSaved}</span>
                   </div>
-                  <p className="text-slate-800 dark:text-slate-200 font-medium">
-                    {mem.detail}
-                  </p>
-                  <p className="text-[10px] text-slate-400 italic">
-                    Source: {mem.source}
-                  </p>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium">{mem.detail}</p>
+                  <p className="text-[10px] text-slate-400 italic">Source: {mem.source}</p>
                 </div>
 
                 <button
@@ -285,7 +292,8 @@ export default function MemoryPage() {
               <h3 className="text-lg font-bold">Clear All Memory & Profiles?</h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              This action will reset your saved household details, all family health profiles, and conversation history stored on this device. This cannot be undone.
+              This action will reset your saved household details, all family health profiles, and
+              conversation history stored on this device. This cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

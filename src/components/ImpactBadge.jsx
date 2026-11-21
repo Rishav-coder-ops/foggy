@@ -1,5 +1,4 @@
 // src/components/ImpactBadge.jsx
-import React from 'react';
 import { Leaf, ShieldCheck, DollarSign, Clock } from 'lucide-react';
 
 export default function ImpactBadge({

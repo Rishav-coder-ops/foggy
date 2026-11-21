@@ -1,5 +1,5 @@
 // src/components/CursorAtmosphere.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function CursorAtmosphere() {
@@ -14,7 +14,10 @@ export default function CursorAtmosphere() {
 
   useEffect(() => {
     // Check if device supports coarse pointer / touch
-    const hasCoarsePointer = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    const hasCoarsePointer =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(pointer: coarse)').matches;
     if (hasCoarsePointer) {
       setIsTouchDevice(true);
     }
@@ -53,7 +56,7 @@ export default function CursorAtmosphere() {
       x: width / 2,
       y: height / 2,
       targetX: width / 2,
-      targetY: height / 2,
+      targetY: height / 2
     };
 
     // Particle system (Simulating PM2.5, mist droplets, and clean air ions)
@@ -69,7 +72,7 @@ export default function CursorAtmosphere() {
       }
 
       reset(initial = false) {
-        this.x = initial ? Math.random() * width : (Math.random() > 0.5 ? -10 : width + 10);
+        this.x = initial ? Math.random() * width : Math.random() > 0.5 ? -10 : width + 10;
         this.y = Math.random() * height;
         this.baseX = this.x;
         this.baseY = this.y;
@@ -258,7 +261,7 @@ export default function CursorAtmosphere() {
     let lastTime = performance.now();
     const render = (time) => {
       // Calculate delta time
-      const dt = Math.min(32, time - lastTime) / 16.66;
+      const _dt = Math.min(32, time - lastTime) / 16.66;
       lastTime = time;
 
       ctx.clearRect(0, 0, width, height);
@@ -383,8 +386,8 @@ export default function CursorAtmosphere() {
                 ? '2px solid rgba(56, 189, 248, 0.85)'
                 : '2px solid rgba(217, 119, 6, 0.85)'
               : isDark
-              ? '1.5px solid rgba(248, 250, 252, 0.45)'
-              : '1.5px solid rgba(51, 65, 85, 0.45)',
+                ? '1.5px solid rgba(248, 250, 252, 0.45)'
+                : '1.5px solid rgba(51, 65, 85, 0.45)',
             backgroundColor: isHoveringClickable
               ? isDark
                 ? 'rgba(56, 189, 248, 0.12)'

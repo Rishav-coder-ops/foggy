@@ -1,73 +1,20 @@
 // src/components/panels/Curve24hPanel.jsx
 // 24-Hour AQI Curve Feature Box & Expanded Modal using CPCB National AQI (0-500)
-import React, { useState, useRef, useId } from 'react';
+import { useState, useRef, useId } from 'react';
 import { Wind, Table, BarChart2, CheckCircle2, Clock } from 'lucide-react';
 import ExpandablePanelModal from '../ExpandablePanelModal';
 import PanelCitySearch from '../PanelCitySearch';
 import { CategoryBadge } from './Predictor7DayPanel';
 import { getAQICategory } from '../../../functions/api/aqi-timeline.js';
+import Sparkline24h from './Sparkline24h';
+import CurveDataTable from './CurveDataTable';
+import CurveChartSVG from './CurveChartSVG';
 
-export function Sparkline24h({ data = [], currentAqi = 165, height = 36, width = 160 }) {
-  if (!data || data.length === 0) {
-    return <div className="h-9 w-32 bg-[#E2E8F0] dark:bg-[#1E293B] rounded animate-pulse" />;
-  }
-
-  const aqis = data.map((d) => d.aqi ?? 150);
-  const min = Math.min(...aqis, 0);
-  const max = Math.max(...aqis, 400);
-  const range = max - min || 1;
-
-  const points = aqis.map((val, idx) => {
-    const x = (idx / (aqis.length - 1)) * (width - 4) + 2;
-    const y = height - 4 - ((val - min) / range) * (height - 8);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-
-  const pathStr = `M ${points.join(' L ')}`;
-  const areaStr = `${pathStr} L ${width - 2},${height} L 2,${height} Z`;
-
-  const cat = getAQICategory(currentAqi);
-
-  return (
-    <div className="flex items-center gap-3">
-      <svg width={width} height={height} className="overflow-visible" aria-hidden="true">
-        <defs>
-          <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={cat.color} stopOpacity="0.45" />
-            <stop offset="100%" stopColor={cat.color} stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-        <path d={areaStr} fill="url(#sparkline-grad)" />
-        <path d={pathStr} fill="none" stroke={cat.color} strokeWidth="2.5" strokeLinecap="round" />
-        <circle
-          cx={width - 2}
-          cy={height - 4 - ((currentAqi - min) / range) * (height - 8)}
-          r="3.5"
-          fill={cat.color}
-          className="animate-ping opacity-75"
-        />
-        <circle
-          cx={width - 2}
-          cy={height - 4 - ((currentAqi - min) / range) * (height - 8)}
-          r="3"
-          fill={cat.color}
-        />
-      </svg>
-      <div className="flex flex-col">
-        <span className="text-xs font-black leading-none text-[#334155] dark:text-[#F8FAFC]">
-          NAQI {currentAqi}
-        </span>
-        <span className="text-[10px] font-bold mt-0.5" style={{ color: cat.color }}>
-          {cat.name}
-        </span>
-      </div>
-    </div>
-  );
-}
+export { Sparkline24h };
 
 export default function Curve24hPanel({
   timelineData,
-  loading = false,
+  _loading = false,
   location,
   onCitySelect,
   onUseMyLocation,
@@ -77,7 +24,7 @@ export default function Curve24hPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [viewTable, setViewTable] = useState(false);
   const [hoveredPoint, setHoveredPoint] = useState(null);
-  const cardRef = React.useRef(null);
+  const cardRef = useRef(null);
   const chartId = useId();
 
   const hours = timelineData?.last24Hours || [];
@@ -97,7 +44,8 @@ export default function Curve24hPanel({
 
   // CPCB 0-500 scale
   const maxScale = 500;
-  const scaleY = (val) => paddingTop + plotHeight - (Math.min(val, maxScale) / maxScale) * plotHeight;
+  const scaleY = (val) =>
+    paddingTop + plotHeight - (Math.min(val, maxScale) / maxScale) * plotHeight;
 
   // 6 official CPCB National AQI Bands
   const bands = [
@@ -115,10 +63,14 @@ export default function Curve24hPanel({
     return { ...h, x, y };
   });
 
-  const pathD = points.length > 0 ? `M ${points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}` : '';
-  const areaD = points.length > 0
-    ? `${pathD} L ${points[points.length - 1].x},${paddingTop + plotHeight} L ${points[0].x},${paddingTop + plotHeight} Z`
-    : '';
+  const pathD =
+    points.length > 0
+      ? `M ${points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}`
+      : '';
+  const areaD =
+    points.length > 0
+      ? `${pathD} L ${points[points.length - 1].x},${paddingTop + plotHeight} L ${points[0].x},${paddingTop + plotHeight} Z`
+      : '';
 
   return (
     <>
@@ -141,57 +93,49 @@ export default function Curve24hPanel({
       >
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 flex items-center justify-center transition-transform duration-300 motion-safe:group-hover:scale-110 motion-safe:group-hover:rotate-3 shadow-xs">
-              <Wind className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+              <Wind className="w-5 h-5 text-amber-500" />
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-              Hourly Inversion Forecast
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+              Hourly Trend
             </span>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-            24-Hour AQI Curve
-          </h3>
+          <div>
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+              24-Hour AQI Curve
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
+              Track the diurnal smog cycle and identify the afternoon inversion dip for safer
+              commutes and daily routines.
+            </p>
+          </div>
 
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Live atmospheric inversion model tracks morning and evening smog peaks, pinpointing optimal midday exercise windows in {location?.name || 'Kolkata'}.
-          </p>
-
-          {/* Compact Sparkline Preview */}
-          <div className="pt-1">
+          {/* Mini Sparkline Visualization */}
+          <div className="pt-2">
             <Sparkline24h data={hours} currentAqi={currentAqi} />
           </div>
         </div>
 
-        <div className="pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold text-amber-600 dark:text-amber-400">
-          <span>Click to explore 24h curve</span>
-          <span className="text-slate-400 group-hover:text-amber-500 transition-all duration-300 motion-safe:group-hover:translate-x-1.5">→</span>
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold text-amber-600 dark:text-amber-400">
+          <span>Click to expand 24h curve</span>
+          <span className="group-hover:translate-x-1 transition-transform">→</span>
         </div>
       </div>
 
-      {/* Expanded Modal Sheet */}
+      {/* Expanded Modal */}
       <ExpandablePanelModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title="24-Hour AQI Curve & Thermal Inversion Analysis"
-        subtitle={`Hourly atmospheric particulate progression in ${location?.name || 'Kolkata'} (CPCB NAQI)`}
+        title="24-Hour Air Quality Diurnal Curve"
+        subtitle={`Diurnal inversion cycle & safest outdoor windows for ${location?.name || 'Kolkata'}`}
+        badgeText="24h Hourly Trend"
+        badgeVariant="amber"
         icon={Wind}
-        triggerRef={cardRef}
-        badge={
-          timelineData?.isSample ? (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-              Simulation Mode
-            </span>
-          ) : (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-              Open-Meteo CAMS Model (Live)
-            </span>
-          )
-        }
       >
-        {/* City Search & Geolocation */}
+        {/* City Autocomplete Switcher inside modal */}
         <PanelCitySearch
-          currentLocation={location}
+          currentCityName={location?.name || 'Kolkata'}
           onCitySelect={onCitySelect}
           onUseMyLocation={onUseMyLocation}
           geoLoading={geoLoading}
@@ -281,197 +225,37 @@ export default function Curve24hPanel({
 
         {/* Chart View or Table View */}
         {!viewTable ? (
-          <div className="relative rounded-2xl bg-[#E2E8F0] dark:bg-[#1E293B] border border-[#CBD5E1] dark:border-[#334155] p-4 overflow-hidden shadow-xs">
-            <div className="w-full overflow-x-auto">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full min-w-[640px] h-auto select-none overflow-visible"
-                aria-label="24-hour AQI area chart with CPCB National AQI color bands"
-              >
-                <defs>
-                  <linearGradient id={`${chartId}-area-grad`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#EAB308" stopOpacity="0.45" />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.05" />
-                  </linearGradient>
-                </defs>
-
-                {/* Shaded CPCB NAQI Bands with Colour + Text Labels */}
-                {bands.map((b) => {
-                  const yTop = scaleY(b.max);
-                  const yBottom = scaleY(b.min);
-                  const h = Math.max(2, yBottom - yTop);
-                  return (
-                    <g key={b.label}>
-                      <rect
-                        x={paddingLeft}
-                        y={yTop}
-                        width={plotWidth}
-                        height={h}
-                        fill={b.color}
-                        fillOpacity="0.12"
-                      />
-                      <line
-                        x1={paddingLeft}
-                        y1={yTop}
-                        x2={paddingLeft + plotWidth}
-                        y2={yTop}
-                        stroke={b.color}
-                        strokeOpacity="0.35"
-                        strokeDasharray="3 3"
-                      />
-                      {/* Text label so data is never colour-only */}
-                      <text
-                        x={paddingLeft + plotWidth + 8}
-                        y={yTop + h / 2 + 3}
-                        fontSize="9.5"
-                        fontWeight="700"
-                        fill={b.color}
-                        className="select-none"
-                      >
-                        {b.label}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Y-Axis Tick Labels with high contrast in both themes */}
-                {[0, 50, 100, 200, 300, 400, 500].map((tick) => (
-                  <text
-                    key={tick}
-                    x={paddingLeft - 8}
-                    y={scaleY(tick) + 3}
-                    textAnchor="end"
-                    fontSize="10"
-                    fontWeight="600"
-                    fill="currentColor"
-                    className="text-slate-700 dark:text-slate-300 font-mono"
-                  >
-                    {tick}
-                  </text>
-                ))}
-
-                {/* Shaded Area & Line */}
-                <path d={areaD} fill={`url(#${chartId}-area-grad)`} />
-                <path d={pathD} fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" />
-
-                {/* Hover Guideline when point active */}
-                {hoveredPoint && (
-                  <line
-                    x1={hoveredPoint.x}
-                    y1={paddingTop}
-                    x2={hoveredPoint.x}
-                    y2={paddingTop + plotHeight}
-                    stroke="#38BDF8"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 3"
-                  />
-                )}
-
-                {/* Interactive Points */}
-                {points.map((p, idx) => {
-                  const isHovered = hoveredPoint?.hour === p.hour;
-                  return (
-                    <g
-                      key={idx}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`Time: ${p.hour}, NAQI: ${p.aqi}, Category: ${p.category}`}
-                      onMouseEnter={() => setHoveredPoint(p)}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                      onFocus={() => setHoveredPoint(p)}
-                      onBlur={() => setHoveredPoint(null)}
-                      className="cursor-pointer focus:outline-none"
-                    >
-                      <circle
-                        cx={p.x}
-                        cy={p.y}
-                        r={isHovered ? 6 : 3.5}
-                        fill={p.color}
-                        stroke="#ffffff"
-                        strokeWidth={isHovered ? 2.5 : 1.5}
-                        className="transition-all"
-                      />
-                      {idx % 4 === 0 && (
-                        <text
-                          x={p.x}
-                          y={paddingTop + plotHeight + 18}
-                          textAnchor="middle"
-                          fontSize="10"
-                          fontWeight="700"
-                          fill="currentColor"
-                          className="text-slate-700 dark:text-slate-300 font-mono"
-                        >
-                          {p.hour}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-
-                {/* Active Tooltip on chart */}
-                {hoveredPoint && (
-                  <g transform={`translate(${Math.min(svgWidth - 170, Math.max(60, hoveredPoint.x - 75))}, ${Math.max(10, hoveredPoint.y - 70)})`}>
-                    <rect
-                      width="150"
-                      height="58"
-                      rx="10"
-                      fill="#0F172A"
-                      className="drop-shadow-lg"
-                    />
-                    <text x="10" y="18" fill="#F8FAFC" fontSize="11" fontWeight="700">
-                      {hoveredPoint.hour} • NAQI {hoveredPoint.aqi}
-                    </text>
-                    <text x="10" y="32" fill={hoveredPoint.color} fontSize="10" fontWeight="700">
-                      {hoveredPoint.category}
-                    </text>
-                    <text x="10" y="47" fill="#CBD5E1" fontSize="9.5" fontWeight="600">
-                      PM2.5: {hoveredPoint.pm25 ?? '—'} | PM10: {hoveredPoint.pm10 ?? '—'} µg/m³
-                    </text>
-                  </g>
-                )}
-              </svg>
-            </div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 text-center mt-2 font-medium">
-              Hover, tap, or focus points to view precise hourly CPCB NAQI & particulate levels.
-            </p>
-          </div>
+          <CurveChartSVG
+            svgWidth={svgWidth}
+            svgHeight={svgHeight}
+            chartId={chartId}
+            bands={bands}
+            scaleY={scaleY}
+            paddingLeft={paddingLeft}
+            plotWidth={plotWidth}
+            paddingTop={paddingTop}
+            plotHeight={plotHeight}
+            areaD={areaD}
+            pathD={pathD}
+            points={points}
+            hoveredPoint={hoveredPoint}
+            setHoveredPoint={setHoveredPoint}
+          />
         ) : (
-          /* Accessible Data Table Alternative */
-          <div className="overflow-x-auto rounded-2xl border border-[#CBD5E1] dark:border-[#334155] shadow-xs">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-300/80 dark:bg-slate-800 text-[11px] uppercase font-bold text-[#334155] dark:text-[#CBD5E1] border-b border-[#CBD5E1] dark:border-[#334155]">
-                <tr>
-                  <th scope="col" className="px-4 py-2.5">Time</th>
-                  <th scope="col" className="px-4 py-2.5">Estimated NAQI</th>
-                  <th scope="col" className="px-4 py-2.5">CPCB Category</th>
-                  <th scope="col" className="px-4 py-2.5">PM2.5 (µg/m³)</th>
-                  <th scope="col" className="px-4 py-2.5">PM10 (µg/m³)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#CBD5E1] dark:divide-[#334155] bg-[#E2E8F0] dark:bg-[#1E293B]">
-                {hours.map((h, idx) => (
-                  <tr key={idx} className="hover:bg-slate-300/60 dark:hover:bg-slate-700/60 transition-colors">
-                    <td className="px-4 py-2 font-mono font-bold text-[#334155] dark:text-[#CBD5E1]">{h.hour}</td>
-                    <td className="px-4 py-2 font-black text-sm text-[#334155] dark:text-[#F8FAFC]">{h.aqi}</td>
-                    <td className="px-4 py-2">
-                      <CategoryBadge aqi={h.aqi} categoryName={h.category} />
-                    </td>
-                    <td className="px-4 py-2 font-mono font-medium text-slate-700 dark:text-slate-300">{h.pm25 ?? '—'}</td>
-                    <td className="px-4 py-2 font-mono font-medium text-slate-700 dark:text-slate-300">{h.pm10 ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CurveDataTable hours={hours} />
         )}
 
         {/* Attribution & Disclaimer */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
           <p>
-            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data.
+            <strong className="text-slate-800 dark:text-slate-200">Attribution:</strong> Air quality
+            data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model
+            data.
           </p>
           <p className="italic">
-            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.
+            <strong>Disclaimer:</strong> Estimated from modelled data; official CPCB station
+            readings may differ. Check the official CPCB bulletin or the SAMEER app for
+            authoritative values.
           </p>
         </div>
       </ExpandablePanelModal>

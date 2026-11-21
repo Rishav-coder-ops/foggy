@@ -1,6 +1,6 @@
 // src/pages/onboarding/OnboardingProfilePage.jsx
 // Step 1 of 2: Compulsory Onboarding - About You
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
@@ -28,17 +28,7 @@ import {
 } from '../../utils/validation';
 import { geocodeLocation } from '../../services/api';
 import { statesMatch } from '../../../functions/api/geocode';
-import {
-  ShieldCheck,
-  MapPin,
-  Check,
-  AlertCircle,
-  Loader2,
-  ChevronRight,
-  Info,
-  Lock,
-  Heart
-} from 'lucide-react';
+import { ShieldCheck, MapPin, Check, AlertCircle, Loader2, ChevronRight, Lock } from 'lucide-react';
 
 export default function OnboardingProfilePage() {
   const navigate = useNavigate();
@@ -86,8 +76,8 @@ export default function OnboardingProfilePage() {
     Array.isArray(initialData.commute) && initialData.commute.length > 0
       ? initialData.commute
       : typeof initialData.commute === 'string' && initialData.commute
-      ? [initialData.commute]
-      : ['Metro']
+        ? [initialData.commute]
+        : ['Metro']
   );
   const [lifestyle, setLifestyle] = useState(
     Array.isArray(initialData.lifestyle) && initialData.lifestyle.length > 0
@@ -177,15 +167,19 @@ export default function OnboardingProfilePage() {
 
         if (!results || results.length === 0) {
           setCitySuggestions([]);
-          setCitySearchError(`We couldn't find '${city}' in ${state}, ${country}. Check the spelling or choose a nearby larger town.`);
+          setCitySearchError(
+            `We couldn't find '${city}' in ${state}, ${country}. Check the spelling or choose a nearby larger town.`
+          );
         } else {
           setCitySuggestions(results);
           setShowSuggestions(true);
         }
-      } catch (err) {
+      } catch (_err) {
         if (!active) return;
         setIsSearchingCity(false);
-        setCitySearchError('Geocoding service unavailable. Please check your connection and retry.');
+        setCitySearchError(
+          'Geocoding service unavailable. Please check your connection and retry.'
+        );
       }
     }, 350);
 
@@ -308,7 +302,10 @@ export default function OnboardingProfilePage() {
       navigate('/get-started/family');
     } catch (err) {
       console.error('Failed to save profile step:', err);
-      setErrors((prev) => ({ ...prev, form: err.message || 'Failed to save profile. Please try again.' }));
+      setErrors((prev) => ({
+        ...prev,
+        form: err.message || 'Failed to save profile. Please try again.'
+      }));
     } finally {
       setSubmitting(false);
     }
@@ -320,7 +317,9 @@ export default function OnboardingProfilePage() {
       <div className="mb-8">
         <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
           <span className="text-sky-600 dark:text-sky-400 font-extrabold flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">1</span>
+            <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-[10px]">
+              1
+            </span>
             About you (Step 1 of 2)
           </span>
           <span className="text-slate-400">Step 2: Family & Household</span>
@@ -338,7 +337,8 @@ export default function OnboardingProfilePage() {
             Tell Foggy about yourself
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-            We use your specific location, commute, and respiratory sensitivities to build your daily air pollution defense plan.
+            We use your specific location, commute, and respiratory sensitivities to build your
+            daily air pollution defense plan.
           </p>
         </div>
       </div>
@@ -360,7 +360,10 @@ export default function OnboardingProfilePage() {
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
           {/* 1. Full Name */}
           <div>
-            <label htmlFor="fullName" className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+            <label
+              htmlFor="fullName"
+              className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5"
+            >
               1. Full Name <span className="text-rose-500">*</span>
             </label>
             <input
@@ -382,7 +385,10 @@ export default function OnboardingProfilePage() {
               }`}
             />
             {touched.fullName && errors.fullName && (
-              <p id="fullName-error" className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+              <p
+                id="fullName-error"
+                className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1"
+              >
                 <AlertCircle className="w-3 h-3" /> {errors.fullName}
               </p>
             )}
@@ -390,7 +396,10 @@ export default function OnboardingProfilePage() {
 
           {/* 2. Age */}
           <div>
-            <label htmlFor="age" className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+            <label
+              htmlFor="age"
+              className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5"
+            >
               2. Age <span className="text-rose-500">*</span>
             </label>
             <input
@@ -413,7 +422,10 @@ export default function OnboardingProfilePage() {
               }`}
             />
             {touched.age && errors.age && (
-              <p id="age-error" className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+              <p
+                id="age-error"
+                className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1"
+              >
                 <AlertCircle className="w-3 h-3" /> {errors.age}
               </p>
             )}
@@ -421,7 +433,10 @@ export default function OnboardingProfilePage() {
 
           {/* 3. Country */}
           <div>
-            <label htmlFor="country" className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+            <label
+              htmlFor="country"
+              className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5"
+            >
               3. Country <span className="text-rose-500">*</span>
             </label>
             <select
@@ -451,7 +466,10 @@ export default function OnboardingProfilePage() {
               ))}
             </select>
             {touched.country && errors.country && (
-              <p id="country-error" className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+              <p
+                id="country-error"
+                className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1"
+              >
                 <AlertCircle className="w-3 h-3" /> {errors.country}
               </p>
             )}
@@ -459,7 +477,10 @@ export default function OnboardingProfilePage() {
 
           {/* 4. State or Union Territory */}
           <div>
-            <label htmlFor="state" className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+            <label
+              htmlFor="state"
+              className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5"
+            >
               4. State or Union Territory <span className="text-rose-500">*</span>
             </label>
             {country === 'India' ? (
@@ -503,7 +524,10 @@ export default function OnboardingProfilePage() {
               />
             )}
             {touched.state && errors.state && (
-              <p id="state-error" className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+              <p
+                id="state-error"
+                className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1"
+              >
                 <AlertCircle className="w-3 h-3" /> {errors.state}
               </p>
             )}
@@ -511,7 +535,10 @@ export default function OnboardingProfilePage() {
 
           {/* 5. City or Town (Autocomplete with location validation) */}
           <div className="relative">
-            <label htmlFor="city" className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5">
+            <label
+              htmlFor="city"
+              className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1.5"
+            >
               5. City or Town <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
@@ -557,7 +584,8 @@ export default function OnboardingProfilePage() {
               <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400">
                 <Check className="w-3.5 h-3.5" />
                 <span>
-                  Verified: {locationObj.name}, {locationObj.admin1 || state} ({locationObj.latitude.toFixed(2)}°, {locationObj.longitude.toFixed(2)}°)
+                  Verified: {locationObj.name}, {locationObj.admin1 || state} (
+                  {locationObj.latitude.toFixed(2)}°, {locationObj.longitude.toFixed(2)}°)
                 </span>
               </div>
             )}
@@ -573,7 +601,8 @@ export default function OnboardingProfilePage() {
                     className="w-full text-left px-3.5 py-2 hover:bg-sky-50 dark:hover:bg-slate-700/60 text-slate-800 dark:text-slate-100 flex items-center justify-between"
                   >
                     <span>
-                      <strong className="font-bold">{s.name}</strong>, {s.admin1 || ''} ({s.country || country})
+                      <strong className="font-bold">{s.name}</strong>, {s.admin1 || ''} (
+                      {s.country || country})
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {s.latitude.toFixed(2)}, {s.longitude.toFixed(2)}
@@ -591,7 +620,10 @@ export default function OnboardingProfilePage() {
             )}
 
             {touched.city && errors.city && (
-              <p id="city-error" className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+              <p
+                id="city-error"
+                className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1"
+              >
                 <AlertCircle className="w-3 h-3 shrink-0" /> {errors.city}
               </p>
             )}
@@ -603,7 +635,8 @@ export default function OnboardingProfilePage() {
               6. Health Conditions <span className="text-rose-500">*</span>
             </label>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-              Select all that apply. Choose "None" if you have no chronic respiratory or cardiovascular conditions.
+              Select all that apply. Choose "None" if you have no chronic respiratory or
+              cardiovascular conditions.
             </p>
             <div className="flex flex-wrap gap-2">
               {HEALTH_CONDITIONS.map((cond) => {
@@ -628,7 +661,10 @@ export default function OnboardingProfilePage() {
             {/* Other Condition input if 'Other' selected */}
             {conditions.includes('Other') && (
               <div className="mt-3">
-                <label htmlFor="otherCondition" className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label
+                  htmlFor="otherCondition"
+                  className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
                   Please specify your other condition: <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -668,7 +704,8 @@ export default function OnboardingProfilePage() {
             <div className="space-y-2">
               {SENSITIVITY_LEVELS.map((s) => {
                 const isSelected = sensitivity === s.level;
-                const isLocked = conditions.length === 1 && conditions[0] === 'None' && s.level !== 'Low';
+                const isLocked =
+                  conditions.length === 1 && conditions[0] === 'None' && s.level !== 'Low';
 
                 return (
                   <label
@@ -677,8 +714,8 @@ export default function OnboardingProfilePage() {
                       isLocked
                         ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'
                         : isSelected
-                        ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-800 ring-1 ring-sky-400'
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
+                          ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-800 ring-1 ring-sky-400'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-start gap-2.5">
@@ -717,7 +754,8 @@ export default function OnboardingProfilePage() {
               8. Commute Style <span className="text-rose-500">*</span>
             </label>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-              Select all modes you use regularly. Helps Foggy calculate transit exposure windows and suggest cleaner swaps.
+              Select all modes you use regularly. Helps Foggy calculate transit exposure windows and
+              suggest cleaner swaps.
             </p>
             <div className="flex flex-wrap gap-2">
               {COMMUTE_STYLES.map((c) => {
@@ -751,7 +789,8 @@ export default function OnboardingProfilePage() {
               9. Lifestyle & Outdoor Activities <span className="text-rose-500">*</span>
             </label>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-              Select your typical routines. Foggy adjusts outdoor walk and sports advisories around morning inversion peaks.
+              Select your typical routines. Foggy adjusts outdoor walk and sports advisories around
+              morning inversion peaks.
             </p>
             <div className="flex flex-wrap gap-2">
               {LIFESTYLE_ACTIVITIES.map((act) => {
@@ -775,8 +814,12 @@ export default function OnboardingProfilePage() {
 
             {lifestyle.includes('Other') && (
               <div className="mt-3">
-                <label htmlFor="otherLifestyle" className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Please specify your other outdoor activity: <span className="text-rose-500">*</span>
+                <label
+                  htmlFor="otherLifestyle"
+                  className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Please specify your other outdoor activity:{' '}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <input
                   id="otherLifestyle"
@@ -800,7 +843,11 @@ export default function OnboardingProfilePage() {
           </div>
 
           {/* 10. Required Consent Checkbox */}
-          <div ref={fieldRefs.consent} tabIndex={-1} className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div
+            ref={fieldRefs.consent}
+            tabIndex={-1}
+            className="pt-2 border-t border-slate-100 dark:border-slate-800"
+          >
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -813,7 +860,8 @@ export default function OnboardingProfilePage() {
                 className="mt-0.5 rounded text-sky-600 focus:ring-sky-500"
               />
               <span className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                I agree to store these details to personalise my advice. I can edit or delete them anytime. View our{' '}
+                I agree to store these details to personalise my advice. I can edit or delete them
+                anytime. View our{' '}
                 <button
                   type="button"
                   onClick={() => setPrivacyModalOpen(true)}
@@ -874,13 +922,17 @@ export default function OnboardingProfilePage() {
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed">
               <p>
-                <strong>Zero Public Training:</strong> Your health conditions and family details are never sold, published, or used to train public foundation models.
+                <strong>Zero Public Training:</strong> Your health conditions and family details are
+                never sold, published, or used to train public foundation models.
               </p>
               <p>
-                <strong>Secure Storage:</strong> Stored securely in your isolated user database on Firebase Firestore (region <code>asia-south1</code>), protected by security rules permitting access solely to your verified user ID.
+                <strong>Secure Storage:</strong> Stored securely in your isolated user database on
+                Firebase Firestore (region <code>asia-south1</code>), protected by security rules
+                permitting access solely to your verified user ID.
               </p>
               <p>
-                <strong>Complete Control:</strong> You can edit or permanently erase all your data and account records at any time from the <strong>Settings</strong> page.
+                <strong>Complete Control:</strong> You can edit or permanently erase all your data
+                and account records at any time from the <strong>Settings</strong> page.
               </p>
             </div>
             <div className="flex justify-end pt-2">

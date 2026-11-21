@@ -2,7 +2,6 @@
 // tests/routes.test.jsx
 // Smoke test verifying every route renders cleanly with mocked auth and fails on thrown error
 import { describe, it, expect, vi, beforeAll } from 'vitest';
-import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../src/App';
@@ -116,13 +115,15 @@ describe('Route Smoke Tests (Render Every Route without error)', () => {
     });
 
     if (typeof window !== 'undefined') {
-      window.matchMedia = window.matchMedia || function() {
-        return {
-          matches: false,
-          addListener: function() {},
-          removeListener: function() {}
+      window.matchMedia =
+        window.matchMedia ||
+        function () {
+          return {
+            matches: false,
+            addListener: function () {},
+            removeListener: function () {}
+          };
         };
-      };
     }
   });
 

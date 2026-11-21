@@ -1,6 +1,6 @@
 // src/pages/SupportPage.jsx
 // Comprehensive Help, FAQ Accordion, Emergency Contacts, and Support Channels
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import MascotAvatar from '../components/MascotAvatar';
 import {
@@ -10,8 +10,6 @@ import {
   PhoneCall,
   Mail,
   Github,
-  Shield,
-  Trash2,
   ExternalLink,
   LifeBuoy
 } from 'lucide-react';
@@ -59,7 +57,8 @@ export default function SupportPage() {
             Foggy Support & FAQ
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Answers to common questions regarding data sourcing, respiratory safeguards, account privacy, and assistance channels.
+            Answers to common questions regarding data sourcing, respiratory safeguards, account
+            privacy, and assistance channels.
           </p>
         </div>
 
@@ -73,7 +72,9 @@ export default function SupportPage() {
           <span>Medical Emergency or Severe Respiratory Distress?</span>
         </div>
         <p className="leading-relaxed text-xs">
-          Foggy is an educational AI assistant, <strong>not a doctor or medical provider</strong>. If you or a family member experience shortness of breath, severe chest tightness, or respiratory failure, call immediate emergency responders:
+          Foggy is an educational AI assistant, <strong>not a doctor or medical provider</strong>.
+          If you or a family member experience shortness of breath, severe chest tightness, or
+          respiratory failure, call immediate emergency responders:
         </p>
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <a
@@ -150,7 +151,8 @@ export default function SupportPage() {
               Report an Issue or Feedback
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Encountered a bug, incorrect station geocoding, or have a suggestion? Email our support desk directly.
+              Encountered a bug, incorrect station geocoding, or have a suggestion? Email our
+              support desk directly.
             </p>
           </div>
           <a
@@ -172,7 +174,8 @@ export default function SupportPage() {
               Open Source GitHub Repo
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Inspect our open source codebase, report technical bugs on GitHub Issues, or view release roadmaps.
+              Inspect our open source codebase, report technical bugs on GitHub Issues, or view
+              release roadmaps.
             </p>
           </div>
           <a

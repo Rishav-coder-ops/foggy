@@ -1,5 +1,5 @@
 // src/context/ChatContext.jsx
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useProfile } from './ProfileContext';
 import { sendChatMessage, fetchAQIData, getStoredCity, setStoredCity } from '../services/api';
@@ -19,11 +19,13 @@ export function ChatProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const lastWithCity = [...parsed].reverse().find(m => m.sender === 'foggy' && m.cityData?.name);
+          const lastWithCity = [...parsed]
+            .reverse()
+            .find((m) => m.sender === 'foggy' && m.cityData?.name);
           if (lastWithCity?.cityData) return lastWithCity.cityData;
         }
       }
-    } catch { }
+    } catch {}
     return null;
   });
   const [isTyping, setIsTyping] = useState(false);
@@ -33,14 +35,16 @@ export function ChatProvider({ children }) {
     try {
       const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
       if (saved) return JSON.parse(saved);
-    } catch { }
+    } catch {}
 
-    const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+    const firstName =
+      user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
     return [
       {
         id: 'msg_initial',
         sender: 'foggy',
-        text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
+        text:
+          `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
           `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -55,18 +59,22 @@ export function ChatProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         setMessages(parsed);
-        const lastWithCity = [...parsed].reverse().find(m => m.sender === 'foggy' && m.cityData?.name);
+        const lastWithCity = [...parsed]
+          .reverse()
+          .find((m) => m.sender === 'foggy' && m.cityData?.name);
         setChatCityData(lastWithCity?.cityData || null);
         return;
       }
-    } catch { }
+    } catch {}
 
-    const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+    const firstName =
+      user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
     setMessages([
       {
         id: 'msg_initial_' + Date.now(),
         sender: 'foggy',
-        text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
+        text:
+          `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
           `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -80,15 +88,24 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     async function load() {
       const stored = getStoredCity();
-      const city = stored?.name || profile?.location || 'Kolkata';
-      const data = await fetchAQIData(city);
+      const data = await fetchAQIData({
+        lat: stored?.lat,
+        lon: stored?.lon,
+        cityName: stored?.name || profile?.location || 'Kolkata',
+        stateName: stored?.admin1 || ''
+      });
       setAqiData(data);
     }
     load();
 
     const handleCityChange = (e) => {
-      const city = e.detail?.name || getStoredCity()?.name || 'Kolkata';
-      fetchAQIData(city).then(d => setAqiData(d));
+      const cityObj = e.detail || getStoredCity() || {};
+      fetchAQIData({
+        lat: cityObj.lat,
+        lon: cityObj.lon,
+        cityName: cityObj.name || 'Kolkata',
+        stateName: cityObj.admin1 || ''
+      }).then((d) => setAqiData(d));
     };
 
     window.addEventListener('foggy_city_changed', handleCityChange);
@@ -108,7 +125,12 @@ export function ChatProvider({ children }) {
     };
     setStoredCity(formatted);
     window.dispatchEvent(new CustomEvent('foggy_city_changed', { detail: formatted }));
-    fetchAQIData(cityObj.name).then(data => {
+    fetchAQIData({
+      lat: formatted.lat,
+      lon: formatted.lon,
+      cityName: formatted.name,
+      stateName: formatted.admin1
+    }).then((data) => {
       setAqiData(data);
     });
   };
@@ -122,7 +144,7 @@ export function ChatProvider({ children }) {
     }
   }, [messages, userUid]);
 
-  const toggleChat = () => setIsOpen(prev => !prev);
+  const toggleChat = () => setIsOpen((prev) => !prev);
   const openChat = () => setIsOpen(true);
   const closeChat = () => setIsOpen(false);
 
@@ -137,7 +159,7 @@ export function ChatProvider({ children }) {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputMessage('');
     setIsTyping(true);
 
@@ -160,27 +182,28 @@ export function ChatProvider({ children }) {
         id: 'msg_f_' + Date.now(),
         sender: 'foggy',
         text: response.reply,
-        provider: response.provider || (response.isLive ? 'Gemini 1.5 Flash' : 'Foggy Atmospheric Core'),
+        provider:
+          response.provider || (response.isLive ? 'Gemini 1.5 Flash' : 'Foggy Atmospheric Core'),
         model: response.model || (response.isLive ? 'gemini-1.5-flash' : 'foggy-atmospheric-core'),
         cityData: response.cityData,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
-      setMessages(prev => [...prev, foggyReply]);
+      setMessages((prev) => [...prev, foggyReply]);
 
       if (response.extractedFacts && response.extractedFacts.length > 0) {
-        response.extractedFacts.forEach(fact => {
+        response.extractedFacts.forEach((fact) => {
           queuePendingFact(fact);
         });
       }
-    } catch (err) {
+    } catch (_err) {
       const errorReply = {
         id: 'msg_err_' + Date.now(),
         sender: 'foggy',
         text: 'Foggy had a brief connection hiccup. Please try asking again!',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      setMessages(prev => [...prev, errorReply]);
+      setMessages((prev) => [...prev, errorReply]);
     } finally {
       setIsTyping(false);
     }
@@ -188,7 +211,8 @@ export function ChatProvider({ children }) {
 
   const clearChatHistory = () => {
     if (window.confirm('Clear conversation history with Foggy?')) {
-      const firstName = user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+      const firstName =
+        user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
       const initial = [
         {
           id: 'msg_initial_' + Date.now(),

@@ -1,6 +1,6 @@
 // src/components/ExpandablePanelModal.jsx
 // Reusable accessible modal/sheet component for expandable feature panels
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 export default function ExpandablePanelModal({
@@ -117,7 +117,10 @@ export default function ExpandablePanelModal({
                 {badge}
               </div>
               {subtitle && (
-                <p id={descId} className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                <p
+                  id={descId}
+                  className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5"
+                >
                   {subtitle}
                 </p>
               )}
@@ -136,9 +139,7 @@ export default function ExpandablePanelModal({
         </div>
 
         {/* Scrollable Modal Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6">{children}</div>
       </div>
     </div>
   );

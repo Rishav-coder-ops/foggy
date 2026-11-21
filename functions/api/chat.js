@@ -4,13 +4,7 @@
 // cryptographic Firebase ID token verification, prompt injection defense,
 // strict "no made-up numbers" ground-truth enforcement, and zero health data logging.
 
-import {
-  INDIAN_CITY_ALIASES,
-  INDIAN_METROS,
-  geocodeIndianCity,
-  fetchCityAqiReport,
-  getAQICategory
-} from './aqi-timeline.js';
+import { INDIAN_CITY_ALIASES, geocodeIndianCity, fetchCityAqiReport } from './aqi-timeline.js';
 import { verifyFirebaseIdToken } from './verifyFirebaseToken.js';
 import {
   INTENT_TYPES,
@@ -33,12 +27,14 @@ export {
 };
 
 // Abuse Protection & Rate Limiting Thresholds
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1-hour rolling window
-const MAX_ANON_PER_HOUR = 30; // 30 messages/hour for anonymous visitors
-const MAX_USER_PER_HOUR = 120; // 120 messages/hour for verified signed-in users
-const MAX_PAYLOAD_BYTES = 65536; // 64KB request body limit
-const MAX_MESSAGE_LENGTH = 4000; // Maximum allowed characters per user message
-const MAX_HISTORY_TURNS = 6; // Retain last 4-6 conversation turns clean
+import { CHAT_LIMITS, API_RATE_LIMITS } from './constants.js';
+
+const RATE_LIMIT_WINDOW_MS = API_RATE_LIMITS.RATE_LIMIT_WINDOW_MS; // 1-hour rolling window
+const MAX_ANON_PER_HOUR = API_RATE_LIMITS.ANONYMOUS_CHAT_PER_HOUR; // 10 messages/hour for anonymous visitors
+const MAX_USER_PER_HOUR = API_RATE_LIMITS.AUTHENTICATED_CHAT_PER_HOUR; // 60 messages/hour for verified signed-in users
+const MAX_PAYLOAD_BYTES = CHAT_LIMITS.MAX_PAYLOAD_BYTES; // 32KB request body limit
+const MAX_MESSAGE_LENGTH = CHAT_LIMITS.MAX_MESSAGE_LENGTH; // 500 characters
+const MAX_HISTORY_TURNS = CHAT_LIMITS.MAX_HISTORY_TURNS; // 10 turns
 
 const rateLimitStore = new Map(); // key -> { count, resetTime }
 
@@ -96,11 +92,11 @@ export function getCorsHeaders(request) {
     requestOrigin.startsWith('http://127.0.0.1:');
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? (requestOrigin || siteOrigin || '*') : siteOrigin,
+    'Access-Control-Allow-Origin': isAllowed ? requestOrigin || siteOrigin || '*' : siteOrigin,
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin',
+    Vary: 'Origin',
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     'X-Content-Type-Options': 'nosniff'
   };
@@ -111,7 +107,10 @@ export function sanitizeMemberProfile(member) {
 
   const sanitizeStr = (val, maxLen = 100, def = '') => {
     if (typeof val !== 'string') return def;
-    return val.replace(/<[^>]*>/g, '').trim().slice(0, maxLen);
+    return val
+      .replace(/<[^>]*>/g, '')
+      .trim()
+      .slice(0, maxLen);
   };
 
   const name = sanitizeStr(member.name, 60, 'Family Member');
@@ -130,7 +129,11 @@ export function sanitizeMemberProfile(member) {
 
   let conditions = 'None';
   if (Array.isArray(member.conditions)) {
-    conditions = member.conditions.map((c) => sanitizeStr(c, 60)).filter(Boolean).join(', ') || 'None';
+    conditions =
+      member.conditions
+        .map((c) => sanitizeStr(c, 60))
+        .filter(Boolean)
+        .join(', ') || 'None';
   } else if (typeof member.conditions === 'string' || typeof member.condition === 'string') {
     conditions = sanitizeStr(member.conditions || member.condition, 200, 'None');
   }
@@ -141,14 +144,22 @@ export function sanitizeMemberProfile(member) {
 
   let commute = 'Not specified';
   if (Array.isArray(member.commute)) {
-    commute = member.commute.map((c) => sanitizeStr(c, 60)).filter(Boolean).join(', ') || 'Not specified';
+    commute =
+      member.commute
+        .map((c) => sanitizeStr(c, 60))
+        .filter(Boolean)
+        .join(', ') || 'Not specified';
   } else if (typeof member.commute === 'string') {
     commute = sanitizeStr(member.commute, 200, 'Not specified');
   }
 
   let lifestyle = 'Not specified';
   if (Array.isArray(member.lifestyle)) {
-    lifestyle = member.lifestyle.map((l) => sanitizeStr(l, 60)).filter(Boolean).join(', ') || 'Not specified';
+    lifestyle =
+      member.lifestyle
+        .map((l) => sanitizeStr(l, 60))
+        .filter(Boolean)
+        .join(', ') || 'Not specified';
   } else if (typeof member.lifestyle === 'string') {
     lifestyle = sanitizeStr(member.lifestyle, 200, 'Not specified');
   }
@@ -203,7 +214,11 @@ export async function extractIntentAndCities(message, history = [], selectedCity
 
   // Language detection
   const isHindi = /[\u0900-\u097F]/.test(rawText);
-  const isHinglish = !isHindi && /\b(kya|kaise|karo|aaj|hawa|ka|ki|ke|hai|hain|nahi|baahar|jaana|chahiye|saans|mask|shahar|kal|raat|subah|dopehar|batao|bataiye|pehan|pehanna)\b/i.test(text);
+  const isHinglish =
+    !isHindi &&
+    /\b(kya|kaise|karo|aaj|hawa|ka|ki|ke|hai|hain|nahi|baahar|jaana|chahiye|saans|mask|shahar|kal|raat|subah|dopehar|batao|bataiye|pehan|pehanna)\b/i.test(
+      text
+    );
 
   // Timeframe detection
   let timeframe = 'now';
@@ -218,14 +233,18 @@ export async function extractIntentAndCities(message, history = [], selectedCity
   }
 
   // Check explicit "my city" / "here"
-  const isMyCity = /\b(my city|mera shahar|hamara shahar|apna shahar|my location|here|mere yahan)\b/i.test(text);
+  const isMyCity =
+    /\b(my city|mera shahar|hamara shahar|apna shahar|my location|here|mere yahan)\b/i.test(text);
 
   // Match known aliases & Indian cities (sorted by length descending for greedy match)
   const sortedAliases = Object.keys(INDIAN_CITY_ALIASES).sort((a, b) => b.length - a.length);
   const detectedCities = new Set();
 
   for (const alias of sortedAliases) {
-    const reg = new RegExp(`(^|[^a-zA-Z0-9\u0900-\u097F])${alias}([^a-zA-Z0-9\u0900-\u097F]|$)`, 'i');
+    const reg = new RegExp(
+      `(^|[^a-zA-Z0-9\u0900-\u097F])${alias}([^a-zA-Z0-9\u0900-\u097F]|$)`,
+      'i'
+    );
     if (reg.test(text)) {
       detectedCities.add(INDIAN_CITY_ALIASES[alias]);
     }
@@ -241,16 +260,90 @@ export async function extractIntentAndCities(message, history = [], selectedCity
   ];
 
   const stopWords = new Set([
-    'the', 'this', 'that', 'today', 'tomorrow', 'tonight', 'morning', 'afternoon',
-    'evening', 'night', 'india', 'indian', 'city', 'outside', 'inside', 'indoor',
-    'room', 'house', 'home', 'mask', 'filter', 'jog', 'run', 'walk', 'cycling',
-    'baby', 'child', 'children', 'kid', 'kids', 'senior', 'elder', 'what', 'which',
-    'safe', 'safer', 'worst', 'best', 'here', 'there', 'delhi', 'mumbai', 'kolkata',
-    'chennai', 'bengaluru', 'pune', 'aaj', 'kal', 'raat', 'subah', 'hawa', 'saans',
-    'mera', 'apna', 'hamara', 'beta', 'dadi', 'nani', 'dada', 'nana', 'son',
-    'daughter', 'father', 'mother', 'parent', 'grandma', 'grandpa', 'dog', 'cat',
-    'pet', 'rusty', 'care', 'memo', 'profile', 'advice', 'routine', 'guidance',
-    'doctor', 'asthma', 'precaution', 'precautions', 'family', 'someone', 'anyone'
+    'the',
+    'this',
+    'that',
+    'today',
+    'tomorrow',
+    'tonight',
+    'morning',
+    'afternoon',
+    'evening',
+    'night',
+    'india',
+    'indian',
+    'city',
+    'outside',
+    'inside',
+    'indoor',
+    'room',
+    'house',
+    'home',
+    'mask',
+    'filter',
+    'jog',
+    'run',
+    'walk',
+    'cycling',
+    'baby',
+    'child',
+    'children',
+    'kid',
+    'kids',
+    'senior',
+    'elder',
+    'what',
+    'which',
+    'safe',
+    'safer',
+    'worst',
+    'best',
+    'here',
+    'there',
+    'delhi',
+    'mumbai',
+    'kolkata',
+    'chennai',
+    'bengaluru',
+    'pune',
+    'aaj',
+    'kal',
+    'raat',
+    'subah',
+    'hawa',
+    'saans',
+    'mera',
+    'apna',
+    'hamara',
+    'beta',
+    'dadi',
+    'nani',
+    'dada',
+    'nana',
+    'son',
+    'daughter',
+    'father',
+    'mother',
+    'parent',
+    'grandma',
+    'grandpa',
+    'dog',
+    'cat',
+    'pet',
+    'rusty',
+    'care',
+    'memo',
+    'profile',
+    'advice',
+    'routine',
+    'guidance',
+    'doctor',
+    'asthma',
+    'precaution',
+    'precautions',
+    'family',
+    'someone',
+    'anyone'
   ]);
 
   for (const m of patternMatches) {
@@ -268,7 +361,9 @@ export async function extractIntentAndCities(message, history = [], selectedCity
     }
   }
 
-  const isComparison = detectedCities.size >= 2 || /\b(safer than|better than|worse than|vs\.?|versus|compare|ya|or)\b/i.test(text);
+  const isComparison =
+    detectedCities.size >= 2 ||
+    /\b(safer than|better than|worse than|vs\.?|versus|compare|ya|or)\b/i.test(text);
 
   let finalCities = Array.from(detectedCities);
   let usedDefault = false;
@@ -296,7 +391,10 @@ export async function extractIntentAndCities(message, history = [], selectedCity
       for (let i = history.length - 1; i >= 0; i--) {
         const hText = (history[i].text || history[i].content || '').toLowerCase();
         for (const alias of sortedAliases) {
-          const reg = new RegExp(`(^|[^a-zA-Z0-9\u0900-\u097F])${alias}([^a-zA-Z0-9\u0900-\u097F]|$)`, 'i');
+          const reg = new RegExp(
+            `(^|[^a-zA-Z0-9\u0900-\u097F])${alias}([^a-zA-Z0-9\u0900-\u097F]|$)`,
+            'i'
+          );
           if (reg.test(hText)) {
             foundInHistory = INDIAN_CITY_ALIASES[alias];
             break;
@@ -330,32 +428,151 @@ export async function extractIntentAndCities(message, history = [], selectedCity
   };
 }
 
-// Memory fact detector
-function extractMemoryFacts(message) {
+/**
+ * Extracts a single suggested memory fact with category from user text.
+ * @param {string} message - User message text.
+ * @returns {{ category: string, value: string, entity?: string } | null}
+ */
+export function extractMemoryFact(message) {
+  if (!message || typeof message !== 'string') return null;
+  const facts = extractMemoryFacts(message);
+  if (facts.length === 0) return null;
+  return {
+    category: facts[0].category,
+    value: facts[0].value || facts[0].condition,
+    entity: facts[0].name || facts[0].entity
+  };
+}
+
+/**
+ * Extracts structured facts from user message for transparent memory updates.
+ * @param {string} message - User message text.
+ * @returns {Array<Record<string, any>>}
+ */
+export function extractMemoryFacts(message) {
+  if (!message || typeof message !== 'string') return [];
   const q = message.toLowerCase();
   const extractedFacts = [];
 
   if (q.includes('father') || q.includes('dad') || q.includes('pitaji')) {
     if (q.includes('copd') || q.includes('asthma') || q.includes('heart') || q.includes('saans')) {
-      const cond = q.includes('copd') ? 'COPD' : q.includes('asthma') || q.includes('saans') ? 'Asthma' : 'Heart condition';
-      extractedFacts.push({ type: 'family', name: 'Father', role: 'Senior', condition: cond });
+      const cond = q.includes('copd')
+        ? 'COPD'
+        : q.includes('asthma') || q.includes('saans')
+          ? 'Asthma'
+          : 'Heart condition';
+      extractedFacts.push({
+        type: 'family',
+        category: 'health',
+        name: 'Father',
+        role: 'Senior',
+        condition: cond,
+        value: cond
+      });
     }
   }
-  if (q.includes('daughter') || q.includes('son') || q.includes('child') || q.includes('kid') || q.includes('baccha')) {
+  if (
+    q.includes('daughter') ||
+    q.includes('son') ||
+    q.includes('child') ||
+    q.includes('kid') ||
+    q.includes('baccha')
+  ) {
     if (q.includes('asthma') || q.includes('allerg') || q.includes('saans')) {
-      extractedFacts.push({ type: 'family', name: 'Child', role: 'Child', condition: 'Asthma/Allergies' });
+      const cond = q.includes('asthma') ? 'Asthma' : 'Allergies';
+      extractedFacts.push({
+        type: 'family',
+        category: 'health',
+        name: 'Child',
+        role: 'Child',
+        condition: cond,
+        value: cond
+      });
     }
   }
-  if (q.includes('chulha') || q.includes('wood') || q.includes('coal') || q.includes('angithi') || q.includes('lpg') || q.includes('png') || q.includes('induction')) {
-    const heat = q.includes('chulha') ? 'Wood/Dung Chulha' : q.includes('angithi') ? 'Coal/Charcoal Angithi' : q.includes('induction') ? 'Induction Cooktop' : q.includes('png') ? 'PNG Piped Gas' : 'LPG Cylinder';
-    extractedFacts.push({ type: 'home', key: 'cooking', value: heat });
+  if (
+    q.includes('chulha') ||
+    q.includes('wood') ||
+    q.includes('coal') ||
+    q.includes('angithi') ||
+    q.includes('lpg') ||
+    q.includes('png') ||
+    q.includes('induction')
+  ) {
+    const heat = q.includes('chulha')
+      ? 'Wood/Dung Chulha'
+      : q.includes('angithi')
+        ? 'Coal/Charcoal Angithi'
+        : q.includes('induction')
+          ? 'Induction Cooktop'
+          : q.includes('png')
+            ? 'PNG Piped Gas'
+            : 'LPG Cylinder';
+    extractedFacts.push({
+      type: 'home',
+      category: 'home',
+      key: 'cooking',
+      value: heat
+    });
   }
-  if (q.includes('metro') || q.includes('train') || q.includes('bus') || q.includes('auto') || q.includes('scooter') || q.includes('bike') || q.includes('car')) {
-    const commute = q.includes('metro') ? 'Metro' : q.includes('train') ? 'Local Train' : q.includes('bus') ? 'City Bus' : q.includes('auto') ? 'Auto/E-Rickshaw' : q.includes('bike') || q.includes('scooter') ? 'Two-Wheeler' : 'Car';
-    extractedFacts.push({ type: 'lifestyle', key: 'commute', value: commute });
+  if (
+    q.includes('metro') ||
+    q.includes('train') ||
+    q.includes('bus') ||
+    q.includes('auto') ||
+    q.includes('scooter') ||
+    q.includes('bike') ||
+    q.includes('car')
+  ) {
+    const commute = q.includes('metro')
+      ? 'Metro'
+      : q.includes('train')
+        ? 'Local Train'
+        : q.includes('bus')
+          ? 'City Bus'
+          : q.includes('auto')
+            ? 'Auto/E-Rickshaw'
+            : q.includes('bike') || q.includes('scooter')
+              ? 'Two-Wheeler'
+              : 'Car';
+    extractedFacts.push({
+      type: 'lifestyle',
+      category: 'lifestyle',
+      key: 'commute',
+      value: commute
+    });
   }
 
   return extractedFacts;
+}
+
+/**
+ * Validates that any explicit AQI numbers mentioned in the model answer match ground-truth values.
+ * Rejects answers with hallucinated AQI numbers.
+ * @param {string} replyText - Raw model response.
+ * @param {number[]} allowedAqiValues - Ground-truth AQI values available in context.
+ * @returns {boolean} True if reply is valid / consistent with ground truth.
+ */
+export function verifyModelAqiResponse(replyText, allowedAqiValues = []) {
+  if (!replyText || typeof replyText !== 'string') return false;
+  if (!Array.isArray(allowedAqiValues) || allowedAqiValues.length === 0) return true;
+
+  const aqiMatches = replyText.matchAll(
+    /\b(?:aqi|air quality index)\s*(?:is|of|around|level of|at|:)?\s*([0-9]{1,3})\b/gi
+  );
+  const allowedSet = new Set(allowedAqiValues.map((v) => Math.round(Number(v))));
+
+  for (const match of aqiMatches) {
+    const quotedNum = parseInt(match[1], 10);
+    const matchesGroundTruth = Array.from(allowedSet).some(
+      (groundTruth) => Math.abs(quotedNum - groundTruth) <= 5
+    );
+    if (!matchesGroundTruth) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // Generate smart fallback response strictly adhering to intent-specific advice
@@ -364,9 +581,9 @@ export function generateSmartFallbackResponse({
   cityReports = [],
   unrecognizedCity = null,
   timeframe = 'now',
-  isComparison = false,
-  usedDefault = false,
-  isFirstMessage = false,
+  _isComparison = false,
+  _usedDefault = false,
+  _isFirstMessage = false,
   profile,
   isHindi = false,
   isHinglish = false,
@@ -461,7 +678,7 @@ export async function onRequestPost(context) {
       JSON.stringify({
         error: 'Too Many Requests',
         code: 'RATE_LIMITED',
-        message: 'Foggy is busy, try again in a minute.',
+        message: 'Rate limit exceeded. Foggy is busy, try again in a minute.',
         isRateLimited: true,
         isAnonymous: !isUserAuthenticated
       }),
@@ -475,14 +692,22 @@ export async function onRequestPost(context) {
     rawBodyText = await request.text();
   } catch {
     return new Response(
-      JSON.stringify({ error: 'Bad Request', code: 'INVALID_REQUEST', message: 'Failed to read request body.' }),
+      JSON.stringify({
+        error: 'Bad Request',
+        code: 'INVALID_REQUEST',
+        message: 'Failed to read request body.'
+      }),
       { status: 400, headers }
     );
   }
 
   if (rawBodyText.length > MAX_PAYLOAD_BYTES) {
     return new Response(
-      JSON.stringify({ error: 'Payload Too Large', code: 'PAYLOAD_TOO_LARGE', message: 'Request payload exceeds limit.' }),
+      JSON.stringify({
+        error: 'Payload Too Large',
+        code: 'PAYLOAD_TOO_LARGE',
+        message: 'Request payload exceeds limit.'
+      }),
       { status: 413, headers }
     );
   }
@@ -492,14 +717,35 @@ export async function onRequestPost(context) {
     requestBody = JSON.parse(rawBodyText);
   } catch {
     return new Response(
-      JSON.stringify({ error: 'Bad Request', code: 'MALFORMED_JSON', message: 'Malformed JSON payload.' }),
+      JSON.stringify({
+        error: 'Bad Request',
+        code: 'MALFORMED_JSON',
+        message: 'Malformed JSON payload.'
+      }),
       { status: 400, headers }
     );
   }
 
-  const { message, member, history = [], user, aqiData, profile, selectedCity, city } = requestBody;
+  const { message, member, history = [], aqiData, profile, selectedCity, city } = requestBody;
 
-  // 4. Input validation and sanitization on message & member
+  // 4. Message length limit: 400 on messages over 500 characters
+  const isPersonalizeRoute =
+    request.url.includes('/api/personalize') || (!message && Boolean(member));
+  if (
+    typeof message === 'string' &&
+    message.trim().length > MAX_MESSAGE_LENGTH &&
+    !isPersonalizeRoute
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: 'Bad Request',
+        code: 'MESSAGE_TOO_LONG',
+        message: `Message exceeds maximum allowed length of ${MAX_MESSAGE_LENGTH} characters.`
+      }),
+      { status: 400, headers }
+    );
+  }
+
   let activeMessage = '';
   if (typeof message === 'string' && message.trim()) {
     activeMessage = message.trim();
@@ -510,12 +756,15 @@ export async function onRequestPost(context) {
 
   if (!activeMessage) {
     return new Response(
-      JSON.stringify({ error: 'Bad Request', code: 'INVALID_REQUEST', message: 'Message or member profile is required.' }),
+      JSON.stringify({
+        error: 'Bad Request',
+        code: 'INVALID_REQUEST',
+        message: 'Message or member profile is required.'
+      }),
       { status: 400, headers }
     );
   }
 
-  // Sanitize message: slice to MAX_MESSAGE_LENGTH instead of rejecting
   const trimmedMessage = activeMessage.slice(0, MAX_MESSAGE_LENGTH);
 
   // Sanitize history array: retain clean turns (just user questions and model replies, no injected context)
@@ -539,8 +788,17 @@ export async function onRequestPost(context) {
   }
 
   // 5. Detect conversation city context and intent
-  const currentSelectedCityName = (selectedCity?.name || aqiData?.city || profile?.location || 'Kolkata').slice(0, 60);
-  const intent = await extractIntentAndCities(trimmedMessage, sanitizedHistory, currentSelectedCityName);
+  const currentSelectedCityName = (
+    selectedCity?.name ||
+    aqiData?.city ||
+    profile?.location ||
+    'Kolkata'
+  ).slice(0, 60);
+  const intent = await extractIntentAndCities(
+    trimmedMessage,
+    sanitizedHistory,
+    currentSelectedCityName
+  );
 
   const userTurnsCount = sanitizedHistory.filter((m) => m.role === 'user').length;
   const isFirstMessage = userTurnsCount === 0;
@@ -595,14 +853,15 @@ export async function onRequestPost(context) {
 
   const primaryReport = cityReports[0];
   const secondaryReport = cityReports.length > 1 ? cityReports[1] : null;
-  const isDifferentFromSelected = primaryReport.city.toLowerCase() !== currentSelectedCityName.toLowerCase();
+  const isDifferentFromSelected =
+    primaryReport.city.toLowerCase() !== currentSelectedCityName.toLowerCase();
 
   // 7. Check Gemini API configuration
-  const apiKey = env?.GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
+  const apiKey =
+    env?.GEMINI_API_KEY ||
+    (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
   const isKeyConfigured = Boolean(
-    apiKey &&
-    apiKey !== 'your_gemini_api_key_here' &&
-    apiKey.trim().length > 15
+    apiKey && apiKey !== 'your_gemini_api_key_here' && apiKey.trim().length > 15
   );
 
   const intentType = intent.intentType || classifyIntent(trimmedMessage, sanitizedHistory);
@@ -653,7 +912,8 @@ export async function onRequestPost(context) {
           const data = await apiRes.json();
           const candidate = data.candidates?.[0];
           let rawReply = candidate?.content?.parts?.[0]?.text;
-          const isBlocked = candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION';
+          const isBlocked =
+            candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION';
 
           if (rawReply && !isBlocked) {
             let extractedFacts = [];
@@ -674,6 +934,17 @@ export async function onRequestPost(context) {
             } else if (intent.timeframe === 'tomorrow' && primaryReport.tomorrow) {
               quotedAqi = primaryReport.tomorrow.averageAqi;
               quotedCategory = primaryReport.tomorrow.category;
+            }
+
+            const allowedNumbers = [
+              quotedAqi,
+              primaryReport.current?.aqi,
+              primaryReport.tonight?.aqi,
+              primaryReport.tomorrow?.averageAqi
+            ].filter((v) => typeof v === 'number');
+
+            if (!verifyModelAqiResponse(rawReply, allowedNumbers)) {
+              throw new Error('Model quoted inaccurate AQI numbers conflicting with ground truth.');
             }
 
             const cityDataPayload = {

@@ -1,10 +1,9 @@
 // src/pages/SettingsPage.jsx
 // User Profile Preferences, Transparency Inspector, and Account Deletion
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
-import MascotAvatar from '../components/MascotAvatar';
 import {
   auth,
   googleProvider,
@@ -21,23 +20,12 @@ import {
   Trash2,
   AlertTriangle,
   Check,
-  MapPin,
-  Heart,
   Users,
   ShieldAlert,
   Loader2,
-  X,
-  Lock,
-  Sparkles
+  X
 } from 'lucide-react';
-import {
-  COUNTRIES,
-  INDIAN_STATES_AND_UTS,
-  HEALTH_CONDITIONS,
-  SENSITIVITY_LEVELS,
-  COMMUTE_STYLES,
-  LIFESTYLE_ACTIVITIES
-} from '../data/onboardingData';
+import { INDIAN_STATES_AND_UTS } from '../data/onboardingData';
 import { validateProfileForm, sanitizeText } from '../utils/validation';
 import { geocodeLocation } from '../services/api';
 import { statesMatch } from '../../functions/api/geocode';
@@ -146,10 +134,20 @@ export default function SettingsPage() {
       country: profile?.country || 'India',
       id: profile?.placeId || 1275004
     });
-    setEditConditions(Array.isArray(profile?.conditions) && profile.conditions.length > 0 ? profile.conditions : ['None']);
+    setEditConditions(
+      Array.isArray(profile?.conditions) && profile.conditions.length > 0
+        ? profile.conditions
+        : ['None']
+    );
     setEditOtherCondition(profile?.otherCondition || '');
     setEditSensitivity(profile?.sensitivity || 'Low');
-    setEditCommute(Array.isArray(profile?.commute) ? profile.commute : typeof profile?.commute === 'string' ? profile.commute.split(', ') : ['Metro']);
+    setEditCommute(
+      Array.isArray(profile?.commute)
+        ? profile.commute
+        : typeof profile?.commute === 'string'
+          ? profile.commute.split(', ')
+          : ['Metro']
+    );
     setEditLifestyle(Array.isArray(profile?.lifestyle) ? profile.lifestyle : ['Morning walk']);
     setEditOtherLifestyle(profile?.otherLifestyle || '');
     setEditErrors({});
@@ -211,7 +209,8 @@ export default function SettingsPage() {
       locationObj: editLocationObj,
       conditions: editConditions,
       otherCondition: editOtherCondition,
-      sensitivity: editConditions.length === 1 && editConditions[0] === 'None' ? 'Low' : editSensitivity,
+      sensitivity:
+        editConditions.length === 1 && editConditions[0] === 'None' ? 'Low' : editSensitivity,
       commute: editCommute,
       lifestyle: editLifestyle,
       otherLifestyle: editOtherLifestyle,
@@ -296,16 +295,22 @@ export default function SettingsPage() {
 
       navigate('/', {
         replace: true,
-        state: { message: 'Your account and all associated health data have been permanently deleted.' }
+        state: {
+          message: 'Your account and all associated health data have been permanently deleted.'
+        }
       });
     } catch (err) {
       console.error('Account deletion failed:', err);
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setDeleteError('Incorrect password. Re-authentication failed.');
       } else if (err.code === 'auth/popup-closed-by-user') {
-        setDeleteError('Google sign-in popup was closed. Re-authentication is required to delete your account.');
+        setDeleteError(
+          'Google sign-in popup was closed. Re-authentication is required to delete your account.'
+        );
       } else {
-        setDeleteError(err.message || 'Account deletion failed. Please check your connection and retry.');
+        setDeleteError(
+          err.message || 'Account deletion failed. Please check your connection and retry.'
+        );
       }
     } finally {
       setDeleteLoading(false);
@@ -320,7 +325,8 @@ export default function SettingsPage() {
           Account Settings & Memory Transparency
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-          Control how Foggy addresses you, review verified profile parameters, manage remembered facts, and govern your data.
+          Control how Foggy addresses you, review verified profile parameters, manage remembered
+          facts, and govern your data.
         </p>
       </div>
 
@@ -332,11 +338,15 @@ export default function SettingsPage() {
             <span>What should Foggy call you?</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Your preferred name or nickname used in dashboard greetings and conversational AI responses.
+            Your preferred name or nickname used in dashboard greetings and conversational AI
+            responses.
           </p>
         </div>
 
-        <form onSubmit={handleSavePreferredName} className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <form
+          onSubmit={handleSavePreferredName}
+          className="flex flex-col sm:flex-row items-start sm:items-center gap-3"
+        >
           <div className="w-full sm:max-w-xs">
             <input
               type="text"
@@ -350,9 +360,7 @@ export default function SettingsPage() {
               placeholder="e.g. Rajesh, Dr. Sharma, Priya"
               className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
-            {callNameError && (
-              <p className="text-[11px] text-rose-600 mt-1">{callNameError}</p>
-            )}
+            {callNameError && <p className="text-[11px] text-rose-600 mt-1">{callNameError}</p>}
           </div>
 
           <button
@@ -408,45 +416,73 @@ export default function SettingsPage() {
         {/* Display Collected Profile Details */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Full Name</span>
-            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{profile?.fullName || 'Not specified'}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Full Name
+            </span>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile?.fullName || 'Not specified'}
+            </p>
           </div>
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Age</span>
-            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{profile?.age ? `${profile.age} years` : 'Not specified'}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Age
+            </span>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile?.age ? `${profile.age} years` : 'Not specified'}
+            </p>
           </div>
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Location</span>
-            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{profile?.city}, {profile?.state}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Location
+            </span>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile?.city}, {profile?.state}
+            </p>
           </div>
           <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Country</span>
-            <p className="font-bold text-slate-900 dark:text-white mt-0.5">{profile?.country || 'India'}</p>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Country
+            </span>
+            <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+              {profile?.country || 'India'}
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Health Conditions & Sensitivity</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Health Conditions & Sensitivity
+            </span>
             <p className="font-semibold text-slate-800 dark:text-slate-200">
-              {Array.isArray(profile?.conditions) && profile.conditions.length > 0 ? profile.conditions.join(', ') : 'None'}
+              {Array.isArray(profile?.conditions) && profile.conditions.length > 0
+                ? profile.conditions.join(', ')
+                : 'None'}
             </p>
-            <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-              profile?.sensitivity === 'High'
-                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300'
-                : 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border-sky-300'
-            }`}>
+            <span
+              className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                profile?.sensitivity === 'High'
+                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300'
+                  : 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border-sky-300'
+              }`}
+            >
               {profile?.sensitivity || 'Low'} Sensitivity
             </span>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Commute & Routines</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Commute & Routines
+            </span>
             <p className="font-medium text-slate-800 dark:text-slate-200">
-              <strong>Commute:</strong> {Array.isArray(profile?.commute) ? profile.commute.join(', ') : profile?.commute || 'Metro'}
+              <strong>Commute:</strong>{' '}
+              {Array.isArray(profile?.commute)
+                ? profile.commute.join(', ')
+                : profile?.commute || 'Metro'}
             </p>
             <p className="font-medium text-slate-800 dark:text-slate-200">
-              <strong>Lifestyle:</strong> {Array.isArray(profile?.lifestyle) ? profile.lifestyle.join(', ') : 'Morning walk'}
+              <strong>Lifestyle:</strong>{' '}
+              {Array.isArray(profile?.lifestyle) ? profile.lifestyle.join(', ') : 'Morning walk'}
             </p>
           </div>
         </div>
@@ -455,12 +491,12 @@ export default function SettingsPage() {
         <div className="p-4 rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 text-sky-900 dark:text-sky-200">
             <Users className="w-4 h-4 text-sky-600" />
-            <span>Manage dependent family members and pets: <strong>{familyMembers.length} registered</strong></span>
+            <span>
+              Manage dependent family members and pets:{' '}
+              <strong>{familyMembers.length} registered</strong>
+            </span>
           </div>
-          <Link
-            to="/family"
-            className="font-bold text-sky-600 dark:text-sky-400 hover:underline"
-          >
+          <Link to="/family" className="font-bold text-sky-600 dark:text-sky-400 hover:underline">
             Family Profiles Page →
           </Link>
         </div>
@@ -506,13 +542,13 @@ export default function SettingsPage() {
       <div className="rounded-3xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 p-6 sm:p-8 space-y-4">
         <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400">
           <AlertTriangle className="w-5 h-5 shrink-0" />
-          <h2 className="text-base sm:text-lg font-bold">
-            Danger Zone: Delete My Account
-          </h2>
+          <h2 className="text-base sm:text-lg font-bold">Danger Zone: Delete My Account</h2>
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-          Permanently delete your user account, all saved family health profiles, learned conversational memories, and local browser cache. This action is irreversible. Signing up again later with the same email will yield a blank account starting at Step 1.
+          Permanently delete your user account, all saved family health profiles, learned
+          conversational memories, and local browser cache. This action is irreversible. Signing up
+          again later with the same email will yield a blank account starting at Step 1.
         </p>
 
         <button
@@ -558,12 +594,16 @@ export default function SettingsPage() {
                   onChange={(e) => setEditFullName(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                 />
-                {editErrors.fullName && <p className="text-rose-600 text-[11px] mt-1">{editErrors.fullName}</p>}
+                {editErrors.fullName && (
+                  <p className="text-rose-600 text-[11px] mt-1">{editErrors.fullName}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Age</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Age
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -573,10 +613,14 @@ export default function SettingsPage() {
                     onChange={(e) => setEditAge(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                   />
-                  {editErrors.age && <p className="text-rose-600 text-[11px] mt-1">{editErrors.age}</p>}
+                  {editErrors.age && (
+                    <p className="text-rose-600 text-[11px] mt-1">{editErrors.age}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">State / UT</label>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    State / UT
+                  </label>
                   <select
                     value={editState}
                     onChange={(e) => {
@@ -587,7 +631,9 @@ export default function SettingsPage() {
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                   >
                     {INDIAN_STATES_AND_UTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -595,7 +641,9 @@ export default function SettingsPage() {
 
               {/* City with Autocomplete */}
               <div className="relative">
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">City or Town</label>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  City or Town
+                </label>
                 <input
                   type="text"
                   required
@@ -603,7 +651,9 @@ export default function SettingsPage() {
                   onChange={(e) => handleEditCitySearch(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                 />
-                {editSearchingCity && <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin absolute right-3 top-8" />}
+                {editSearchingCity && (
+                  <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin absolute right-3 top-8" />
+                )}
                 {editShowSuggestions && editCitySuggestions.length > 0 && (
                   <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-44 overflow-y-auto rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl py-1 text-xs">
                     {editCitySuggestions.map((s) => (
@@ -620,10 +670,16 @@ export default function SettingsPage() {
                 )}
                 {editLocationObj && (
                   <span className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Verified: {editLocationObj.name} ({editLocationObj.latitude.toFixed(2)}°, {editLocationObj.longitude.toFixed(2)}°)
+                    <Check className="w-3 h-3" /> Verified: {editLocationObj.name} (
+                    {editLocationObj.latitude.toFixed(2)}°, {editLocationObj.longitude.toFixed(2)}°)
                   </span>
                 )}
-                {editErrors.city && <p className="text-rose-600 text-[11px] mt-1">{editErrors.city}</p>}
+                {editCityError && (
+                  <p className="text-amber-600 text-[11px] mt-1">{editCityError}</p>
+                )}
+                {editErrors.city && (
+                  <p className="text-rose-600 text-[11px] mt-1">{editErrors.city}</p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -659,7 +715,10 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              This action is <strong>irreversible</strong>. We will permanently delete your Firestore records (profile, {familyMembers.length} family members, {savedMemories.length} learned memories), your authentication identity, and local storage caches.
+              This action is <strong>irreversible</strong>. We will permanently delete your
+              Firestore records (profile, {familyMembers.length} family members,{' '}
+              {savedMemories.length} learned memories), your authentication identity, and local
+              storage caches.
             </p>
 
             {deleteError && (

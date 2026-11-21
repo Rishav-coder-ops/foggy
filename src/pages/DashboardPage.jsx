@@ -1,8 +1,17 @@
 // src/pages/DashboardPage.jsx
 // Main Dashboard for Indian Air Quality Monitoring with CPCB NAQI and Low-Emission Routines
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageSquare, Flame, Bus, Wind, Sun, AlertTriangle, ShieldCheck, ArrowRight, Sparkles, Check, Users, Bot } from 'lucide-react';
+import {
+  MessageSquare,
+  Flame,
+  Bus,
+  Sun,
+  AlertTriangle,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles
+} from 'lucide-react';
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
@@ -23,21 +32,28 @@ export default function DashboardPage() {
   const savedCity = profile?.city || profile?.location || 'Kolkata';
   const savedState = profile?.state || 'West Bengal';
   const locationTitle = `${savedCity}, ${savedState}`;
-  const greetingName = profile?.preferredName || (user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend');
+  const greetingName =
+    profile?.preferredName ||
+    (user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend');
 
   // Load AQI Data for saved location
   const loadAQI = useCallback(async () => {
     setLoading(true);
-    const data = await fetchAQIData(savedCity, profile?.latitude, profile?.longitude);
+    const data = await fetchAQIData({
+      lat: profile?.latitude,
+      lon: profile?.longitude,
+      cityName: savedCity,
+      stateName: savedState
+    });
     setAqiData(data);
     setLoading(false);
-  }, [savedCity, profile?.latitude, profile?.longitude]);
+  }, [savedCity, savedState, profile?.latitude, profile?.longitude]);
 
   useEffect(() => {
     loadAQI();
   }, [loadAQI]);
 
-  const sensitiveMembers = familyMembers.filter(m => m.condition && m.condition !== 'None');
+  const sensitiveMembers = familyMembers.filter((m) => m.condition && m.condition !== 'None');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -55,7 +71,11 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Foggy has analyzed today's atmospheric particulate patterns in <span className="font-semibold text-slate-800 dark:text-slate-200">{locationTitle}</span> for your household.
+              Foggy has analyzed today's atmospheric particulate patterns in{' '}
+              <span className="font-semibold text-slate-800 dark:text-slate-200">
+                {locationTitle}
+              </span>{' '}
+              for your household.
             </p>
           </div>
         </div>
@@ -81,9 +101,7 @@ export default function DashboardPage() {
       />
 
       {/* 24-Hour Smog Inversion Curve */}
-      {aqiData?.forecastHourly && (
-        <HourlyTimeline hourlyData={aqiData.forecastHourly} />
-      )}
+      {aqiData?.forecastHourly && <HourlyTimeline hourlyData={aqiData.forecastHourly} />}
 
       {/* Family Vulnerability Overview Alert */}
       {sensitiveMembers.length > 0 && (
@@ -95,10 +113,12 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-amber-950 dark:text-amber-200">
-                  Family Health Priority: {sensitiveMembers.length} Vulnerable {sensitiveMembers.length === 1 ? 'Member' : 'Members'}
+                  Family Health Priority: {sensitiveMembers.length} Vulnerable{' '}
+                  {sensitiveMembers.length === 1 ? 'Member' : 'Members'}
                 </h3>
                 <p className="text-xs text-amber-900/90 dark:text-amber-300/90 mt-1 leading-relaxed">
-                  Today's Estimated NAQI ({aqiData?.aqi || 165}) presents heightened risk for sensitive airways. Foggy recommends special precautions for:
+                  Today's Estimated NAQI ({aqiData?.aqi || 165}) presents heightened risk for
+                  sensitive airways. Foggy recommends special precautions for:
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {sensitiveMembers.map((m) => (
@@ -107,7 +127,9 @@ export default function DashboardPage() {
                       className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700/80 text-xs shadow-xs"
                     >
                       <strong className="text-slate-800 dark:text-slate-100">{m.name}</strong>
-                      <span className="text-amber-700 dark:text-amber-400 ml-1.5 font-medium">({m.condition})</span>
+                      <span className="text-amber-700 dark:text-amber-400 ml-1.5 font-medium">
+                        ({m.condition})
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -140,7 +162,8 @@ export default function DashboardPage() {
               Have Questions About Today's Smog?
             </h3>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl leading-relaxed">
-              Foggy remembers your household health profiles and today's NAQI. Ask about kid playtime safety, Metro commute alternatives, or how to seal door drafts.
+              Foggy remembers your household health profiles and today's NAQI. Ask about kid
+              playtime safety, Metro commute alternatives, or how to seal door drafts.
             </p>
           </div>
         </div>
@@ -190,7 +213,9 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Winter inversions trap vehicular exhaust at bumper height. Riding the air-conditioned Metro or electric bus bypasses direct street-level PM2.5 inhalation and cuts personal emissions.
+              Winter inversions trap vehicular exhaust at bumper height. Riding the air-conditioned
+              Metro or electric bus bypasses direct street-level PM2.5 inhalation and cuts personal
+              emissions.
             </p>
 
             <ImpactBadge
@@ -217,13 +242,12 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Solar radiation breaks the morning thermal inversion lid in the afternoon, improving vertical dispersion and lowering particulate counts. Complete walks and errands during this window.
+              Solar radiation breaks the morning thermal inversion lid in the afternoon, improving
+              vertical dispersion and lowering particulate counts. Complete walks and errands during
+              this window.
             </p>
 
-            <ImpactBadge
-              healthBenefit="Avoids peak smog trigger"
-              pmReduced="-35% ground PM2.5"
-            />
+            <ImpactBadge healthBenefit="Avoids peak smog trigger" pmReduced="-35% ground PM2.5" />
           </div>
 
           {/* Routine Card 3: Heating & Cooking */}
@@ -243,7 +267,8 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Burning dung cakes or wood in a chulha produces dense indoor particulate smoke exceeding 500 µg/m³. Cook with LPG or induction and avoid open fires for warmth.
+              Burning dung cakes or wood in a chulha produces dense indoor particulate smoke
+              exceeding 500 µg/m³. Cook with LPG or induction and avoid open fires for warmth.
             </p>
 
             <ImpactBadge
@@ -270,7 +295,8 @@ export default function DashboardPage() {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Wet-mopping floors (pocha) prevents settled toxic heavy metals from resuspending. Run your DIY Corsi-Rosenthal filter on low and place a damp towel at the entry door.
+              Wet-mopping floors (pocha) prevents settled toxic heavy metals from resuspending. Run
+              your DIY Corsi-Rosenthal filter on low and place a damp towel at the entry door.
             </p>
 
             <ImpactBadge

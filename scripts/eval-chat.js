@@ -10,7 +10,12 @@ const MOCK_PROFILE = {
   commute: 'Metro',
   cookingType: 'LPG Cylinder',
   familyMembers: [
-    { name: 'Beta', relationship: 'Child (Son)', age: 7, condition: 'Asthma (uses salbutamol inhaler)' },
+    {
+      name: 'Beta',
+      relationship: 'Child (Son)',
+      age: 7,
+      condition: 'Asthma (uses salbutamol inhaler)'
+    },
     { name: 'Dadi', relationship: 'Senior', age: 74, condition: 'Hypertension' },
     { name: 'Rusty', relationship: 'Pet (Dog)', age: 4, condition: 'None' }
   ]
@@ -23,9 +28,18 @@ const QUESTIONS = [
     history: [],
     city: 'Kolkata',
     validator: (reply) => {
-      const startsWithDirect = !reply.toLowerCase().startsWith('hello') && !reply.toLowerCase().startsWith('hi');
-      const hasBudgetTiers = reply.includes('₹') && (reply.includes('Free') || reply.includes('Budget') || reply.includes('1,000') || reply.includes('1000'));
-      const mentionsCorsiOrPurifier = reply.toLowerCase().includes('corsi') || reply.toLowerCase().includes('fan') || reply.toLowerCase().includes('mop');
+      const startsWithDirect =
+        !reply.toLowerCase().startsWith('hello') && !reply.toLowerCase().startsWith('hi');
+      const hasBudgetTiers =
+        reply.includes('₹') &&
+        (reply.includes('Free') ||
+          reply.includes('Budget') ||
+          reply.includes('1,000') ||
+          reply.includes('1000'));
+      const mentionsCorsiOrPurifier =
+        reply.toLowerCase().includes('corsi') ||
+        reply.toLowerCase().includes('fan') ||
+        reply.toLowerCase().includes('mop');
       return startsWithDirect && hasBudgetTiers && mentionsCorsiOrPurifier;
     }
   },
@@ -36,7 +50,11 @@ const QUESTIONS = [
     city: 'Kolkata',
     validator: (reply) => {
       const startsWithYesOrNoOrCond = /^(yes|no|conditionally)/i.test(reply.trim());
-      const mentionsChildrenOrBeta = reply.toLowerCase().includes('kid') || reply.toLowerCase().includes('beta') || reply.toLowerCase().includes('child') || reply.toLowerCase().includes('outside');
+      const mentionsChildrenOrBeta =
+        reply.toLowerCase().includes('kid') ||
+        reply.toLowerCase().includes('beta') ||
+        reply.toLowerCase().includes('child') ||
+        reply.toLowerCase().includes('outside');
       return startsWithYesOrNoOrCond && mentionsChildrenOrBeta;
     }
   },
@@ -46,8 +64,10 @@ const QUESTIONS = [
     history: [],
     city: 'Kolkata',
     validator: (reply) => {
-      const mentionsN95 = reply.toLowerCase().includes('n95') || reply.toLowerCase().includes('ffp2');
-      const mentionsClothOrSurgical = reply.toLowerCase().includes('cloth') || reply.toLowerCase().includes('surgical');
+      const mentionsN95 =
+        reply.toLowerCase().includes('n95') || reply.toLowerCase().includes('ffp2');
+      const mentionsClothOrSurgical =
+        reply.toLowerCase().includes('cloth') || reply.toLowerCase().includes('surgical');
       return mentionsN95 && mentionsClothOrSurgical;
     }
   },
@@ -57,8 +77,12 @@ const QUESTIONS = [
     history: [],
     city: 'Kolkata',
     validator: (reply) => {
-      const mentionsSlots = reply.toLowerCase().includes('morning') && reply.toLowerCase().includes('afternoon');
-      const mentionsInversionOrSolar = reply.toLowerCase().includes('inversion') || reply.toLowerCase().includes('solar') || reply.toLowerCase().includes('cleanest');
+      const mentionsSlots =
+        reply.toLowerCase().includes('morning') && reply.toLowerCase().includes('afternoon');
+      const mentionsInversionOrSolar =
+        reply.toLowerCase().includes('inversion') ||
+        reply.toLowerCase().includes('solar') ||
+        reply.toLowerCase().includes('cleanest');
       return mentionsSlots && mentionsInversionOrSolar;
     }
   },
@@ -69,7 +93,10 @@ const QUESTIONS = [
     city: 'Kolkata',
     validator: (reply) => {
       const startsWithDecision = /^(yes|no|conditionally)/i.test(reply.trim());
-      const addressesTomorrow = reply.toLowerCase().includes('tomorrow') || reply.toLowerCase().includes('inversion') || reply.toLowerCase().includes('run');
+      const addressesTomorrow =
+        reply.toLowerCase().includes('tomorrow') ||
+        reply.toLowerCase().includes('inversion') ||
+        reply.toLowerCase().includes('run');
       return startsWithDecision && addressesTomorrow;
     }
   },
@@ -80,7 +107,8 @@ const QUESTIONS = [
     city: 'Delhi',
     validator: (reply) => {
       const mentionsDelhi = reply.toLowerCase().includes('delhi');
-      const mentionsAQI = reply.toLowerCase().includes('aqi') || reply.toLowerCase().includes('naqi');
+      const mentionsAQI =
+        reply.toLowerCase().includes('aqi') || reply.toLowerCase().includes('naqi');
       return mentionsDelhi && mentionsAQI;
     }
   },
@@ -90,12 +118,19 @@ const QUESTIONS = [
     // Conversation history context where previous turn asked about Delhi AQI
     history: [
       { role: 'user', parts: [{ text: 'Delhi aqi' }] },
-      { role: 'model', parts: [{ text: 'In Delhi, the current estimated CPCB NAQI is 280 (Poor).' }] }
+      {
+        role: 'model',
+        parts: [{ text: 'In Delhi, the current estimated CPCB NAQI is 280 (Poor).' }]
+      }
     ],
     city: 'Delhi',
     validator: (reply) => {
       const mentionsTomorrow = reply.toLowerCase().includes('tomorrow');
-      const mentionsForecastOrSlot = reply.toLowerCase().includes('forecast') || reply.toLowerCase().includes('slot') || reply.toLowerCase().includes('naqi') || reply.toLowerCase().includes('aqi');
+      const mentionsForecastOrSlot =
+        reply.toLowerCase().includes('forecast') ||
+        reply.toLowerCase().includes('slot') ||
+        reply.toLowerCase().includes('naqi') ||
+        reply.toLowerCase().includes('aqi');
       return mentionsTomorrow && mentionsForecastOrSlot;
     }
   }
@@ -139,7 +174,9 @@ async function runEvaluation() {
 
     if (isValid) {
       passed++;
-      console.log(`STATUS: PASS (Status: ${response.status}, Model: ${responseData.model || 'fallback'})\n`);
+      console.log(
+        `STATUS: PASS (Status: ${response.status}, Model: ${responseData.model || 'fallback'})\n`
+      );
     } else {
       console.log(`STATUS: FAIL (Validator criteria unmet)\n`);
     }

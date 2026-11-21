@@ -95,17 +95,20 @@ export const SENSITIVITY_LEVELS = [
   {
     level: 'Low',
     title: 'Low Sensitivity',
-    description: 'Rarely impacted by typical seasonal air variations; standard outdoor precautions sufficient.'
+    description:
+      'Rarely impacted by typical seasonal air variations; standard outdoor precautions sufficient.'
   },
   {
     level: 'Moderate',
     title: 'Moderate Sensitivity',
-    description: 'Noticeable respiratory or throat irritation during Moderate to Poor air quality episodes.'
+    description:
+      'Noticeable respiratory or throat irritation during Moderate to Poor air quality episodes.'
   },
   {
     level: 'High',
     title: 'High Sensitivity',
-    description: 'High risk of acute symptoms, asthma attacks, or distress during smog spikes; requires strict mitigation.'
+    description:
+      'High risk of acute symptoms, asthma attacks, or distress during smog spikes; requires strict mitigation.'
   }
 ];
 

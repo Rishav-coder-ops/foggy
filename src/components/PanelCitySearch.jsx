@@ -1,7 +1,7 @@
 // src/components/PanelCitySearch.jsx
 // City search box with India-biased Geocoding & Browser Geolocation
 // Coordinates built-in for Indian Metros so they never depend on search.
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Navigation, Loader2, AlertCircle, X } from 'lucide-react';
 import { searchCities, INDIAN_METROS, setStoredCity } from '../services/api';
 
@@ -83,7 +83,8 @@ export default function PanelCitySearch({
             {currentLocation?.country ? `, ${currentLocation.country}` : ', India'}
           </span>
           <span className="text-[10px] text-slate-600 dark:text-slate-400 font-mono hidden md:inline">
-            ({currentLocation?.lat?.toFixed(2) ?? '22.57'}°, {currentLocation?.lon?.toFixed(2) ?? '88.36'}°)
+            ({currentLocation?.lat?.toFixed(2) ?? '22.57'}°,{' '}
+            {currentLocation?.lon?.toFixed(2) ?? '88.36'}°)
           </span>
         </div>
 
@@ -153,15 +154,14 @@ export default function PanelCitySearch({
                 className="w-full text-left px-4 py-2.5 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors flex items-center justify-between cursor-pointer"
               >
                 <div>
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {item.name}
-                  </span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{item.name}</span>
                   <span className="text-slate-500 dark:text-slate-400 text-[11px] ml-1.5">
                     {[item.admin1, item.country || 'India'].filter(Boolean).join(', ')}
                   </span>
                 </div>
                 <span className="text-[10px] font-mono text-slate-400">
-                  {(item.latitude ?? item.lat)?.toFixed(1)}°, {(item.longitude ?? item.lon)?.toFixed(1)}°
+                  {(item.latitude ?? item.lat)?.toFixed(1)}°,{' '}
+                  {(item.longitude ?? item.lon)?.toFixed(1)}°
                 </span>
               </button>
             ))}

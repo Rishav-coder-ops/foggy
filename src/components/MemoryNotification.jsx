@@ -1,6 +1,5 @@
 // src/components/MemoryNotification.jsx
-import React from 'react';
-import { Sparkles, Check, X, ShieldAlert } from 'lucide-react';
+import { Sparkles, Check, X } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 
 export default function MemoryNotification() {

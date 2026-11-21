@@ -24,7 +24,7 @@ export function rateLimiter(req, res, next) {
   if (!clientData || now > clientData.resetTime) {
     clientData = {
       count: 1,
-      resetTime: now + windowMs,
+      resetTime: now + windowMs
     };
     ipRequestCounts.set(clientIp, clientData);
     res.setHeader('X-RateLimit-Limit', maxRequestsPerWindow);
@@ -40,8 +40,9 @@ export function rateLimiter(req, res, next) {
   if (clientData.count > maxRequestsPerWindow) {
     return res.status(429).json({
       error: 'Too Many Requests',
-      message: 'Foggy rate limit reached. Please wait a moment before sending more requests to protect free-tier quotas.',
-      retryAfterSeconds: Math.ceil((clientData.resetTime - now) / 1000),
+      message:
+        'Foggy rate limit reached. Please wait a moment before sending more requests to protect free-tier quotas.',
+      retryAfterSeconds: Math.ceil((clientData.resetTime - now) / 1000)
     });
   }
 

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "jsx": "react-jsx",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["shared/**/*", "src/utils/**/*", "src/services/**/*", "server/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

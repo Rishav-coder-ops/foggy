@@ -13,12 +13,21 @@ export const CPCB_CATEGORIES = {
   SEVERE: 'Severe'
 };
 
+/**
+ * Generates an individualized today's care plan based on CPCB AQI, age, health vulnerability, commute, and lifestyle.
+ * Strictly avoids prescription advice and maintains clinical safety guardrails.
+ * @param {object} [member={}] - Member profile.
+ * @param {object} [aqiMetrics={}] - Live or forecast AQI payload.
+ * @returns {object} Care plan containing timeSlots, safeguards, alerts, and lifestyle tips.
+ */
 export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   const category = aqiMetrics.category || CPCB_CATEGORIES.MODERATE;
   const aqi = typeof aqiMetrics.aqi === 'number' ? aqiMetrics.aqi : 165;
   const memberName = member.name || 'Family Member';
   const age = Number(member.age) || 30;
-  const conditions = Array.isArray(member.conditions) ? member.conditions : [member.condition || 'None'];
+  const conditions = Array.isArray(member.conditions)
+    ? member.conditions
+    : [member.condition || 'None'];
   const sensitivity = member.sensitivity || 'Moderate';
   const commute = Array.isArray(member.commute) ? member.commute : [];
   const lifestyle = Array.isArray(member.lifestyle) ? member.lifestyle : [];
@@ -40,21 +49,27 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   let morningGuidance = '';
   let morningLifestyle = '';
   if (category === CPCB_CATEGORIES.GOOD || category === CPCB_CATEGORIES.SATISFACTORY) {
-    morningGuidance = 'Favorable atmospheric conditions. Open windows for 30–45 mins to clear indoor stale air.';
-    morningLifestyle = isJogger || isWalker
-      ? 'Optimal time for morning outdoor jog or brisk walk.'
-      : 'Safe for regular morning outdoor activities.';
+    morningGuidance =
+      'Favorable atmospheric conditions. Open windows for 30–45 mins to clear indoor stale air.';
+    morningLifestyle =
+      isJogger || isWalker
+        ? 'Optimal time for morning outdoor jog or brisk walk.'
+        : 'Safe for regular morning outdoor activities.';
   } else if (category === CPCB_CATEGORIES.MODERATE) {
-    morningGuidance = 'Morning ground-level temperature inversion traps smoke. Keep street-facing windows shut until 9:30 AM.';
-    morningLifestyle = isJogger || isWalker
-      ? 'Shift intense cardio past 10:00 AM once solar heating disperses trapped ground particulates.'
-      : 'Maintain moderate pace; carry drinking water.';
+    morningGuidance =
+      'Morning ground-level temperature inversion traps smoke. Keep street-facing windows shut until 9:30 AM.';
+    morningLifestyle =
+      isJogger || isWalker
+        ? 'Shift intense cardio past 10:00 AM once solar heating disperses trapped ground particulates.'
+        : 'Maintain moderate pace; carry drinking water.';
   } else {
     // Poor, Very Poor, Severe
-    morningGuidance = 'Severe ground inversion layer. Keep all doors, windows, and balcony vents sealed tight. Run indoor air purifiers.';
-    morningLifestyle = isJogger || isWalker
-      ? 'STRICT: Do not run or jog outdoors. Substitute with indoor yoga, bodyweight stretching, or treadmill exercises in a closed room.'
-      : 'Avoid all outdoor exposure; remain indoors.';
+    morningGuidance =
+      'Severe ground inversion layer. Keep all doors, windows, and balcony vents sealed tight. Run indoor air purifiers.';
+    morningLifestyle =
+      isJogger || isWalker
+        ? 'STRICT: Do not run or jog outdoors. Substitute with indoor yoga, bodyweight stretching, or treadmill exercises in a closed room.'
+        : 'Avoid all outdoor exposure; remain indoors.';
   }
   timeSlots.push({
     slot: 'Morning (6:00 AM – 10:00 AM)',
@@ -67,16 +82,21 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   let afternoonGuidance = '';
   let afternoonLifestyle = '';
   if (category === CPCB_CATEGORIES.GOOD || category === CPCB_CATEGORIES.SATISFACTORY) {
-    afternoonGuidance = 'Low particulate concentration. Ideal time for natural whole-house cross-ventilation.';
+    afternoonGuidance =
+      'Low particulate concentration. Ideal time for natural whole-house cross-ventilation.';
     afternoonLifestyle = 'Full unrestricted outdoor transit and routine tasks.';
   } else if (category === CPCB_CATEGORIES.MODERATE || category === CPCB_CATEGORIES.POOR) {
-    afternoonGuidance = 'Solar heating expands the boundary mixing layer, offering the day’s best particulate dispersal window.';
-    afternoonLifestyle = isSenior || isWalker
-      ? 'Recommended time window for necessary grocery errands or garden strolls.'
-      : 'Best window for outdoor commutes if unavoidable.';
+    afternoonGuidance =
+      'Solar heating expands the boundary mixing layer, offering the day’s best particulate dispersal window.';
+    afternoonLifestyle =
+      isSenior || isWalker
+        ? 'Recommended time window for necessary grocery errands or garden strolls.'
+        : 'Best window for outdoor commutes if unavoidable.';
   } else {
-    afternoonGuidance = 'Even during peak solar dispersal, PM2.5 remains hazardous. Continue indoor air circulation only.';
-    afternoonLifestyle = 'Limit outdoor trips to urgent necessities only with certified respirator.';
+    afternoonGuidance =
+      'Even during peak solar dispersal, PM2.5 remains hazardous. Continue indoor air circulation only.';
+    afternoonLifestyle =
+      'Limit outdoor trips to urgent necessities only with certified respirator.';
   }
   timeSlots.push({
     slot: 'Afternoon (11:00 AM – 4:00 PM)',
@@ -90,14 +110,18 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   let eveningLifestyle = '';
   if (category === CPCB_CATEGORIES.GOOD || category === CPCB_CATEGORIES.SATISFACTORY) {
     eveningGuidance = 'Gentle evening breeze. Baseline comfortable indoor conditions.';
-    eveningLifestyle = isPet ? 'Safe for extended evening dog walks.' : 'Pleasant evening outdoor time.';
+    eveningLifestyle = isPet
+      ? 'Safe for extended evening dog walks.'
+      : 'Pleasant evening outdoor time.';
   } else if (category === CPCB_CATEGORIES.MODERATE || category === CPCB_CATEGORIES.POOR) {
-    eveningGuidance = 'Sunset triggers nocturnal inversion. Traffic emissions accumulate at street level. Seal windows before 6:00 PM.';
+    eveningGuidance =
+      'Sunset triggers nocturnal inversion. Traffic emissions accumulate at street level. Seal windows before 6:00 PM.';
     eveningLifestyle = isPet
       ? 'Keep dog walks brief (<15 mins) and wipe coat and paws with a damp cloth afterward.'
       : 'Conclude outdoor activities before dark.';
   } else {
-    eveningGuidance = 'Critical particulate accumulation. Roll damp towels under exterior door thresholds to prevent outdoor smoke seepage.';
+    eveningGuidance =
+      'Critical particulate accumulation. Roll damp towels under exterior door thresholds to prevent outdoor smoke seepage.';
     eveningLifestyle = isPet
       ? 'Restrict pets to indoor pee pads or a 3-minute quick relief in a sheltered doorway.'
       : 'Strictly remain in an air-filtered clean room.';
@@ -121,12 +145,20 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   } else if (category === CPCB_CATEGORIES.MODERATE) {
     doList.push('Wear a certified N95 / FFP2 mask during transit along heavy vehicular roads.');
     doList.push('Wet-mop floors daily; avoid dry dusting or brooms (jhadu) that resuspend PM10.');
-    doList.push('Ventilate strictly during the afternoon solar dispersal window (1:00 PM – 3:30 PM).');
-    avoidList.push('Avoid strenuous cardio or jogging during early morning hours (6:00 – 9:00 AM).');
-    avoidList.push('Avoid standing near outdoor street food stalls with open coal/wood combustion.');
+    doList.push(
+      'Ventilate strictly during the afternoon solar dispersal window (1:00 PM – 3:30 PM).'
+    );
+    avoidList.push(
+      'Avoid strenuous cardio or jogging during early morning hours (6:00 – 9:00 AM).'
+    );
+    avoidList.push(
+      'Avoid standing near outdoor street food stalls with open coal/wood combustion.'
+    );
   } else {
     // Poor, Very Poor, Severe
-    doList.push('Run DIY Corsi-Rosenthal box fan filters or HEPA purifiers continuously in bedrooms.');
+    doList.push(
+      'Run DIY Corsi-Rosenthal box fan filters or HEPA purifiers continuously in bedrooms.'
+    );
     doList.push('Seal door gaps with rolled damp towels to cut toxic particulate drafts by 40%.');
     doList.push('Fit a certified tight-seal N95/FFP2 respirator whenever stepping outside.');
     doList.push('Gargle with warm saline water and rinse eyes after any outdoor exposure.');
@@ -138,28 +170,44 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
   // 3. Mask Advice
   let maskAdvice = '';
   if (category === CPCB_CATEGORIES.GOOD || category === CPCB_CATEGORIES.SATISFACTORY) {
-    maskAdvice = 'Masks are not required for general outdoor activity under current clean air conditions.';
+    maskAdvice =
+      'Masks are not required for general outdoor activity under current clean air conditions.';
   } else if (category === CPCB_CATEGORIES.MODERATE) {
-    maskAdvice = sensitivity === 'High' || isAsthmatic || isChild || isSenior
-      ? 'A snug N95 / FFP2 mask is strongly recommended for outdoor transit along arterial traffic roads.'
-      : 'Consider an N95 mask if sensitive to dust, construction plumes, or prolonged outdoor commutes.';
+    maskAdvice =
+      sensitivity === 'High' || isAsthmatic || isChild || isSenior
+        ? 'A snug N95 / FFP2 mask is strongly recommended for outdoor transit along arterial traffic roads.'
+        : 'Consider an N95 mask if sensitive to dust, construction plumes, or prolonged outdoor commutes.';
   } else {
-    maskAdvice = 'Certified N95 / FFP2 respirator is mandatory outdoors. Standard surgical and cloth masks cannot filter fine PM2.5 particulates.';
+    maskAdvice =
+      'Certified N95 / FFP2 respirator is mandatory outdoors. Standard surgical and cloth masks cannot filter fine PM2.5 particulates.';
   }
 
   // 4. Commute Tips
   const commuteTips = [];
   if (commute.includes('Metro') || commute.includes('Train')) {
-    commuteTips.push('Metro is your cleanest commute: underground stations filter ambient air and avoid street-level exhaust.');
+    commuteTips.push(
+      'Metro is your cleanest commute: underground stations filter ambient air and avoid street-level exhaust.'
+    );
   }
   if (commute.includes('Two-wheeler') || commute.includes('Cycle')) {
-    commuteTips.push('Two-wheelers and cycling have high inhalation exposure: wear an N95 respirator firmly and avoid tailgating diesel buses.');
+    commuteTips.push(
+      'Two-wheelers and cycling have high inhalation exposure: wear an N95 respirator firmly and avoid tailgating diesel buses.'
+    );
   }
   if (commute.includes('Car')) {
-    commuteTips.push('In cars: keep windows rolled up and switch air conditioner mode strictly to Recirculation (air filter loop).');
+    commuteTips.push(
+      'In cars: keep windows rolled up and switch air conditioner mode strictly to Recirculation (air filter loop).'
+    );
   }
-  if (commute.includes('Walk') && (category === CPCB_CATEGORIES.POOR || category === CPCB_CATEGORIES.VERY_POOR || category === CPCB_CATEGORIES.SEVERE)) {
-    commuteTips.push('Pedestrians: choose quieter residential secondary lanes over major commercial corridors with heavy truck and bus exhaust.');
+  if (
+    commute.includes('Walk') &&
+    (category === CPCB_CATEGORIES.POOR ||
+      category === CPCB_CATEGORIES.VERY_POOR ||
+      category === CPCB_CATEGORIES.SEVERE)
+  ) {
+    commuteTips.push(
+      'Pedestrians: choose quieter residential secondary lanes over major commercial corridors with heavy truck and bus exhaust.'
+    );
   }
 
   // 5. Condition-Specific Reminders
@@ -223,6 +271,7 @@ export function generateMemberCarePlan(member = {}, aqiMetrics = {}) {
     conditionReminders,
     hydrationAdvice,
     medicalHelpTrigger,
-    disclaimer: 'Foggy is an educational AI assistant, not a doctor. Never recommend or alter prescribed medications. In a medical emergency, call 112 immediately.'
+    disclaimer:
+      'Foggy is an educational AI assistant, not a doctor. Never recommend or alter prescribed medications. In a medical emergency, call 112 immediately.'
   };
 }

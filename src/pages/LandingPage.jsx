@@ -1,6 +1,6 @@
 // src/pages/LandingPage.jsx
 // Main Landing Page with Interactive Expandable Panels (7-Day Predictor, 24-Hour Curve, Clean Air Playbook)
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageSquare, Users, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import MascotAvatar from '../components/MascotAvatar';
@@ -67,15 +67,25 @@ export default function LandingPage() {
 
           {/* Hero Mascot Icon */}
           <div className="flex justify-center py-2">
-            <MascotAvatar size="hero" mood="happy" className="shadow-lg hover:scale-105 transition-transform" />
+            <MascotAvatar
+              size="hero"
+              mood="happy"
+              className="shadow-lg hover:scale-105 transition-transform"
+            />
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-            Meet <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-amber-500">Foggy</span>, Your Shield Against Winter Smog.
+            Meet{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-amber-500">
+              Foggy
+            </span>
+            , Your Shield Against Winter Smog.
           </h1>
 
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
-            A friendly, knowledgeable, and reassuring AI companion that helps Indian households navigate severe urban air pollution with practical, low-emission daily routines, budget DIY air hacks, and tailored health safeguards.
+            A friendly, knowledgeable, and reassuring AI companion that helps Indian households
+            navigate severe urban air pollution with practical, low-emission daily routines, budget
+            DIY air hacks, and tailored health safeguards.
           </p>
 
           {/* Direct Impact Teaser */}
@@ -189,7 +199,9 @@ export default function LandingPage() {
                 Foggy Remembers Everything So You Never Have to Repeat Yourself
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                When you mention that your son has asthma, your elder parent lives with bronchitis, or you cook on LPG/induction, Foggy automatically notes it and asks if you’d like it saved. You have full transparency and control on the <em>What Foggy Knows</em> page.
+                When you mention that your son has asthma, your elder parent lives with bronchitis,
+                or you cook on LPG/induction, Foggy automatically notes it and asks if you’d like it
+                saved. You have full transparency and control on the <em>What Foggy Knows</em> page.
               </p>
 
               <div className="space-y-2.5 pt-2">
@@ -199,7 +211,10 @@ export default function LandingPage() {
                   'Budget-friendly Indian hacks: DIY Corsi-Rosenthal boxes, damp-mopping, draft sealing',
                   'Clear medical safety disclaimers prioritizing registered doctors (Emergency 112)'
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+                  >
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span>{item}</span>
                   </div>
@@ -234,12 +249,11 @@ export default function LandingPage() {
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 space-y-2">
                 <p>
-                  "Namaste Beta! Since the morning inversion layer has pushed the Estimated NAQI to <strong>165 (Moderate)</strong> in Kolkata, let's shift your outdoor cricket practice to the afternoon solar window (1:30 PM)."
+                  "Namaste Beta! Since the morning inversion layer has pushed the Estimated NAQI to{' '}
+                  <strong>165 (Moderate)</strong> in Kolkata, let's shift your outdoor cricket
+                  practice to the afternoon solar window (1:30 PM)."
                 </p>
-                <ImpactBadge
-                  pmReduced="-72% PM2.5 lung intake"
-                  co2Saved="~2.8 kg CO2"
-                />
+                <ImpactBadge pmReduced="-72% PM2.5 lung intake" co2Saved="~2.8 kg CO2" />
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 text-[11px] text-amber-900 dark:text-amber-300 flex items-center justify-between">

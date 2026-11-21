@@ -1,6 +1,6 @@
 // src/components/RouteGuardLoading.jsx
 // Visible loading state with a 10s timeout and clear error/retry/sign-out controls
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, RefreshCw, LogOut, Loader2 } from 'lucide-react';
 import MascotAvatar from './MascotAvatar';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +42,8 @@ export default function RouteGuardLoading({ message = 'Verifying session & air p
               Connection Taking Longer Than Expected
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-              We could not connect to authentication or profile services within 10 seconds. You can retry the connection or sign out to return to the login page.
+              We could not connect to authentication or profile services within 10 seconds. You can
+              retry the connection or sign out to return to the login page.
             </p>
           </div>
 

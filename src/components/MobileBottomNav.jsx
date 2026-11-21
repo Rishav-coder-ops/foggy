@@ -1,5 +1,4 @@
 // src/components/MobileBottomNav.jsx
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Search, Shield, Users, Info } from 'lucide-react';
 
@@ -9,7 +8,7 @@ export default function MobileBottomNav() {
     { to: '/search', label: 'Search', icon: Search },
     { to: '/indoor-hacks', label: 'Hacks', icon: Shield },
     { to: '/family', label: 'Family', icon: Users },
-    { to: '/about', label: 'About', icon: Info },
+    { to: '/about', label: 'About', icon: Info }
   ];
 
   return (

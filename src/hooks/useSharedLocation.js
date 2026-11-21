@@ -31,7 +31,8 @@ export function useSharedLocation() {
 
     // 2. Last city chosen on the dashboard or panel (saved locally)
     try {
-      const saved = localStorage.getItem('foggy_selected_city') || localStorage.getItem('foggy_dashboard_city');
+      const saved =
+        localStorage.getItem('foggy_selected_city') || localStorage.getItem('foggy_dashboard_city');
       if (saved) {
         const parsed = saved.startsWith('{') ? JSON.parse(saved) : null;
         if (parsed && parsed.name && parsed.lat && parsed.lon) {
@@ -69,7 +70,11 @@ export function useSharedLocation() {
   useEffect(() => {
     if (profile?.location && profile.location !== location.name) {
       const matchKey = profile.location.toLowerCase().trim();
-      const coords = PRESET_CITY_COORDINATES[matchKey] || { lat: 22.5726, lon: 88.3639, country: 'India' };
+      const coords = PRESET_CITY_COORDINATES[matchKey] || {
+        lat: 22.5726,
+        lon: 88.3639,
+        country: 'India'
+      };
       setLocation({
         name: profile.location,
         country: coords.country || 'India',
@@ -87,8 +92,18 @@ export function useSharedLocation() {
         const d = e.detail;
         if (typeof d === 'string') {
           const matchKey = d.toLowerCase().trim();
-          const coords = PRESET_CITY_COORDINATES[matchKey] || { lat: 22.5726, lon: 88.3639, country: 'India' };
-          setLocation({ name: d, country: coords.country, admin1: coords.admin1, lat: coords.lat, lon: coords.lon });
+          const coords = PRESET_CITY_COORDINATES[matchKey] || {
+            lat: 22.5726,
+            lon: 88.3639,
+            country: 'India'
+          };
+          setLocation({
+            name: d,
+            country: coords.country,
+            admin1: coords.admin1,
+            lat: coords.lat,
+            lon: coords.lon
+          });
         } else if (d.name) {
           setLocation({
             name: d.name,
@@ -105,37 +120,44 @@ export function useSharedLocation() {
     return () => window.removeEventListener('foggy:city-change', handleCityEvent);
   }, []);
 
-  const changeCity = useCallback((cityItem) => {
-    let newLoc;
-    if (typeof cityItem === 'string') {
-      const matchKey = cityItem.toLowerCase().trim();
-      const coords = PRESET_CITY_COORDINATES[matchKey] || { lat: 22.5726, lon: 88.3639, country: 'India' };
-      newLoc = {
-        name: cityItem,
-        country: coords.country || 'India',
-        admin1: coords.admin1 || '',
-        lat: coords.lat,
-        lon: coords.lon
-      };
-    } else {
-      newLoc = {
-        name: cityItem.name,
-        country: cityItem.country || 'India',
-        admin1: cityItem.admin1 || '',
-        lat: cityItem.latitude || cityItem.lat || 22.5726,
-        lon: cityItem.longitude || cityItem.lon || 88.3639
-      };
-    }
+  const changeCity = useCallback(
+    (cityItem) => {
+      let newLoc;
+      if (typeof cityItem === 'string') {
+        const matchKey = cityItem.toLowerCase().trim();
+        const coords = PRESET_CITY_COORDINATES[matchKey] || {
+          lat: 22.5726,
+          lon: 88.3639,
+          country: 'India'
+        };
+        newLoc = {
+          name: cityItem,
+          country: coords.country || 'India',
+          admin1: coords.admin1 || '',
+          lat: coords.lat,
+          lon: coords.lon
+        };
+      } else {
+        newLoc = {
+          name: cityItem.name,
+          country: cityItem.country || 'India',
+          admin1: cityItem.admin1 || '',
+          lat: cityItem.latitude || cityItem.lat || 22.5726,
+          lon: cityItem.longitude || cityItem.lon || 88.3639
+        };
+      }
 
-    setLocation(newLoc);
-    try {
-      localStorage.setItem('foggy_dashboard_city', newLoc.name);
-      localStorage.setItem('foggy_selected_city', JSON.stringify(newLoc));
-    } catch {}
+      setLocation(newLoc);
+      try {
+        localStorage.setItem('foggy_dashboard_city', newLoc.name);
+        localStorage.setItem('foggy_selected_city', JSON.stringify(newLoc));
+      } catch {}
 
-    updateProfile({ location: newLoc.name });
-    window.dispatchEvent(new CustomEvent('foggy:city-change', { detail: newLoc }));
-  }, [updateProfile]);
+      updateProfile({ location: newLoc.name });
+      window.dispatchEvent(new CustomEvent('foggy:city-change', { detail: newLoc }));
+    },
+    [updateProfile]
+  );
 
   // Request browser geolocation (only after user clicks "Use my location")
   const requestGeolocation = useCallback(() => {

@@ -1,5 +1,4 @@
 // src/App.jsx
-import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -18,7 +17,6 @@ import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import IndoorHacksPage from './pages/IndoorHacksPage';
 import FamilyProfilesPage from './pages/FamilyProfilesPage';
-import MemoryPage from './pages/MemoryPage';
 import AboutPage from './pages/AboutPage';
 import SettingsPage from './pages/SettingsPage';
 import SupportPage from './pages/SupportPage';
@@ -40,10 +38,7 @@ export default function App() {
           <Route path="/auth" element={<AuthPage />} />
 
           {/* Compulsory 2-Step Onboarding */}
-          <Route
-            path="/get-started"
-            element={<Navigate to="/get-started/profile" replace />}
-          />
+          <Route path="/get-started" element={<Navigate to="/get-started/profile" replace />} />
           <Route
             path="/get-started/profile"
             element={
@@ -79,10 +74,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/indoor-hacks"
-            element={<IndoorHacksPage />}
-          />
+          <Route path="/indoor-hacks" element={<IndoorHacksPage />} />
           <Route
             path="/family"
             element={
@@ -91,10 +83,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/memory"
-            element={<Navigate to="/settings" replace />}
-          />
+          <Route path="/memory" element={<Navigate to="/settings" replace />} />
           <Route
             path="/settings"
             element={
