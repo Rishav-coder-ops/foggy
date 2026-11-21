@@ -258,6 +258,47 @@ export function validateRelationship(relationship) {
  * @param {object} data
  * @returns {{ errors: Record<string, string>, isValid: boolean }}
  */
+/**
+ * Helper to validate location fields (country, state, city) into an errors object.
+ * @param {object} data
+ * @param {Record<string, string>} errors
+ */
+export function applyLocationValidation(data, errors) {
+  const countryErr = validateCountry(data.country);
+  if (countryErr) errors.country = countryErr;
+
+  const stateErr = validateState(data.state, data.country);
+  if (stateErr) errors.state = stateErr;
+
+  const cityErr = validateCity(data.city, data.locationObj, data.state, data.country);
+  if (cityErr) errors.city = cityErr;
+}
+
+/**
+ * Helper to validate health, sensitivity, commute, and lifestyle fields into an errors object.
+ * @param {object} data
+ * @param {Record<string, string>} errors
+ * @param {boolean} [isPet=false]
+ */
+export function applyHealthAndLifestyleValidation(data, errors, isPet = false) {
+  const condErr = validateConditions(data.conditions, data.otherCondition);
+  if (condErr) errors.conditions = condErr;
+
+  const sensErr = validateSensitivity(data.sensitivity, data.conditions);
+  if (sensErr) errors.sensitivity = sensErr;
+
+  const commErr = validateCommute(data.commute, isPet);
+  if (commErr) errors.commute = commErr;
+
+  const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle, isPet);
+  if (lifeErr) errors.lifestyle = lifeErr;
+}
+
+/**
+ * Full profile form validation (Step 1 of Onboarding).
+ * @param {object} data
+ * @returns {{ errors: Record<string, string>, isValid: boolean, sanitizedData?: object }}
+ */
 export function validateProfileForm(data) {
   const errors = {};
 
@@ -267,26 +308,8 @@ export function validateProfileForm(data) {
   const ageErr = validateAge(data.age);
   if (ageErr) errors.age = ageErr;
 
-  const countryErr = validateCountry(data.country);
-  if (countryErr) errors.country = countryErr;
-
-  const stateErr = validateState(data.state, data.country);
-  if (stateErr) errors.state = stateErr;
-
-  const cityErr = validateCity(data.city, data.locationObj, data.state, data.country);
-  if (cityErr) errors.city = cityErr;
-
-  const condErr = validateConditions(data.conditions, data.otherCondition);
-  if (condErr) errors.conditions = condErr;
-
-  const sensErr = validateSensitivity(data.sensitivity, data.conditions);
-  if (sensErr) errors.sensitivity = sensErr;
-
-  const commErr = validateCommute(data.commute);
-  if (commErr) errors.commute = commErr;
-
-  const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle);
-  if (lifeErr) errors.lifestyle = lifeErr;
+  applyLocationValidation(data, errors);
+  applyHealthAndLifestyleValidation(data, errors, false);
 
   const consentErr = validateConsent(data.consent);
   if (consentErr) errors.consent = consentErr;
@@ -334,27 +357,10 @@ export function validateFamilyMemberForm(data) {
 
   // Location is optional if sameAsPrimary is checked
   if (!data.sameAsPrimary) {
-    const countryErr = validateCountry(data.country);
-    if (countryErr) errors.country = countryErr;
-
-    const stateErr = validateState(data.state, data.country);
-    if (stateErr) errors.state = stateErr;
-
-    const cityErr = validateCity(data.city, data.locationObj, data.state, data.country);
-    if (cityErr) errors.city = cityErr;
+    applyLocationValidation(data, errors);
   }
 
-  const condErr = validateConditions(data.conditions, data.otherCondition);
-  if (condErr) errors.conditions = condErr;
-
-  const sensErr = validateSensitivity(data.sensitivity, data.conditions);
-  if (sensErr) errors.sensitivity = sensErr;
-
-  const commErr = validateCommute(data.commute, isPet);
-  if (commErr) errors.commute = commErr;
-
-  const lifeErr = validateLifestyle(data.lifestyle, data.otherLifestyle, isPet);
-  if (lifeErr) errors.lifestyle = lifeErr;
+  applyHealthAndLifestyleValidation(data, errors, isPet);
 
   const sanitizedData = sanitizeObject({
     name: sanitizeText(data.name, 60),

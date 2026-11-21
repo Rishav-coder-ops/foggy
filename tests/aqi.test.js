@@ -7,6 +7,11 @@ import {
   getAQICategory,
   calculateRollingAverages
 } from '../shared/aqi.js';
+import {
+  onRequest,
+  onRequestOptions,
+  onRequestGet
+} from '../functions/api/aqi.js';
 
 describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollutant & Categories', () => {
   describe('CPCB PM2.5 Sub-Index Breakpoint Boundaries', () => {
@@ -201,6 +206,57 @@ describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollu
       const res = calculateRollingAverages([], []);
       expect(res.pm25Avg24h).toBe(60);
       expect(res.count).toBe(0);
+    });
+  });
+
+  describe('functions/api/aqi.js Endpoint & Method Routing', () => {
+    it('onRequestOptions returns 204 with CORS preflight headers', async () => {
+      const req = new Request('https://foggy.pages.dev/api/aqi', { method: 'OPTIONS' });
+      const res = await onRequestOptions({ request: req });
+      expect(res.status).toBe(204);
+      expect(res.headers.get('Access-Control-Allow-Methods')).toContain('GET');
+    });
+
+    it('onRequest dispatches OPTIONS to onRequestOptions', async () => {
+      const req = new Request('https://foggy.pages.dev/api/aqi', { method: 'OPTIONS' });
+      const res = await onRequest({ request: req });
+      expect(res.status).toBe(204);
+    });
+
+    it('onRequest dispatches GET to onRequestGet', async () => {
+      const req = new Request('https://foggy.pages.dev/api/aqi?city=Delhi&lat=28.61&lon=77.21', {
+        headers: { 'cf-connecting-ip': '10.8.0.1' }
+      });
+      const res = await onRequest({ request: req });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.aqi).toBeDefined();
+    });
+
+    it('onRequest rejects non-GET and non-OPTIONS with 405 Method Not Allowed', async () => {
+      const req = new Request('https://foggy.pages.dev/api/aqi', { method: 'DELETE' });
+      const res = await onRequest({ request: req });
+      expect(res.status).toBe(405);
+      const data = await res.json();
+      expect(data.error).toBe('Method Not Allowed');
+    });
+
+    it('onRequestGet enforces rate limiting when requests exceed 60 per minute', async () => {
+      const ip = '10.8.0.99';
+      for (let i = 0; i < 60; i++) {
+        const req = new Request('https://foggy.pages.dev/api/aqi?city=Delhi', {
+          headers: { 'cf-connecting-ip': ip }
+        });
+        await onRequestGet({ request: req });
+      }
+
+      const blockedReq = new Request('https://foggy.pages.dev/api/aqi?city=Delhi', {
+        headers: { 'cf-connecting-ip': ip }
+      });
+      const res = await onRequestGet({ request: blockedReq });
+      expect(res.status).toBe(429);
+      const data = await res.json();
+      expect(data.code).toBe('RATE_LIMITED');
     });
   });
 });

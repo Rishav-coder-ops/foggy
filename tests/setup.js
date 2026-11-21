@@ -1,6 +1,9 @@
 // tests/setup.js
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import * as axeMatchers from 'vitest-axe/matchers';
+import { expect, vi } from 'vitest';
+
+expect.extend(axeMatchers);
 
 // Polyfill window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

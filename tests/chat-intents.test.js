@@ -1,6 +1,6 @@
 // tests/chat-intents.test.js
 import { describe, it, expect } from 'vitest';
-import {
+import chatIntentModule, {
   INTENT_TYPES,
   classifyIntent,
   buildCompactContext,
@@ -11,6 +11,11 @@ import {
 } from '../functions/api/chatIntent.js';
 
 describe('Foggy Chat Intent Classification (20+ Sample Questions)', () => {
+  it('exports comprehensive chatIntent module bundle', () => {
+    expect(chatIntentModule).toBeDefined();
+    expect(chatIntentModule.classifyIntent).toBeDefined();
+    expect(chatIntentModule.INTENT_TYPES).toBeDefined();
+  });
   const sampleTestCases = [
     { query: 'How do I clean my home air on a budget?', expected: INTENT_TYPES.BUDGET_OPTIONS },
     {
@@ -262,5 +267,45 @@ describe('Smart Fallback Answers adhere strictly to guidelines', () => {
     expect(reply.startsWith('No')).toBe(true);
     expect(reply).toContain('morning inversion');
     expect(reply).toContain('solar dispersal');
+  });
+
+  describe('Intent Instructions Coverage Across All Intents', () => {
+    const mockReport = {
+      city: 'Delhi',
+      current: { aqi: 180, category: 'Moderate', dominant: 'PM2.5' },
+      bestHour24h: { hour: '14:00', aqi: 120 },
+      worstHour24h: { hour: '08:00', aqi: 240 },
+      tomorrow: {
+        averageAqi: 190,
+        category: 'Moderate',
+        cleanestSlot: { hour: '14:00' },
+        peakSlot: { hour: '08:00' }
+      }
+    };
+
+    it('generates distinct instructions for every supported intent type', () => {
+      for (const intent of Object.values(INTENT_TYPES)) {
+        const instruction = getIntentInstruction(intent, mockReport);
+        expect(instruction).toBeDefined();
+        expect(typeof instruction).toBe('string');
+        expect(instruction.length).toBeGreaterThan(20);
+      }
+    });
+
+    it('adapts clean air vs polluted air advice in budget options', () => {
+      const cleanReport = {
+        city: 'Bengaluru',
+        current: { aqi: 45, category: 'Good', dominant: 'PM2.5' }
+      };
+      const cleanInstruction = getIntentInstruction(INTENT_TYPES.BUDGET_OPTIONS, cleanReport);
+      expect(cleanInstruction).toContain('opening windows');
+
+      const pollutedReport = {
+        city: 'Delhi',
+        current: { aqi: 350, category: 'Very Poor', dominant: 'PM2.5' }
+      };
+      const pollutedInstruction = getIntentInstruction(INTENT_TYPES.BUDGET_OPTIONS, pollutedReport);
+      expect(pollutedInstruction).toContain('keep windows sealed');
+    });
   });
 });

@@ -238,9 +238,9 @@ export default function LandingPage() {
               <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
                 <MascotAvatar size="sm" />
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     Foggy Memory Assistant
-                  </h4>
+                  </h3>
                   <p className="text-[10px] text-slate-600 dark:text-slate-400">
                     Context synced with Beta (Asthma) & Kolkata (Estimated NAQI 165)
                   </p>

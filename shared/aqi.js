@@ -130,8 +130,8 @@ export function calculateRollingAverages(pm25Series = [], pm10Series = [], targe
     }
   }
 
-  const avgPm25 = count > 0 ? Math.round(pm25Sum / count) : pm25Series[currentIdx] || 60;
-  const avgPm10 = count > 0 ? Math.round(pm10Sum / count) : pm10Series?.[currentIdx] || 110;
+  const avgPm25 = count > 0 ? Math.round((pm25Sum / count) * 10) / 10 : pm25Series[currentIdx] || 60;
+  const avgPm10 = count > 0 ? Math.round((pm10Sum / count) * 10) / 10 : pm10Series?.[currentIdx] || 110;
 
   return {
     avgPm25,

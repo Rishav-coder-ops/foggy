@@ -1,11 +1,13 @@
 // tests/chat.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  onRequest,
   onRequestPost,
   extractMemoryFact,
   extractMemoryFacts,
   verifyModelAqiResponse
 } from '../functions/api/chat.js';
+import { callGeminiApi } from '../shared/chat/geminiClient.js';
 import * as tokenVerifier from '../functions/api/verifyFirebaseToken.js';
 
 describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory', () => {
@@ -222,6 +224,155 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
       expect(extractMemoryFact('How do I build a website?')).toBeNull();
       expect(extractMemoryFact('')).toBeNull();
       expect(extractMemoryFact(null)).toBeNull();
+    });
+  });
+
+  describe('callGeminiApi Client Functionality', () => {
+    const mockPrimaryReport = {
+      current: { aqi: 120, category: 'Moderate' },
+      tonight: { aqi: 140, category: 'Moderate' },
+      tomorrow: { averageAqi: 110, category: 'Moderate' }
+    };
+
+    it('successfully calls candidate model and parses memory extraction token', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Current Estimated NAQI is 120 (Moderate). Keep doors closed. [FOGGY_MEMORY_EXTRACTION: {"facts": ["child asthma"]}]'
+                  }
+                ]
+              }
+            }
+          ]
+        })
+      });
+
+      const res = await callGeminiApi({
+        apiKey: 'test-gemini-key',
+        systemPrompt: 'System prompt',
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        primaryReport: mockPrimaryReport,
+        timeframe: 'now'
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.rawReply).toBe('Current Estimated NAQI is 120 (Moderate). Keep doors closed.');
+      expect(res.extractedFacts).toEqual(['child asthma']);
+      expect(res.quotedAqi).toBe(120);
+    });
+
+    it('supports timeframe tonight and tomorrow', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Tonight the Estimated NAQI will be 140.' }]
+              }
+            }
+          ]
+        })
+      });
+
+      const resTonight = await callGeminiApi({
+        apiKey: 'test-gemini-key',
+        systemPrompt: 'System',
+        contents: [],
+        primaryReport: mockPrimaryReport,
+        timeframe: 'tonight'
+      });
+      expect(resTonight.success).toBe(true);
+      expect(resTonight.quotedAqi).toBe(140);
+    });
+
+    it('falls back to secondary model when first is blocked or fails verification', async () => {
+      // First model blocked by SAFETY
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            candidates: [{ finishReason: 'SAFETY', content: { parts: [{ text: '' }] } }]
+          })
+        })
+        // Second model succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Safeguards for 120 AQI: avoid heavy outdoor workouts.' }]
+                }
+              }
+            ]
+          })
+        });
+
+      const res = await callGeminiApi({
+        apiKey: 'test-key',
+        systemPrompt: 'System',
+        contents: [],
+        primaryReport: mockPrimaryReport,
+        timeframe: 'now'
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.modelName).toBe('gemini-flash-latest');
+    });
+
+    it('returns success: false when all models fail', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const res = await callGeminiApi({
+        apiKey: 'test-key',
+        systemPrompt: 'System',
+        contents: [],
+        primaryReport: mockPrimaryReport,
+        timeframe: 'now'
+      });
+
+      expect(res.success).toBe(false);
+    });
+  });
+
+  describe('onRequest Multi-Method Dispatcher & Preflight', () => {
+    it('dispatches OPTIONS to onRequestOptions returning 204', async () => {
+      const req = new Request('https://foggy.pages.dev/api/chat', { method: 'OPTIONS' });
+      const res = await onRequest({ request: req, env: {} });
+      expect(res.status).toBe(204);
+      expect(res.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+    });
+
+    it('rejects unsupported HTTP methods with 405 Method Not Allowed', async () => {
+      const req = new Request('https://foggy.pages.dev/api/chat', { method: 'GET' });
+      const res = await onRequest({ request: req, env: {} });
+      expect(res.status).toBe(405);
+      const json = await res.json();
+      expect(json.error).toBe('Method Not Allowed');
+    });
+
+    it('accepts demo_token in Authorization header for preview mode', async () => {
+      const req = new Request('https://foggy.pages.dev/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer demo_token',
+          'cf-connecting-ip': '10.0.99.1'
+        },
+        body: JSON.stringify({ message: 'Hello demo', city: 'Kolkata' })
+      });
+
+      const res = await onRequestPost({ request: req, env: {} });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.reply).toBeDefined();
     });
   });
 });

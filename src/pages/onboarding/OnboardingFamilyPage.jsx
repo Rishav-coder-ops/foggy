@@ -4,13 +4,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../../context/ProfileContext';
 import MascotAvatar from '../../components/MascotAvatar';
+import PersonDetailsForm from '../../components/forms/PersonDetailsForm';
 import confetti from 'canvas-confetti';
 import {
   INDIAN_STATES_AND_UTS,
-  HEALTH_CONDITIONS,
-  COMMUTE_STYLES,
-  LIFESTYLE_ACTIVITIES,
-  PET_LIFESTYLE_ACTIVITIES,
   RELATIONSHIP_SUGGESTIONS
 } from '../../data/onboardingData';
 import { validateFamilyMemberForm } from '../../utils/validation';
@@ -699,135 +696,24 @@ export default function OnboardingFamilyPage() {
                 </div>
               </div>
 
-              {/* Health Conditions */}
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Health Conditions <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {HEALTH_CONDITIONS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => toggleModalCondition(c)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
-                        conditions.includes(c)
-                          ? 'bg-sky-500 text-white border-sky-600'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-                {conditions.includes('Other') && (
-                  <input
-                    type="text"
-                    value={otherCondition}
-                    onChange={(e) => setOtherCondition(e.target.value)}
-                    placeholder="Specify condition..."
-                    className="mt-2 w-full px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                  />
-                )}
-                {modalErrors.conditions && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
-                    {modalErrors.conditions}
-                  </p>
-                )}
-              </div>
-
-              {/* Sensitivity */}
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Sensitivity Level <span className="text-rose-500">*</span>
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['Low', 'Moderate', 'High'].map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      disabled={
-                        conditions.length === 1 && conditions[0] === 'None' && lvl !== 'Low'
-                      }
-                      onClick={() => setSensitivity(lvl)}
-                      className={`py-1.5 text-xs font-bold rounded-xl border text-center ${
-                        sensitivity === lvl
-                          ? 'bg-sky-500 text-white border-sky-600'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Commute (Optional if Pet) */}
-              {!isPet && (
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Commute Style <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {COMMUTE_STYLES.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => toggleModalCommute(c)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
-                          commute.includes(c)
-                            ? 'bg-sky-500 text-white border-sky-600'
-                            : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                  {modalErrors.commute && (
-                    <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
-                      {modalErrors.commute}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Lifestyle Activities */}
-              <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Lifestyle & Outdoor Routines <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {(isPet ? PET_LIFESTYLE_ACTIVITIES : LIFESTYLE_ACTIVITIES).map((act) => (
-                    <button
-                      key={act}
-                      type="button"
-                      onClick={() => toggleModalLifestyle(act)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
-                        lifestyle.includes(act)
-                          ? 'bg-sky-500 text-white border-sky-600'
-                          : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      {act}
-                    </button>
-                  ))}
-                </div>
-                {lifestyle.includes('Other') && (
-                  <input
-                    type="text"
-                    value={otherLifestyle}
-                    onChange={(e) => setOtherLifestyle(e.target.value)}
-                    placeholder="Specify other activity..."
-                    className="mt-2 w-full px-3 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
-                  />
-                )}
-                {modalErrors.lifestyle && (
-                  <p className="text-[11px] text-rose-600 dark:text-rose-400 mt-1">
-                    {modalErrors.lifestyle}
-                  </p>
-                )}
-              </div>
+              <PersonDetailsForm
+                conditions={conditions}
+                onToggleCondition={toggleModalCondition}
+                otherCondition={otherCondition}
+                onOtherConditionChange={setOtherCondition}
+                sensitivity={sensitivity}
+                onSensitivityChange={setSensitivity}
+                commute={commute}
+                onToggleCommute={toggleModalCommute}
+                lifestyle={lifestyle}
+                onToggleLifestyle={toggleModalLifestyle}
+                otherLifestyle={otherLifestyle}
+                onOtherLifestyleChange={setOtherLifestyle}
+                isPet={isPet}
+                errors={modalErrors}
+                touched={{ conditions: true, sensitivity: true, commute: true, lifestyle: true }}
+                fieldRefs={{}}
+              />
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">

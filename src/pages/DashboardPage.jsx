@@ -5,8 +5,6 @@ import { Link } from 'react-router-dom';
 import {
   MessageSquare,
   Flame,
-  Bus,
-  Sun,
   AlertTriangle,
   ShieldCheck,
   ArrowRight,
@@ -15,6 +13,7 @@ import {
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
 import ImpactBadge from '../components/ImpactBadge';
+import DailyLowEmissionPlan from '../components/DailyLowEmissionPlan';
 import MascotAvatar from '../components/MascotAvatar';
 import { fetchAQIData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -181,74 +180,7 @@ export default function DashboardPage() {
 
       {/* Low-Emission Daily Routine Plan */}
       <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Personalized Smog Shield Protocol
-            </span>
-            <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white mt-0.5">
-              Today's Low-Emission Daily Routine
-            </h2>
-          </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            Tailored for {locationTitle} • Updated hourly
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Routine Card 1: Commute */}
-          <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400">
-                  <Bus className="w-4 h-4" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Commute: Take Metro / Electric Bus Instead of Two-Wheeler
-                </h4>
-              </div>
-              <span className="text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 px-2 py-0.5 rounded-full">
-                7:30 AM
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Winter inversions trap vehicular exhaust at bumper height. Riding the air-conditioned
-              Metro or electric bus bypasses direct street-level PM2.5 inhalation and cuts personal
-              emissions.
-            </p>
-
-            <ImpactBadge
-              co2Saved="~2.4 kg CO2 saved"
-              pmReduced="-65% PM2.5 inhaled"
-              costTradeoff="~₹180 fuel & parking saved"
-            />
-          </div>
-
-          {/* Routine Card 2: Outdoor Activity */}
-          <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400">
-                  <Sun className="w-4 h-4" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Outdoor Timing: Shift Exercise to 1:30 PM – 3:30 PM
-                </h4>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full">
-                Safest Window
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Solar radiation breaks the morning thermal inversion lid in the afternoon, improving
-              vertical dispersion and lowering particulate counts. Complete walks and errands during
-              this window.
-            </p>
-
-            <ImpactBadge healthBenefit="Avoids peak smog trigger" pmReduced="-35% ground PM2.5" />
-          </div>
+        <DailyLowEmissionPlan cityName={locationTitle} locationTitle={locationTitle}>
 
           {/* Routine Card 3: Heating & Cooking */}
           <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
@@ -304,7 +236,7 @@ export default function DashboardPage() {
               costTradeoff="< ₹12 electricity / day"
             />
           </div>
-        </div>
+        </DailyLowEmissionPlan>
 
         {/* Ask Foggy Card Footer */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-slate-400">

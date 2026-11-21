@@ -155,5 +155,66 @@ describe('tests/geocode.test.js - Location Matching, Aliases, State Validation &
       const data = await res.json();
       expect(data.results).toEqual([]);
     });
+
+    it('returns empty results immediately when query length is less than 2 characters', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch');
+      const req = new Request('https://foggy.pages.dev/api/geocode?name=a', {
+        headers: { 'cf-connecting-ip': '10.0.0.5' }
+      });
+      const res = await onRequest({ request: req });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.results).toEqual([]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns cached results on subsequent requests for the same query', async () => {
+      const mockApiResponse = {
+        results: [
+          { id: 99, name: 'Jaipur', latitude: 26.91, longitude: 75.78, admin1: 'Rajasthan' }
+        ]
+      };
+
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => mockApiResponse
+      });
+
+      const req1 = new Request('https://foggy.pages.dev/api/geocode?name=Jaipur', {
+        headers: { 'cf-connecting-ip': '10.0.0.6' }
+      });
+      const res1 = await onRequest({ request: req1 });
+      const data1 = await res1.json();
+      expect(data1.results[0].name).toBe('Jaipur');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+      // Second request with same query hits in-memory cache
+      const req2 = new Request('https://foggy.pages.dev/api/geocode?name=Jaipur', {
+        headers: { 'cf-connecting-ip': '10.0.0.6' }
+      });
+      const res2 = await onRequest({ request: req2 });
+      const data2 = await res2.json();
+      expect(data2.cached).toBe(true);
+      expect(data2.results[0].name).toBe('Jaipur');
+      expect(fetchSpy).toHaveBeenCalledTimes(1); // No new network call
+    });
+
+    it('enforces rate limiting when client IP exceeds 60 requests in window', async () => {
+      const ip = '10.0.0.99';
+      for (let i = 0; i < 60; i++) {
+        const req = new Request('https://foggy.pages.dev/api/geocode?name=a', {
+          headers: { 'cf-connecting-ip': ip }
+        });
+        await onRequest({ request: req });
+      }
+
+      const blockedReq = new Request('https://foggy.pages.dev/api/geocode?name=a', {
+        headers: { 'cf-connecting-ip': ip }
+      });
+      const res = await onRequest({ request: blockedReq });
+      expect(res.status).toBe(429);
+      const data = await res.json();
+      expect(data.error).toContain('Too many requests');
+    });
   });
 });

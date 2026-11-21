@@ -3,17 +3,9 @@
 // Configured with Indian default city (Kolkata) and CPCB National AQI standards
 
 import { auth } from '../firebase';
+import { INDIAN_METROS } from '../../shared/timeline/constants.js';
 
-export const INDIAN_METROS = [
-  { name: 'Kolkata', lat: 22.5726, lon: 88.3639, country: 'India', admin1: 'West Bengal' },
-  { name: 'Delhi', lat: 28.6139, lon: 77.209, country: 'India', admin1: 'Delhi' },
-  { name: 'Mumbai', lat: 19.076, lon: 72.8777, country: 'India', admin1: 'Maharashtra' },
-  { name: 'Chennai', lat: 13.0827, lon: 80.2707, country: 'India', admin1: 'Tamil Nadu' },
-  { name: 'Bengaluru', lat: 12.9716, lon: 77.5946, country: 'India', admin1: 'Karnataka' },
-  { name: 'Hyderabad', lat: 17.385, lon: 78.4867, country: 'India', admin1: 'Telangana' },
-  { name: 'Ahmedabad', lat: 23.0225, lon: 72.5714, country: 'India', admin1: 'Gujarat' },
-  { name: 'Pune', lat: 18.5204, lon: 73.8567, country: 'India', admin1: 'Maharashtra' }
-];
+export { INDIAN_METROS };
 
 export const PRESET_CITY_COORDINATES = {
   kolkata: { name: 'Kolkata', country: 'India', admin1: 'West Bengal', lat: 22.5726, lon: 88.3639 },

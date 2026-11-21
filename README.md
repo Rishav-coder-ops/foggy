@@ -317,7 +317,7 @@ Foggy features a comprehensive, deterministic test suite designed to run 100% of
 ### Test Scripts
 
 ```bash
-# Run all 177 tests
+# Run all 238 tests
 npm test
 # or with pnpm
 pnpm test
@@ -337,12 +337,12 @@ pnpm run test:coverage
 
 | Metric         |  Measured  | Global CI Threshold |   Status   |
 | :------------- | :--------: | :-----------------: | :--------: |
-| **Lines**      | **78.11%** |         70%         | ✅ Passing |
-| **Functions**  | **78.48%** |         70%         | ✅ Passing |
-| **Statements** | **76.74%** |         70%         | ✅ Passing |
-| **Branches**   | **66.33%** |          —          | ✅ Passing |
+| **Lines**      | **90.11%** |         85%         | ✅ Passing |
+| **Functions**  | **95.20%** |         85%         | ✅ Passing |
+| **Statements** | **89.16%** |         85%         | ✅ Passing |
+| **Branches**   | **75.20%** |         70%         | ✅ Passing |
 
-Core modules (`src/utils`, `shared`, `src/services`, `functions/api`) all meet or exceed the ~80% target threshold.
+Core modules (`src/utils`, `shared`, `src/services`, `functions/api`) all meet or exceed the rigorous 85% line and 75% branch target thresholds.
 
 ### Test Coverage Areas
 
@@ -370,32 +370,37 @@ Core modules (`src/utils`, `shared`, `src/services`, `functions/api`) all meet o
 5. **Backend Functions & Coordinate Isolation (`functions/api/*.js`)**:
    - Cloudflare Pages Functions (`/api/aqi`, `/api/chat`, `/api/personalize`, `/api/aqi-timeline`, `/api/alerts`).
    - Coordinate-based cache isolation (`aqi_{lat}_{lon}`) ensuring queries for distinct coordinates (e.g. Kolkata, Varanasi, Patna, Delhi) never collide or return cross-city stale cache hits.
-   - RS256 Firebase ID token verification (`verifyFirebaseToken.js`).
+   - Cryptographic RS256 WebCrypto Firebase ID token verification (`verifyFirebaseToken.js`).
 
 6. **Route Guards & Navigation (`src/App.jsx`, `tests/routes.test.jsx`)**:
    - In-memory React Router DOM smoke tests verifying Landing, About, Auth, Search, and 404 routes render cleanly with proper navigation and authentication guards.
 
-7. **Onboarding & Settings (`src/pages/OnboardingPage.jsx`, `src/pages/SettingsPage.jsx`)**:
+7. **Onboarding & Settings (`src/pages/onboarding/*.jsx`, `src/pages/SettingsPage.jsx`)**:
    - Step-by-step profile onboarding validation, health condition exclusivity ("None" exclusively resets other conditions), age validation (1–120), pet profiles, and Danger Zone irreversible account deletion order.
 
-### Test Suite Overview (14 Suites / 177 Passing Tests)
+8. **End-to-End User Flows & Accessibility (`tests/flows-and-a11y.test.jsx`)**:
+   - Auth sign-in/sign-up switching, demo account login, 2-step onboarding workflow (profile $\to$ family household), and full WCAG accessibility audits (`vitest-axe`) with 0 violations across all primary pages.
 
-| Test File                                | Tests | Focus Areas & Invariants Verified                                                                                                                                            |
-| :--------------------------------------- | :---: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/aqi.test.js`                      |  27   | CPCB NAQI breakpoints for $PM_{2.5}$ and $PM_{10}$, highest-sub-index rule, dominant pollutant, missing data, 24-hr rolling averages, official hex colors.                   |
-| `tests/geocode.test.js`                  |  13   | Indian state/city aliases, state matching, fallback offline Indian cities dictionary.                                                                                        |
-| `tests/care-plan.test.js`                |  12   | Combinations of age, respiratory conditions, commute, diurnal time slots. Strictly verifies non-prescription invariant.                                                      |
-| `tests/chat-intents.test.js`             |  38   | 31 intent classification queries across English, Hindi, and Hinglish across all 7 user intent categories; compact prompt builder; fallback generator.                        |
-| `tests/chat.test.js`                     |  14   | Payload size caps ($>32\text{ KB} \to 413$), message character limits ($>500 \text{ chars} \to 400$), rate limits (10/hr anon vs 60/hr auth), prompt injection sanitization. |
-| `tests/backend-functions.test.js`        |   4   | Coordinate-based cache isolation regression test: Verifies that requests for Delhi and Chennai return distinct, isolated data.                                               |
-| `tests/aqi-locality-cache.test.jsx`      |   7   | Coordinate locality, cache isolation, canonical place title formatting, and race condition prevention across fast city searches.                                             |
-| `tests/auth-onboarding-settings.test.js` |  12   | Profile validation, "None" health condition exclusivity, age limits (1-120), pet profiles, Danger Zone account deletion order.                                               |
-| `tests/components.test.jsx`              |   9   | `ErrorBoundary` fallback and logging, `ExpandablePanelModal` accessibility and Escape key handling, `ThemeToggle`, `ImpactBadge`, `AQICard`.                                 |
-| `tests/services-api.test.js`             |  10   | Client API offline fallbacks, city storage in localStorage, timeline ingestion.                                                                                              |
-| `tests/routes.test.jsx`                  |  13   | In-memory React Router DOM smoke testing verifying Landing, About, Auth, and 404 routes render cleanly.                                                                      |
-| `tests/personalize-endpoint.test.js`     |   9   | Parity between `/api/personalize` and `/api/chat`, Bearer token validation, rate limit responses.                                                                            |
-| `tests/verify-firebase-token.test.js`    |   7   | RS256 JWT claims validation: expiry, future issue dates, audience, issuer, and malformed headers.                                                                            |
-| `tests/alerts.test.js`                   |   2   | Official Government of India portals and live alert link verification.                                                                                                       |
+### Test Suite Overview (16 Suites / 238 Passing Tests)
+
+| Test File                                | Tests | Focus Areas & Invariants Verified                                                                                                                                             |
+| :--------------------------------------- | :---: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/aqi.test.js`                      |  32   | CPCB NAQI breakpoints for $PM_{2.5}$ and $PM_{10}$, highest-sub-index rule, dominant pollutant, 24-hr rolling averages, official hex colors, endpoint routing and rate limit. |
+| `tests/aqi-timeline.test.js`             |  16   | Diurnal curves, 7-day prediction intervals, CPCB sub-indices, rate limiting, and geocoding fallbacks.                                                                         |
+| `tests/geocode.test.js`                  |  16   | Indian state/city aliases, state matching, cache hits, rate limiting, fallback offline Indian cities dictionary.                                                              |
+| `tests/care-plan.test.js`                |  12   | Combinations of age, respiratory conditions, commute, diurnal time slots. Strictly verifies non-prescription invariant.                                                       |
+| `tests/chat-intents.test.js`             |  40   | 31 intent classification queries across English, Hindi, Hinglish; domain instructions across all intents; compact prompt builder; fallback generator.                         |
+| `tests/chat.test.js`                     |  21   | Payload caps ($>32\text{ KB} \to 413$), message limits ($>500 \to 400$), rate limits (10/hr vs 60/hr), Gemini client fallback, memory fact extraction.                        |
+| `tests/flows-and-a11y.test.jsx`          |   9   | User interaction flows (auth, onboarding steps 1 & 2) and automated WCAG accessibility audits via `vitest-axe` with 0 violations.                                             |
+| `tests/backend-functions.test.js`        |   4   | Coordinate-based cache isolation regression test: Verifies that requests for Delhi and Chennai return distinct, isolated data.                                                |
+| `tests/aqi-locality-cache.test.jsx`      |   7   | Coordinate locality, cache isolation, canonical place title formatting, and race condition prevention across fast city searches.                                              |
+| `tests/auth-onboarding-settings.test.js` |  12   | Profile validation, "None" health condition exclusivity, age limits (1-120), pet profiles, Danger Zone account deletion order.                                                |
+| `tests/components.test.jsx`              |   9   | `ErrorBoundary` fallback and logging, `ExpandablePanelModal` accessibility and Escape key handling, `ThemeToggle`, `ImpactBadge`, `AQICard`.                                  |
+| `tests/services-api.test.js`             |  21   | Client API offline fallbacks, city storage in localStorage, timeline ingestion, search autocompletion, AbortSignal handling.                                                  |
+| `tests/routes.test.jsx`                  |  13   | In-memory React Router DOM smoke testing verifying Landing, About, Auth, and 404 routes render cleanly.                                                                       |
+| `tests/personalize-endpoint.test.js`     |   9   | Parity between `/api/personalize` and `/api/chat`, Bearer token validation, rate limit responses.                                                                             |
+| `tests/verify-firebase-token.test.js`    |  14   | Real WebCrypto RSA-2048 keys, JWKS caching, signature verification, clock-drift tolerance, audience/issuer/UID integrity.                                                     |
+| `tests/alerts.test.js`                   |   2   | Official Government of India portals and live alert link verification.                                                                                                        |
 
 ### Known Test Gaps & Trade-offs
 

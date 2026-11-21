@@ -3,10 +3,10 @@
 // Displays full dashboard-style atmospheric breakdown without changing user's saved location.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MapPin, Loader2, Sun, Bus } from 'lucide-react';
+import { Search, MapPin, Loader2 } from 'lucide-react';
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
-import ImpactBadge from '../components/ImpactBadge';
+import DailyLowEmissionPlan from '../components/DailyLowEmissionPlan';
 import { fetchAQIData, geocodeLocation } from '../services/api';
 import { sanitizeText } from '../utils/validation';
 
@@ -257,69 +257,11 @@ export default function SearchAQIPage() {
 
       {/* Low-Emission Daily Routine Plan for Searched City */}
       <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Smog Shield Protocol
-            </span>
-            <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white mt-0.5">
-              Daily Low-Emission Plan for {selectedCity.name}
-            </h2>
-          </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            Simulated for {locationTitle} • Live CAMS data
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Commute Routine */}
-          <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-sky-100 dark:bg-sky-950/70 text-sky-600 dark:text-sky-400">
-                  <Bus className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Commute: Prioritize Enclosed Public Transit
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 px-2 py-0.5 rounded-full">
-                7:30 AM
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Street-level morning traffic traps diesel exhaust and resuspended road dust. Commuting
-              via Metro or AC bus cuts direct particulate exposure by over 60%.
-            </p>
-            <ImpactBadge
-              co2Saved="~2.4 kg CO2 saved"
-              pmReduced="-65% PM2.5 inhaled"
-              costTradeoff="~₹180 fuel & parking saved"
-            />
-          </div>
-
-          {/* Outdoor Activity */}
-          <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400">
-                  <Sun className="w-4 h-4" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  Outdoor Timing: Shift Walks to Afternoon Window
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 px-2 py-0.5 rounded-full">
-                Safest Window
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Solar radiation breaks the ground thermal inversion lid between 1:00 PM and 3:30 PM,
-              providing the cleanest dispersion window for essential errands.
-            </p>
-            <ImpactBadge healthBenefit="Avoids ground smog spike" pmReduced="-35% ground PM2.5" />
-          </div>
-        </div>
+        <DailyLowEmissionPlan
+          cityName={selectedCity.name}
+          locationTitle={locationTitle}
+          isSimulated={true}
+        />
       </div>
     </div>
   );

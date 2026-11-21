@@ -13,6 +13,7 @@ export default function MascotAvatar({ size = 'md', mood = 'happy', className = 
 
   return (
     <div
+      role="img"
       className={`relative inline-flex items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-400 via-teal-300 to-amber-200 p-0.5 shadow-sm transition-transform hover:scale-105 ${dim} ${className}`}
       aria-label="Foggy Mascot Avatar"
     >

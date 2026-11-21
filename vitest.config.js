@@ -16,9 +16,10 @@ export default defineConfig({
       include: ['shared/**', 'functions/api/**', 'src/utils/**', 'src/services/**'],
       exclude: ['node_modules/**', 'dist/**', 'tests/**', 'src/main.jsx'],
       thresholds: {
-        lines: 70,
-        functions: 70,
-        statements: 70
+        lines: 85,
+        functions: 85,
+        statements: 85,
+        branches: 70
       }
     }
   }
