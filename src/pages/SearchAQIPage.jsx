@@ -101,7 +101,7 @@ export default function SearchAQIPage() {
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const cleanQuery = sanitizeText(val, 60);
-        const results = await geocodeLocation(cleanQuery, 'India');
+        const results = await geocodeLocation(cleanQuery, 'IN');
         setSuggestions(results || []);
       } catch (err) {
         console.warn('Geocode search error:', err);
@@ -139,16 +139,16 @@ export default function SearchAQIPage() {
       return;
     }
 
-    // Geocode to resolve canonical coordinates before fetching
+    // Auto-resolve typed query using geocode endpoint before fetching
     setSearching(true);
     setSearchError('');
     try {
       const clean = sanitizeText(query, 60);
-      const results = await geocodeLocation(clean, 'India');
+      const results = await geocodeLocation(clean, 'IN');
       if (results && results.length > 0) {
         handleSelectSuggestion(results[0]);
       } else {
-        setSearchError(`No matching Indian location found for "${clean}". Please pick from suggestions.`);
+        setSearchError(`No matching Indian location found for "${clean}". Please check the spelling or pick from suggestions.`);
       }
     } catch (err) {
       console.warn('Geocode manual submit failed:', err);

@@ -1,7 +1,7 @@
 // src/utils/validation.js
 // Shared validation and text sanitization library for Onboarding, Settings, and Family Profiles
 import { INDIAN_STATES_AND_UTS } from '../data/onboardingData.js';
-import { statesMatch } from '../../functions/api/geocode.js';
+import { statesMatch, isValidCityStatePair } from '../../shared/geocode.js';
 
 /**
  * Strip control characters, excessive whitespace, and common prompt injection wrappers.
@@ -127,6 +127,14 @@ export function validateCity(city, locationObj, state, _country) {
   const cleanCity = sanitizeText(city, 80);
   if (!cleanCity) {
     return 'City or town is required.';
+  }
+
+  // Verify city-state pair compatibility
+  if (state) {
+    const pairCheck = isValidCityStatePair(cleanCity, state);
+    if (!pairCheck.valid) {
+      return pairCheck.message;
+    }
   }
 
   if (!locationObj || typeof locationObj !== 'object') {

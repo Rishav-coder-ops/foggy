@@ -1,266 +1,46 @@
 // shared/geocode.js
 /**
  * @fileoverview Shared location matching, Indian state/city alias resolution,
- * and resilient fallback cities.
+ * city-to-state validation, ranking, and coordinate deduplication.
  */
 
-export const STATE_ALIASES = Object.freeze({
-  orissa: 'odisha',
-  odisha: 'odisha',
-  pondicherry: 'puducherry',
-  puducherry: 'puducherry',
-  delhi: 'delhi',
-  'nct of delhi': 'delhi',
-  'national capital territory of delhi': 'delhi',
-  'new delhi': 'delhi',
-  uttaranchal: 'uttarakhand',
-  uttarakhand: 'uttarakhand',
-  'jammu & kashmir': 'jammu and kashmir',
-  'jammu and kashmir': 'jammu and kashmir',
-  'andaman & nicobar': 'andaman and nicobar islands',
-  'andaman and nicobar': 'andaman and nicobar islands',
-  'andaman and nicobar islands': 'andaman and nicobar islands',
-  telengana: 'telangana',
-  telangana: 'telangana',
-  chhattisgarh: 'chhattisgarh',
-  chattisgarh: 'chhattisgarh',
-  ladakh: 'ladakh',
-  'dadra and nagar haveli and daman and diu': 'dadra and nagar haveli and daman and diu',
-  'daman and diu': 'dadra and nagar haveli and daman and diu',
-  'dadra and nagar haveli': 'dadra and nagar haveli and daman and diu',
-  wb: 'west bengal',
-  'west bengal': 'west bengal',
-  up: 'uttar pradesh',
-  'uttar pradesh': 'uttar pradesh',
-  mp: 'madhya pradesh',
-  'madhya pradesh': 'madhya pradesh',
-  ap: 'andhra pradesh',
-  'andhra pradesh': 'andhra pradesh',
-  tn: 'tamil nadu',
-  'tamil nadu': 'tamil nadu',
-  mh: 'maharashtra',
-  maharashtra: 'maharashtra',
-  ka: 'karnataka',
-  karnataka: 'karnataka',
-  gj: 'gujarat',
-  gujarat: 'gujarat',
-  rj: 'rajasthan',
-  rajasthan: 'rajasthan',
-  pb: 'punjab',
-  punjab: 'punjab',
-  hr: 'haryana',
-  haryana: 'haryana',
-  br: 'bihar',
-  bihar: 'bihar',
-  kl: 'kerala',
-  kerala: 'kerala'
-});
+import {
+  STATE_ALIASES,
+  CITY_ALIASES,
+  CITY_TO_STATE_MAP,
+  INDIAN_FALLBACK_CITIES
+} from './geocodeData.js';
 
-export const CITY_ALIASES = Object.freeze({
-  delhi: 'Delhi',
-  'new delhi': 'Delhi',
-  dilli: 'Delhi',
-  ncr: 'Delhi',
-  kolkata: 'Kolkata',
-  calcutta: 'Kolkata',
-  mumbai: 'Mumbai',
-  bombay: 'Mumbai',
-  bengaluru: 'Bengaluru',
-  bangalore: 'Bengaluru',
-  chennai: 'Chennai',
-  madras: 'Chennai',
-  hyderabad: 'Hyderabad',
-  ahmedabad: 'Ahmedabad',
-  pune: 'Pune',
-  jaipur: 'Jaipur',
-  lucknow: 'Lucknow',
-  patna: 'Patna',
-  varanasi: 'Varanasi',
-  banaras: 'Varanasi',
-  kashi: 'Varanasi',
-  noida: 'Noida',
-  gurgaon: 'Gurugram',
-  gurugram: 'Gurugram',
-  chandigarh: 'Chandigarh',
-  bhopal: 'Bhopal',
-  kochi: 'Kochi',
-  cochin: 'Kochi',
-  bhubaneswar: 'Bhubaneswar',
-  guwahati: 'Guwahati'
-});
+export { STATE_ALIASES, CITY_ALIASES, CITY_TO_STATE_MAP, INDIAN_FALLBACK_CITIES };
 
-export const INDIAN_FALLBACK_CITIES = Object.freeze([
-  {
-    id: 1275004,
-    name: 'Kolkata',
-    latitude: 22.5726,
-    longitude: 88.3639,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'West Bengal',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1273294,
-    name: 'Delhi',
-    latitude: 28.6139,
-    longitude: 77.209,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Delhi',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1275339,
-    name: 'Mumbai',
-    latitude: 19.076,
-    longitude: 72.8777,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Maharashtra',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1264527,
-    name: 'Chennai',
-    latitude: 13.0827,
-    longitude: 80.2707,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Tamil Nadu',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1277333,
-    name: 'Bengaluru',
-    latitude: 12.9716,
-    longitude: 77.5946,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Karnataka',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1269843,
-    name: 'Hyderabad',
-    latitude: 17.385,
-    longitude: 78.4867,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Telangana',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1279233,
-    name: 'Ahmedabad',
-    latitude: 23.0225,
-    longitude: 72.5714,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Gujarat',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1259229,
-    name: 'Pune',
-    latitude: 18.5204,
-    longitude: 73.8567,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Maharashtra',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1271476,
-    name: 'Jaipur',
-    latitude: 26.9124,
-    longitude: 75.7873,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Rajasthan',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1264733,
-    name: 'Lucknow',
-    latitude: 26.8467,
-    longitude: 80.9462,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Uttar Pradesh',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1260086,
-    name: 'Patna',
-    latitude: 25.5941,
-    longitude: 85.1376,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Bihar',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1270583,
-    name: 'Guwahati',
-    latitude: 26.1445,
-    longitude: 91.7362,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Assam',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1273874,
-    name: 'Chandigarh',
-    latitude: 30.7333,
-    longitude: 76.7794,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Chandigarh',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1275817,
-    name: 'Bhopal',
-    latitude: 23.2599,
-    longitude: 77.4126,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Madhya Pradesh',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1267995,
-    name: 'Kochi',
-    latitude: 9.9312,
-    longitude: 76.2673,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Kerala',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 1253405,
-    name: 'Varanasi',
-    latitude: 25.3176,
-    longitude: 82.9739,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Uttar Pradesh',
-    timezone: 'Asia/Kolkata'
-  },
-  {
-    id: 7279746,
-    name: 'Noida',
-    latitude: 28.5355,
-    longitude: 77.391,
-    country: 'India',
-    country_code: 'IN',
-    admin1: 'Uttar Pradesh',
-    timezone: 'Asia/Kolkata'
-  }
-]);
+/**
+ * Normalizes an Indian country code to 2-letter ISO ('IN').
+ * @param {string} [code='IN']
+ * @returns {string}
+ */
+export function normalizeCountryCode(code) {
+  if (!code || typeof code !== 'string') return 'IN';
+  const clean = code.trim().toLowerCase();
+  if (clean === 'india' || clean === 'in' || clean === 'ind') return 'IN';
+  return clean.slice(0, 2).toUpperCase();
+}
+
+/**
+ * Normalizes input: trim, lower-case, remove diacritics, strip punctuation, collapse whitespace.
+ * @param {string} text
+ * @returns {string}
+ */
+export function normalizeLocationQuery(text) {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 /**
  * Normalizes an Indian state name.
@@ -269,10 +49,7 @@ export const INDIAN_FALLBACK_CITIES = Object.freeze([
  */
 export function normalizeStateName(state) {
   if (!state || typeof state !== 'string') return '';
-  const clean = state
-    .toLowerCase()
-    .replace(/[^a-z0-9& ]/g, '')
-    .trim();
+  const clean = normalizeLocationQuery(state);
   return STATE_ALIASES[clean] || clean;
 }
 
@@ -286,16 +63,132 @@ export function statesMatch(state1, state2) {
   if (!state1 || !state2) return false;
   const n1 = normalizeStateName(state1);
   const n2 = normalizeStateName(state2);
+  if (!n1 || !n2) return false;
   return n1 === n2 || n1.includes(n2) || n2.includes(n1);
 }
 
 /**
- * Resolves standard city name from alias.
+ * Extracts city and state if separated by comma or separator.
+ * e.g. "Bhubaneswar, Odisha" -> { city: "Bhubaneswar", state: "Odisha" }
+ * @param {string} query
+ * @returns {{ city: string, state: string }}
+ */
+export function extractCityAndState(query) {
+  if (!query || typeof query !== 'string') return { city: '', state: '' };
+  const parts = query.split(/[,–—|-]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return { city: parts[0], state: parts.slice(1).join(', ') };
+  }
+  return { city: query.trim(), state: '' };
+}
+
+/**
+ * Resolves standard city name from alias, abbreviation, or spelling variant.
  * @param {string} query - Raw city query.
- * @returns {string}
+ * @returns {string} Canonical name or input.
  */
 export function resolveCityAlias(query) {
   if (!query || typeof query !== 'string') return '';
-  const clean = query.toLowerCase().trim();
+  const clean = normalizeLocationQuery(query);
   return CITY_ALIASES[clean] || query.trim();
+}
+
+/**
+ * Validates whether a city belongs to the specified Indian state.
+ * @param {string} city - City name.
+ * @param {string} state - Selected Indian State/UT.
+ * @returns {{ valid: boolean, expectedState?: string, message?: string }}
+ */
+export function isValidCityStatePair(city, state) {
+  if (!city || !state) {
+    return { valid: true };
+  }
+
+  const canonicalCity = resolveCityAlias(city);
+  const expectedState = CITY_TO_STATE_MAP[canonicalCity] || CITY_TO_STATE_MAP[city];
+
+  if (!expectedState) {
+    // If city is not in the explicit mapping, assume valid (geocoding admin1 check will handle unknown places)
+    return { valid: true };
+  }
+
+  // Chandigarh is valid for Chandigarh, Punjab, and Haryana
+  if (canonicalCity === 'Chandigarh') {
+    const isChState = ['chandigarh', 'punjab', 'haryana'].some((s) => statesMatch(state, s));
+    if (isChState) return { valid: true };
+  }
+
+  if (statesMatch(state, expectedState)) {
+    return { valid: true, expectedState };
+  }
+
+  return {
+    valid: false,
+    expectedState,
+    message: `Selected location '${canonicalCity}' belongs to ${expectedState}, not ${state}. Please select a matching city in ${state}.`
+  };
+}
+
+/**
+ * Ranks and de-duplicates geocoded results by relevance, state match, population,
+ * and coordinate proximity.
+ * @param {Array<object>} results
+ * @param {string} query
+ * @param {string} [targetState='']
+ * @returns {Array<object>}
+ */
+export function rankAndDeduplicateLocations(results, query, targetState = '') {
+  if (!Array.isArray(results) || results.length === 0) return [];
+
+  const cleanQuery = normalizeLocationQuery(query);
+  const canonicalQuery = normalizeLocationQuery(resolveCityAlias(query));
+  const normTargetState = normalizeStateName(targetState);
+
+  // Score each result
+  const scored = results.map((item) => {
+    let score = 0;
+    const nameNorm = normalizeLocationQuery(item.name);
+    const adminNorm = normalizeStateName(item.admin1 || '');
+
+    // 1. Exact match on normalized query or alias
+    if (nameNorm === cleanQuery || nameNorm === canonicalQuery) {
+      score += 100;
+    } else if (nameNorm.startsWith(cleanQuery) || nameNorm.startsWith(canonicalQuery)) {
+      score += 50;
+    } else if (nameNorm.includes(cleanQuery) || nameNorm.includes(canonicalQuery)) {
+      score += 25;
+    }
+
+    // 2. State match
+    if (normTargetState) {
+      if (statesMatch(normTargetState, adminNorm)) {
+        score += 80;
+      }
+    }
+
+    // 3. Population boost
+    if (item.population && typeof item.population === 'number') {
+      score += Math.min(item.population / 100000, 20);
+    }
+
+    return { item, score };
+  });
+
+  // Sort descending by score
+  scored.sort((a, b) => b.score - a.score);
+
+  // De-duplicate by coordinates rounded to 2 decimals (~1km radius)
+  const seenCoords = new Set();
+  const deduped = [];
+
+  for (const { item } of scored) {
+    if (typeof item.latitude !== 'number' || typeof item.longitude !== 'number') continue;
+    const coordKey = `${item.latitude.toFixed(2)}_${item.longitude.toFixed(2)}`;
+    if (!seenCoords.has(coordKey)) {
+      seenCoords.add(coordKey);
+      deduped.push(item);
+    }
+  }
+
+  return deduped;
 }

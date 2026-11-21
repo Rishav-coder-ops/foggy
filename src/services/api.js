@@ -319,12 +319,18 @@ export async function geocodeLocation(options = {}, maybeCountry = 'IN') {
     count = options.count || 10;
   }
 
+  const cleanCountry = (countryCode || '').trim().toLowerCase();
+  const normalizedCountry =
+    cleanCountry === 'india' || cleanCountry === 'in'
+      ? 'IN'
+      : (countryCode || 'IN').trim().slice(0, 2).toUpperCase();
+
   if (!name || name.trim().length < 2) return [];
   const params = new URLSearchParams({
     name: name.trim(),
     count: String(count)
   });
-  if (countryCode) params.append('countryCode', countryCode);
+  if (normalizedCountry) params.append('countryCode', normalizedCountry);
 
   const res = await fetch(`/api/geocode?${params.toString()}`);
   if (!res.ok) {
