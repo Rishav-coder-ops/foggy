@@ -86,7 +86,7 @@ export function calculateCPCBNAQI(pm25, pm10) {
  */
 export function getAQICategory(aqi) {
   if (typeof aqi !== 'number' || isNaN(aqi)) {
-    return { label: 'Unknown', color: '#64748b', textColor: '#ffffff', severity: 0 };
+    return { label: 'Unknown', name: 'Unknown', color: '#64748b', textColor: '#ffffff', severity: 0 };
   }
 
   const val = Math.max(0, Math.min(500, Math.round(aqi)));

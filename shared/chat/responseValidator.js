@@ -29,6 +29,36 @@ export function verifyModelAqiResponse(replyText, allowedAqiValues = []) {
   return true;
 }
 
+/**
+ * Corrects (rather than discards) replies that quote inaccurate AQI data conflicting with ground truth.
+ * Replaces mismatched AQI numbers with the ground truth target AQI.
+ *
+ * @param {string} replyText - Model generated text.
+ * @param {number} targetAqi - Ground truth target AQI to substitute.
+ * @param {Array<number>} allowedAqiValues - Acceptable AQI values within tolerance.
+ * @returns {string} Corrected text.
+ */
+export function correctModelAqiResponse(replyText, targetAqi, allowedAqiValues = []) {
+  if (!replyText || typeof replyText !== 'string') return replyText;
+  if (!Array.isArray(allowedAqiValues) || allowedAqiValues.length === 0) return replyText;
+
+  const allowedSet = new Set(allowedAqiValues.map((v) => Math.round(Number(v))));
+
+  return replyText.replace(
+    /\b((?:aqi|air quality index)\s*(?:is|of|around|level of|at|:)?\s*)([0-9]{1,3})\b/gi,
+    (fullMatch, prefix, numStr) => {
+      const quotedNum = parseInt(numStr, 10);
+      const isAccurate = Array.from(allowedSet).some(
+        (groundTruth) => Math.abs(quotedNum - groundTruth) <= 5
+      );
+      if (isAccurate) {
+        return fullMatch;
+      }
+      return `${prefix}${targetAqi}`;
+    }
+  );
+}
+
 export function generateSmartFallbackResponse({
   message = '',
   cityReports = [],

@@ -1,6 +1,7 @@
 // src/components/HourlyTimeline.jsx
 import { useState } from 'react';
 import { Clock, Sun, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { getAQICategory } from '../../shared/aqi.js';
 
 export default function HourlyTimeline({ hourlyData = [] }) {
   const [selectedHour, setSelectedHour] = useState(null);
@@ -89,17 +90,7 @@ export default function HourlyTimeline({ hourlyData = [] }) {
                   </span>
                 ) : (
                   <span className="inline-block text-[9px] text-slate-600 dark:text-slate-400">
-                    {item.aqi <= 50
-                      ? 'Good'
-                      : item.aqi <= 100
-                        ? 'Satisfactory'
-                        : item.aqi <= 200
-                          ? 'Moderate'
-                          : item.aqi <= 300
-                            ? 'Poor'
-                            : item.aqi <= 400
-                              ? 'Very Poor'
-                              : 'Severe'}
+                    {getAQICategory(item.aqi).label}
                   </span>
                 )}
               </button>

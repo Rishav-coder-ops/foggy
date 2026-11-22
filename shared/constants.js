@@ -31,18 +31,40 @@ export const CPCB_BREAKPOINTS = Object.freeze({
  * CPCB AQI Category bands and descriptions.
  */
 export const AQI_CATEGORIES = Object.freeze({
-  GOOD: { label: 'Good', min: 0, max: 50, color: '#10b981', textColor: '#ffffff' },
+  GOOD: { label: 'Good', name: 'Good', min: 0, max: 50, color: '#10b981', textColor: '#ffffff' },
   SATISFACTORY: {
     label: 'Satisfactory',
+    name: 'Satisfactory',
     min: 51,
     max: 100,
     color: '#84cc16',
     textColor: '#0f172a'
   },
-  MODERATE: { label: 'Moderate', min: 101, max: 200, color: '#eab308', textColor: '#0f172a' },
-  POOR: { label: 'Poor', min: 201, max: 300, color: '#f97316', textColor: '#ffffff' },
-  VERY_POOR: { label: 'Very Poor', min: 301, max: 400, color: '#ef4444', textColor: '#ffffff' },
-  SEVERE: { label: 'Severe', min: 401, max: 500, color: '#7f1d1d', textColor: '#ffffff' }
+  MODERATE: {
+    label: 'Moderate',
+    name: 'Moderate',
+    min: 101,
+    max: 200,
+    color: '#eab308',
+    textColor: '#0f172a'
+  },
+  POOR: { label: 'Poor', name: 'Poor', min: 201, max: 300, color: '#f97316', textColor: '#ffffff' },
+  VERY_POOR: {
+    label: 'Very Poor',
+    name: 'Very Poor',
+    min: 301,
+    max: 400,
+    color: '#ef4444',
+    textColor: '#ffffff'
+  },
+  SEVERE: {
+    label: 'Severe',
+    name: 'Severe',
+    min: 401,
+    max: 500,
+    color: '#7f1d1d',
+    textColor: '#ffffff'
+  }
 });
 
 /**

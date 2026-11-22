@@ -158,9 +158,21 @@ describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollu
 
   describe('Category Mapping and Hex Colours', () => {
     it('maps AQI bands to proper CPCB labels and colors', () => {
-      expect(getAQICategory(30)).toMatchObject({ label: 'Good', color: '#10b981', severity: 1 });
+      expect(getAQICategory(30)).toMatchObject({
+        label: 'Good',
+        name: 'Good',
+        color: '#10b981',
+        severity: 1
+      });
+      expect(getAQICategory(38)).toMatchObject({
+        label: 'Good',
+        name: 'Good',
+        color: '#10b981',
+        severity: 1
+      });
       expect(getAQICategory(85)).toMatchObject({
         label: 'Satisfactory',
+        name: 'Satisfactory',
         color: '#84cc16',
         severity: 2
       });

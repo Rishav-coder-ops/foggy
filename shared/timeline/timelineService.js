@@ -240,9 +240,17 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
       tomorrow: {
         date: sample.forecast7Days[1]?.date || 'Tomorrow',
         averageAqi: sample.forecast7Days[1]?.averageAqi || sample.currentAqi,
-        category: sample.forecast7Days[1]?.dominantCategory || 'Moderate',
-        cleanestSlot: { hour: '14:00', aqi: Math.round(sample.currentAqi * 0.75), category: 'Moderate' },
-        peakSlot: { hour: '08:00', aqi: Math.round(sample.currentAqi * 1.3), category: 'Poor' }
+        category: getAQICategory(sample.forecast7Days[1]?.averageAqi || sample.currentAqi).label,
+        cleanestSlot: {
+          hour: '14:00',
+          aqi: Math.round(sample.currentAqi * 0.75),
+          category: getAQICategory(Math.round(sample.currentAqi * 0.75)).label
+        },
+        peakSlot: {
+          hour: '08:00',
+          aqi: Math.round(sample.currentAqi * 1.3),
+          category: getAQICategory(Math.round(sample.currentAqi * 1.3)).label
+        }
       },
       isSample: true,
       source: 'Simulation Mode (Sample data, live data unavailable)'

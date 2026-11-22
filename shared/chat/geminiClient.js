@@ -1,9 +1,73 @@
 // shared/chat/geminiClient.js
 /**
- * @fileoverview Resilient Google Gemini GenAI API caller with fallback models and ground-truth verification.
+ * @fileoverview Resilient Google Gemini GenAI API caller with fallback models, caching, retry, and ground-truth correction.
  */
 
-import { verifyModelAqiResponse } from './responseValidator.js';
+import { correctModelAqiResponse } from './responseValidator.js';
+
+let cachedModels = null;
+let cachedModelsExpiresAt = 0;
+
+/**
+ * Discovers and caches available Gemini models supporting generateContent.
+ * @param {string} apiKey
+ * @returns {Promise<Array<string>>}
+ */
+export async function getAvailableGeminiModels(apiKey) {
+  const now = Date.now();
+  if (cachedModels && Array.isArray(cachedModels) && now < cachedModelsExpiresAt) {
+    return cachedModels;
+  }
+
+  const fallbackList = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+  if (
+    !apiKey ||
+    typeof apiKey !== 'string' ||
+    apiKey.startsWith('test-') ||
+    apiKey.trim().length < 15
+  ) {
+    return fallbackList;
+  }
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`,
+      {
+        signal: AbortSignal.timeout(5000)
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const list = (data.models || [])
+        .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m) => (m.name || '').replace(/^models\//, ''))
+        .filter(Boolean);
+
+      const preferred = [
+        'gemini-3.1-flash-lite',
+        'gemini-flash-latest',
+        'gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash'
+      ];
+      const ordered = [
+        ...preferred.filter((p) => list.includes(p)),
+        ...list.filter((m) => !preferred.includes(m) && m.includes('flash'))
+      ];
+
+      if (ordered.length > 0) {
+        cachedModels = ordered;
+        cachedModelsExpiresAt = now + 3600000; // 1 hour TTL
+        return cachedModels;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to retrieve Gemini ListModels, using default candidate list:', err.message);
+  }
+
+  return fallbackList;
+}
 
 export async function callGeminiApi({
   apiKey,
@@ -12,28 +76,55 @@ export async function callGeminiApi({
   primaryReport,
   timeframe
 }) {
-  const candidateModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
-  for (const modelName of candidateModels) {
-    try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
-      const apiRes = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents,
-          generationConfig: { temperature: 0.3, maxOutputTokens: 800 }
-        }),
-        signal: AbortSignal.timeout(15000)
-      });
+  let candidateModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+  try {
+    candidateModels = await getAvailableGeminiModels(apiKey);
+  } catch {}
 
-      if (apiRes.ok) {
+  let lastErrorReason = 'AI service unavailable';
+
+  for (const modelName of candidateModels) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
+        const apiRes = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents,
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1500 }
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        // Safe retry for HTTP 429 and 503
+        if (apiRes.status === 429 || apiRes.status === 503) {
+          lastErrorReason =
+            apiRes.status === 429
+              ? 'Rate limited by AI provider (429)'
+              : 'AI provider temporarily overloaded (503)';
+          if (attempt === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 750));
+            continue; // retry this model once
+          }
+          break; // move to next model
+        }
+
+        if (!apiRes.ok) {
+          const errText = await apiRes.text().catch(() => '');
+          lastErrorReason = `AI service returned HTTP ${apiRes.status}`;
+          console.warn(`Gemini call returned ${apiRes.status} for ${modelName}:`, errText);
+          break; // move to next model
+        }
+
         const data = await apiRes.json();
         const candidate = data.candidates?.[0];
         let rawReply = candidate?.content?.parts?.[0]?.text;
         const isBlocked =
           candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION';
 
+        // Treat finishReason === 'MAX_TOKENS' as usable text rather than blocking or discarding
         if (rawReply && !isBlocked) {
           let extractedFacts = [];
           const memoryMatch = rawReply.match(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/);
@@ -45,26 +136,25 @@ export async function callGeminiApi({
             rawReply = rawReply.replace(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/, '').trim();
           }
 
-          let quotedAqi = primaryReport.current.aqi;
-          let quotedCategory = primaryReport.current.category;
-          if (timeframe === 'tonight' && primaryReport.tonight) {
+          let quotedAqi = primaryReport?.current?.aqi ?? 35;
+          let quotedCategory = primaryReport?.current?.category || 'Good';
+          if (timeframe === 'tonight' && primaryReport?.tonight) {
             quotedAqi = primaryReport.tonight.aqi;
             quotedCategory = primaryReport.tonight.category;
-          } else if (timeframe === 'tomorrow' && primaryReport.tomorrow) {
+          } else if (timeframe === 'tomorrow' && primaryReport?.tomorrow) {
             quotedAqi = primaryReport.tomorrow.averageAqi;
             quotedCategory = primaryReport.tomorrow.category;
           }
 
           const allowedNumbers = [
             quotedAqi,
-            primaryReport.current?.aqi,
-            primaryReport.tonight?.aqi,
-            primaryReport.tomorrow?.averageAqi
+            primaryReport?.current?.aqi,
+            primaryReport?.tonight?.aqi,
+            primaryReport?.tomorrow?.averageAqi
           ].filter((v) => typeof v === 'number');
 
-          if (!verifyModelAqiResponse(rawReply, allowedNumbers)) {
-            throw new Error('Model quoted inaccurate AQI numbers conflicting with ground truth.');
-          }
+          // Correct (rather than discard) replies that quote inaccurate AQI numbers conflicting with ground truth
+          rawReply = correctModelAqiResponse(rawReply, quotedAqi, allowedNumbers);
 
           return {
             success: true,
@@ -74,11 +164,18 @@ export async function callGeminiApi({
             quotedAqi,
             quotedCategory
           };
+        } else if (isBlocked) {
+          lastErrorReason = `Safety filter triggered (${candidate?.finishReason})`;
+          break; // do not retry blocked safety response on same model
+        } else {
+          break; // empty response, proceed to next model
         }
+      } catch (err) {
+        lastErrorReason = err.name === 'TimeoutError' ? 'AI request timed out' : err.message;
+        console.warn(`Gemini call failed for model ${modelName} (attempt ${attempt + 1}):`, err.message);
       }
-    } catch (err) {
-      console.warn(`Gemini call failed for model ${modelName}:`, err.message);
     }
   }
-  return { success: false };
+
+  return { success: false, errorReason: lastErrorReason };
 }

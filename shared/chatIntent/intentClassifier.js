@@ -95,12 +95,12 @@ export function classifyIntent(message, history = []) {
     return INTENT_TYPES.MASK_ADVICE;
   }
 
-  // 9. Kids or seniors safety
+  // 9. Kids or seniors / vulnerable family member safety
   if (
-    /\b(kid|kids|child|children|baby|infant|toddler|baccha|bacche|baccho|bache|senior|seniors|elder|elderly|old people|grandma|grandpa|dadi|nani|dada|nana|bujurg|tips for my child)\b/i.test(
+    /\b(kid|kids|child|children|baby|infant|toddler|baccha|bacche|baccho|bache|senior|seniors|elder|elderly|old people|grandma|grandpa|dadi|nani|dada|nana|bujurg|father|mother|dad|mom|parents|pitaji|mataji|tips for my child)\b/i.test(
       text
     ) &&
-    /\b(safe|outside|play|outdoor|park|school|cricket|asthma|precaution|hawa|theek|bhejna)\b/i.test(
+    /\b(safe|outside|play|outdoor|park|school|cricket|asthma|copd|bronchitis|heart|walk|walks|precaution|hawa|theek|bhejna|change)\b/i.test(
       text
     )
   ) {

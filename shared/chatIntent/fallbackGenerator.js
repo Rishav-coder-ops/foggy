@@ -5,6 +5,59 @@
 
 import { INTENT_TYPES } from './intentTypes.js';
 
+export function extractUserContextEntities(message = '', profile = {}) {
+  const text = (message || '').toLowerCase();
+
+  // Person
+  let person = null;
+  if (/\b(father|dad|pitaji|papa)\b/i.test(text)) person = 'father';
+  else if (/\b(mother|mom|mataji|mummy)\b/i.test(text)) person = 'mother';
+  else if (/\b(child|kid|son|daughter|baby|beta|beti)\b/i.test(text)) person = 'child';
+  else if (/\b(dadi|grandma|grandmother|nani)\b/i.test(text)) person = 'grandmother';
+  else if (/\b(dada|grandpa|grandfather|nana)\b/i.test(text)) person = 'grandfather';
+  else if (/\b(senior|seniors|elder|elderly|parent|parents)\b/i.test(text))
+    person = 'senior family member';
+
+  // Condition
+  let condition = null;
+  if (/\bcopd\b/i.test(text)) condition = 'COPD';
+  else if (/\basthma\b/i.test(text)) condition = 'asthma';
+  else if (/\bbronchitis\b/i.test(text)) condition = 'bronchitis';
+  else if (/\b(heart|cardiac|hypertension|bp)\b/i.test(text))
+    condition = 'heart condition/hypertension';
+  else if (/\b(allergy|allergies)\b/i.test(text)) condition = 'respiratory allergies';
+
+  // Activity
+  let activity = null;
+  if (/\b(walks?|walking|sair)\b/i.test(text)) activity = 'walks';
+  else if (/\b(run|running|jog|jogging|daudna)\b/i.test(text)) activity = 'running/jogging';
+  else if (/\b(play|playing|outdoor play|cricket|sports)\b/i.test(text)) activity = 'outdoor play';
+  else if (/\b(cycling|cycle)\b/i.test(text)) activity = 'cycling';
+
+  // Timing
+  let timing = null;
+  if (/\bevening\b/i.test(text)) timing = 'evening';
+  else if (/\bmorning\b/i.test(text)) timing = 'early morning';
+  else if (/\bnight\b/i.test(text)) timing = 'night';
+
+  // Setting / location
+  let locationDetail = null;
+  if (/\b(river|riverbank|river side|lake|water)\b/i.test(text)) locationDetail = 'near the river';
+  else if (/\b(park|garden)\b/i.test(text)) locationDetail = 'in the park';
+  else if (/\b(road|highway|traffic)\b/i.test(text)) locationDetail = 'near heavy traffic roads';
+
+  // If no person was explicitly in message, check profile family members
+  if (!person && Array.isArray(profile?.familyMembers) && profile.familyMembers.length > 0) {
+    const vulnerable = profile.familyMembers.find((m) => m.condition && m.condition !== 'None');
+    if (vulnerable) {
+      person = vulnerable.relationship || vulnerable.name;
+      condition = condition || vulnerable.condition;
+    }
+  }
+
+  return { person, condition, activity, timing, locationDetail };
+}
+
 export function generateIntentFallback({
   intentType,
   primaryReport,
@@ -44,6 +97,31 @@ export function generateIntentFallback({
     }
 
     case INTENT_TYPES.KIDS_OR_SENIORS_SAFETY: {
+      const entities = extractUserContextEntities(message, _profile);
+      if (
+        entities.condition ||
+        entities.timing ||
+        entities.locationDetail ||
+        (entities.person && entities.person !== 'child')
+      ) {
+        const subject = entities.person
+          ? `your ${entities.person}${entities.condition ? ` living with ${entities.condition}` : ''}`
+          : `anyone living with ${entities.condition || 'respiratory vulnerability'}`;
+        const timeLoc = [entities.timing, entities.locationDetail].filter(Boolean).join(' ');
+        const walkActivity = entities.activity || 'outdoor walks';
+
+        return (
+          `For ${subject}, here are the recommended changes to ${entities.activity ? `their ${entities.activity}` : 'daily routine'} in ${city} (current estimated NAQI ${aqi}, ${category}):\n\n` +
+          `* **Timing Adjustment:** Shift ${timeLoc || 'outdoor'} ${walkActivity} away from ${entities.timing || 'evening / early morning'} hours to the warmest afternoon window (1:00 PM – 3:30 PM). Cooler temperatures trap surface pollution and vehicle exhaust, whereas afternoon sunlight aids air dispersion.\n` +
+          (entities.locationDetail
+            ? `* **Location Caution:** Riverbanks and low-lying water bodies can trap high relative humidity and riverine inversion fog, which holds heavy PM2.5 particulates. Avoid walking right at the water's edge during twilight or misty hours.\n`
+            : `* **Route Selection:** Choose open, green residential colonies or paved walking tracks away from major vehicular corridors and construction dust.\n`) +
+          `* **Respiratory Protection & Medication:** Always keep their doctor-prescribed rescue inhaler (such as a bronchodilator) immediately accessible during outings. If stepping out when air is ${category}, wear a snug, certified N95 respirator.\n` +
+          `* **Indoor Alternative:** On days when smog is elevated, swap outdoor ${walkActivity} for gentle indoor pacing, seated breathing exercises, or indoor yoga in a room with windows closed and damp-mopped floors.\n\n` +
+          `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. Consult his physician before changing physical exercise limits, and call 112 in a medical emergency.*`
+        );
+      }
+
       if (isClean) {
         return (
           `Yes, kids and seniors can safely play and walk outside today in ${city}.\n\n` +

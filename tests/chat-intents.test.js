@@ -246,6 +246,21 @@ describe('Smart Fallback Answers adhere strictly to guidelines', () => {
     expect(poorReply.startsWith('No')).toBe(true);
   });
 
+  it('generates tailored guidance when question mentions father with COPD and evening walks near river', () => {
+    const reply = generateIntentFallback({
+      intentType: INTENT_TYPES.KIDS_OR_SENIORS_SAFETY,
+      primaryReport: mockReportGood,
+      message:
+        'My father has COPD and loves evening walks near the river. What should he change this week?'
+    });
+
+    expect(reply.toLowerCase()).toContain('father');
+    expect(reply.toLowerCase()).toContain('copd');
+    expect(reply.toLowerCase()).toContain('afternoon');
+    expect(reply.toLowerCase()).toContain('river');
+    expect(reply.toLowerCase()).toContain('inhaler');
+  });
+
   it('answers "What mask should I wear?" mentioning certified N95/FFP2 and Indian prices', () => {
     const reply = generateIntentFallback({
       intentType: INTENT_TYPES.MASK_ADVICE,

@@ -6,6 +6,7 @@ import FormattedChatMessage from './FormattedChatMessage';
 import { useChat } from '../context/ChatContext';
 import { useProfile } from '../context/ProfileContext';
 import { getStoredCity } from '../services/api';
+import { getAQICategory } from '../../shared/aqi.js';
 
 function getCategoryBadge(cat) {
   switch (cat) {
@@ -71,8 +72,11 @@ export default function CompactChatModal({ isEmbedded = false }) {
     aqiData?.city ||
     profile?.location ||
     'Kolkata';
-  const activeCityAqi = chatCityData?.aqi != null ? chatCityData.aqi : aqiData?.aqi || 165;
-  const activeCityCat = chatCityData?.category || aqiData?.category || 'Moderate';
+  const activeCityAqi =
+    chatCityData?.aqi != null ? chatCityData.aqi : aqiData?.aqi != null ? aqiData.aqi : 165;
+  const activeCategoryObj = getAQICategory(activeCityAqi);
+  const activeCityCat =
+    activeCategoryObj?.label || chatCityData?.category || aqiData?.category || 'Moderate';
 
   const isDifferentFromDashboard = Boolean(
     chatCityData?.name &&
@@ -264,11 +268,17 @@ export default function CompactChatModal({ isEmbedded = false }) {
                   {!isUser && (
                     <div className="flex items-center justify-between gap-1 mb-1 pb-1 border-b border-slate-200/50 dark:border-slate-700/50 text-[9px] text-slate-400">
                       <span className="font-bold text-sky-600 dark:text-sky-400">Foggy</span>
-                      <span>
-                        {msg.provider ||
-                          (msg.model && msg.model.includes('gemini')
-                            ? 'Gemini 1.5 Flash'
-                            : 'Foggy Atmospheric Core')}
+                      <span
+                        title={
+                          msg.isLive
+                            ? `Live AI Model: ${msg.model || 'gemini-3.1-flash-lite'}`
+                            : msg.reason || 'Built-in rule-based guidance'
+                        }
+                        className="cursor-help"
+                      >
+                        {msg.isLive
+                          ? `Google Gemini (${msg.model || 'gemini-3.1-flash-lite'})`
+                          : msg.provider || "Answered by Foggy's built-in guidance"}
                       </span>
                     </div>
                   )}

@@ -4,6 +4,9 @@
 
 import { auth } from '../firebase';
 import { INDIAN_METROS } from '../../shared/timeline/constants.js';
+import { getAQICategory } from '../../shared/aqi.js';
+import { classifyIntent } from '../../shared/chatIntent/intentClassifier.js';
+import { generateSmartFallbackResponse } from '../../shared/chat/responseValidator.js';
 
 export { INDIAN_METROS };
 
@@ -220,7 +223,8 @@ export async function sendChatMessage({
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers,
-      body: payload
+      body: payload,
+      signal: AbortSignal.timeout(28000)
     });
 
     if (!res.ok) {
@@ -244,28 +248,59 @@ export async function sendChatMessage({
       };
     }
     console.warn('Chat request failed, providing supportive client fallback:', err.message);
+    const reason =
+      err.name === 'TimeoutError' || err.message?.toLowerCase().includes('timeout')
+        ? 'AI temporarily unavailable: timeout'
+        : err.message?.toLowerCase().includes('network') ||
+            err.message?.toLowerCase().includes('failed to fetch')
+          ? 'AI temporarily unavailable: network error'
+          : err.message || 'AI temporarily unavailable';
+
     const isFirst =
       !history || history.filter((m) => m.sender === 'user' || m.role === 'user').length <= 1;
     const greetingPrefix = isFirst
       ? `Hello ${user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend'}! I'm **Foggy**, your air quality guide.\n\n`
       : '';
 
+    const cityAqi = aqiData?.aqi || 165;
+    const cat = getAQICategory(cityAqi);
+    const detectedIntent = classifyIntent(message, history);
+
+    const fallback = generateSmartFallbackResponse({
+      message,
+      cityReports: [
+        {
+          city: aqiData?.city || 'Kolkata',
+          current: {
+            aqi: cityAqi,
+            category: cat.label,
+            dominant: aqiData?.dominantPollutant || 'PM2.5',
+            time: aqiData?.updatedAt || '14:00 IST'
+          },
+          bestHour24h: { hour: '14:00', aqi: Math.round(cityAqi * 0.7) },
+          worstHour24h: { hour: '07:00', aqi: Math.round(cityAqi * 1.3) }
+        }
+      ],
+      profile,
+      intentType: detectedIntent
+    });
+
+    let reply = `${greetingPrefix}${fallback.reply}`;
+    if (!reply.includes('Safeguards')) {
+      reply += `\n\n### 🛡️ Recommended Safeguards:\n* **Indoor Air:** Keep windows sealed during peak smog and run damp-mopping.\n* **Outdoor Transit:** Wear a certified N95 respirator during high-traffic hours.`;
+    }
+
     return {
-      reply:
-        `${greetingPrefix}` +
-        `Current air quality in **${aqiData?.city || 'Kolkata'}** is **Estimated NAQI ${aqiData?.aqi || 165} (${aqiData?.category || 'Moderate'})**.\n\n` +
-        `### 🛡️ Recommended Safeguards:\n` +
-        `* **Draft Sealing:** Roll a damp towel along door thresholds to prevent up to 40% of outdoor PM2.5 from entering.\n` +
-        `* **Outdoor Transit:** Wear a certified N95 / FFP2 mask during high-traffic morning commute hours.\n` +
-        `* **Family Safety:** Keep prescribed salbutamol inhaler (for example Asthalin) handy as advised by your doctor, and shift walks to the afternoon solar window.\n\n` +
-        `> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.*`,
-      extractedFacts: [],
-      provider: 'Foggy Resilient Core',
+      reply,
+      extractedFacts: fallback.extractedFacts || [],
+      provider: "Answered by Foggy's built-in guidance",
+      model: 'foggy-atmospheric-core',
       isLive: false,
+      reason,
       cityData: {
         name: aqiData?.city || 'Kolkata',
-        aqi: aqiData?.aqi || 165,
-        category: aqiData?.category || 'Moderate'
+        aqi: cityAqi,
+        category: cat.label
       }
     };
   }
@@ -374,6 +409,7 @@ export async function fetchAQITimeline({ lat = 22.5726, lon = 88.3639, city = 'K
         const h = i;
         const hourStr = `${String(h).padStart(2, '0')}:00`;
         const aqi = Math.round(175 + Math.sin((h - 8) / 3.8) * -50);
+        const cat = getAQICategory(aqi);
         return {
           time: `2026-11-18T${hourStr}`,
           hour: hourStr,
@@ -381,30 +417,8 @@ export async function fetchAQITimeline({ lat = 22.5726, lon = 88.3639, city = 'K
           dominant: 'PM2.5',
           pm25: Math.round(aqi * 0.48 * 10) / 10,
           pm10: Math.round(aqi * 0.88 * 10) / 10,
-          category:
-            aqi <= 50
-              ? 'Good'
-              : aqi <= 100
-                ? 'Satisfactory'
-                : aqi <= 200
-                  ? 'Moderate'
-                  : aqi <= 300
-                    ? 'Poor'
-                    : aqi <= 400
-                      ? 'Very Poor'
-                      : 'Severe',
-          color:
-            aqi <= 50
-              ? '#10B981'
-              : aqi <= 100
-                ? '#22C55E'
-                : aqi <= 200
-                  ? '#EAB308'
-                  : aqi <= 300
-                    ? '#F97316'
-                    : aqi <= 400
-                      ? '#EF4444'
-                      : '#881337',
+          category: cat.label,
+          color: cat.color,
           badgeClass:
             'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800'
         };

@@ -183,8 +183,13 @@ export function ChatProvider({ children }) {
         sender: 'foggy',
         text: response.reply,
         provider:
-          response.provider || (response.isLive ? 'Gemini 1.5 Flash' : 'Foggy Atmospheric Core'),
-        model: response.model || (response.isLive ? 'gemini-1.5-flash' : 'foggy-atmospheric-core'),
+          response.provider ||
+          (response.isLive ? 'Google Gemini' : "Answered by Foggy's built-in guidance"),
+        model:
+          response.model ||
+          (response.isLive ? 'gemini-3.1-flash-lite' : 'foggy-built-in-guidance'),
+        isLive: Boolean(response.isLive),
+        reason: response.reason || null,
         cityData: response.cityData,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -201,6 +206,10 @@ export function ChatProvider({ children }) {
         id: 'msg_err_' + Date.now(),
         sender: 'foggy',
         text: 'Foggy had a brief connection hiccup. Please try asking again!',
+        provider: "Answered by Foggy's built-in guidance",
+        model: 'foggy-built-in-guidance',
+        isLive: false,
+        reason: 'Connection interrupted',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, errorReply]);

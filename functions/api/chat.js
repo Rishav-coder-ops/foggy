@@ -35,6 +35,7 @@ import {
 import { extractIntentAndCities } from '../../shared/chat/cityExtractor.js';
 import {
   verifyModelAqiResponse,
+  correctModelAqiResponse,
   generateSmartFallbackResponse
 } from '../../shared/chat/responseValidator.js';
 import { callGeminiApi } from '../../shared/chat/geminiClient.js';
@@ -54,8 +55,78 @@ export {
   extractMemoryFact,
   extractMemoryFacts,
   verifyModelAqiResponse,
+  correctModelAqiResponse,
   generateSmartFallbackResponse
 };
+
+/**
+ * Constructs sanitized multi-turn contents for Gemini API:
+ * 1. Multi-turn talk cannot start with a model turn.
+ * 2. Strictly alternates user and model turns (merging consecutive same-role turns).
+ * 3. Appends current turn user payload.
+ *
+ * @param {Array<object>} history - Conversation history.
+ * @param {string} currentPayload - Current user turn payload.
+ * @returns {Array<{ role: 'user' | 'model', parts: Array<{ text: string }> }>}
+ */
+export function buildGeminiContents(history = [], currentPayload = '') {
+  const turns = [];
+  if (Array.isArray(history)) {
+    const recent = history.slice(-MAX_HISTORY_TURNS);
+    for (const item of recent) {
+      if (item && typeof item === 'object') {
+        let textContent = (
+          item.text ||
+          item.content ||
+          item.parts?.[0]?.text ||
+          ''
+        )
+          .toString()
+          .slice(0, 1000);
+        if (textContent.includes('USER QUESTION:')) {
+          textContent = textContent.split('USER QUESTION:').pop().trim();
+        }
+        textContent = textContent.trim();
+        if (textContent) {
+          const role = item.role === 'user' || item.sender === 'user' ? 'user' : 'model';
+          turns.push({ role, text: textContent });
+        }
+      }
+    }
+  }
+
+  // 1. Multi-turn talk cannot start with model turn: drop any leading model turns
+  while (turns.length > 0 && turns[0].role === 'model') {
+    turns.shift();
+  }
+
+  // 2. Append current user turn
+  if (currentPayload && currentPayload.trim()) {
+    turns.push({ role: 'user', text: currentPayload.trim() });
+  }
+
+  // 3. Strictly alternate: collapse consecutive turns of identical role
+  const formatted = [];
+  for (const turn of turns) {
+    if (formatted.length > 0 && formatted[formatted.length - 1].role === turn.role) {
+      formatted[formatted.length - 1].parts[0].text += `\n\n${turn.text}`;
+    } else {
+      formatted.push({
+        role: turn.role,
+        parts: [{ text: turn.text }]
+      });
+    }
+  }
+
+  // 4. Guarantee non-empty array starting with user role
+  if (formatted.length === 0) {
+    formatted.push({ role: 'user', parts: [{ text: currentPayload || 'Hello' }] });
+  } else if (formatted[0].role !== 'user') {
+    formatted[0].role = 'user';
+  }
+
+  return formatted;
+}
 
 export async function onRequestOptions(context) {
   return new Response(null, {
@@ -251,7 +322,8 @@ export async function onRequestPost(context) {
         isDifferentFromSelected: false,
         isLive: false,
         model: 'foggy-atmospheric-core',
-        provider: 'Foggy Atmospheric Core',
+        provider: "Answered by Foggy's built-in guidance",
+        reason: 'Unrecognized city location',
         extractedFacts: fallback.extractedFacts
       }),
       { status: 200, headers }
@@ -276,7 +348,8 @@ export async function onRequestPost(context) {
         isDifferentFromSelected: false,
         isLive: false,
         model: 'foggy-atmospheric-core',
-        provider: 'Foggy Atmospheric Core',
+        provider: "Answered by Foggy's built-in guidance",
+        reason: 'City data temporarily unavailable',
         extractedFacts: []
       }),
       { status: 200, headers }
@@ -310,11 +383,11 @@ export async function onRequestPost(context) {
   });
 
   // 8. Try live Gemini call
+  let geminiResult = null;
   if (isKeyConfigured) {
-    const contents = [...sanitizedHistory];
-    contents.push({ role: 'user', parts: [{ text: userMessagePayload }] });
+    const contents = buildGeminiContents(history, userMessagePayload);
 
-    const geminiResult = await callGeminiApi({
+    geminiResult = await callGeminiApi({
       apiKey,
       systemPrompt,
       contents,
@@ -347,7 +420,7 @@ export async function onRequestPost(context) {
           isDifferentFromSelected,
           isLive: true,
           model: geminiResult.modelName,
-          provider: `Gemini (${geminiResult.modelName})`,
+          provider: 'Google Gemini',
           extractedFacts: geminiResult.extractedFacts
         }),
         { status: 200, headers }
@@ -403,7 +476,10 @@ export async function onRequestPost(context) {
       isDifferentFromSelected,
       isLive: false,
       model: 'foggy-atmospheric-core',
-      provider: 'Foggy Atmospheric Core',
+      provider: "Answered by Foggy's built-in guidance",
+      reason: isKeyConfigured
+        ? geminiResult?.errorReason || 'AI temporarily unavailable'
+        : 'API key not configured',
       extractedFacts: fallback.extractedFacts || []
     }),
     { status: 200, headers }

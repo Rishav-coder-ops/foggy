@@ -5,7 +5,9 @@ import {
   onRequestPost,
   extractMemoryFact,
   extractMemoryFacts,
-  verifyModelAqiResponse
+  verifyModelAqiResponse,
+  correctModelAqiResponse,
+  buildGeminiContents
 } from '../functions/api/chat.js';
 import { callGeminiApi } from '../shared/chat/geminiClient.js';
 import * as tokenVerifier from '../functions/api/verifyFirebaseToken.js';
@@ -143,7 +145,7 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.isLive).toBe(false);
-      expect(data.provider).toBe('Foggy Atmospheric Core');
+      expect(data.provider).toBe("Answered by Foggy's built-in guidance");
       expect(data.reply).toContain('Free (₹0)');
       expect(data.reply).toContain('Budget (under ₹1,000)');
     });
@@ -188,6 +190,51 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
       const reply =
         'Keep your windows closed during peak morning rush hour and use an exhaust fan.';
       expect(verifyModelAqiResponse(reply, [150])).toBe(true);
+    });
+
+    it('corrects rather than discards replies quoting inaccurate AQI numbers', () => {
+      const inaccurate = 'Current AQI of 450 is very hazardous today.';
+      const corrected = correctModelAqiResponse(inaccurate, 85, [85]);
+      expect(corrected).toBe('Current AQI of 85 is very hazardous today.');
+    });
+
+    it('leaves accurate numbers within tolerance intact', () => {
+      const accurate = 'Current AQI of 83 is within range.';
+      const corrected = correctModelAqiResponse(accurate, 85, [85]);
+      expect(corrected).toBe('Current AQI of 83 is within range.');
+    });
+  });
+
+  describe('Multi-turn Gemini Contents Sanitization', () => {
+    it('drops leading model turn so contents begins with user role', () => {
+      const history = [
+        { sender: 'foggy', text: 'Hello friend! I am Foggy.' },
+        { sender: 'user', text: 'What is Delhi AQI?' },
+        { sender: 'foggy', text: 'Delhi AQI is 280.' }
+      ];
+      const contents = buildGeminiContents(history, 'What about tomorrow?');
+      expect(contents[0].role).toBe('user');
+      expect(contents[0].parts[0].text).toBe('What is Delhi AQI?');
+      expect(contents[1].role).toBe('model');
+      expect(contents[2].role).toBe('user');
+      expect(contents[2].parts[0].text).toBe('What about tomorrow?');
+    });
+
+    it('collapses consecutive turns with the same role to strictly alternate', () => {
+      const history = [
+        { role: 'user', parts: [{ text: 'Question 1' }] },
+        { role: 'user', parts: [{ text: 'Question 2' }] },
+        { role: 'model', parts: [{ text: 'Answer 1' }] },
+        { role: 'model', parts: [{ text: 'Answer 2' }] }
+      ];
+      const contents = buildGeminiContents(history, 'Follow up');
+      expect(contents.length).toBe(3);
+      expect(contents[0].role).toBe('user');
+      expect(contents[0].parts[0].text).toContain('Question 1\n\nQuestion 2');
+      expect(contents[1].role).toBe('model');
+      expect(contents[1].parts[0].text).toContain('Answer 1\n\nAnswer 2');
+      expect(contents[2].role).toBe('user');
+      expect(contents[2].parts[0].text).toBe('Follow up');
     });
   });
 
@@ -373,6 +420,60 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.reply).toBeDefined();
+      expect(json.provider).toBe("Answered by Foggy's built-in guidance");
+      expect(json.isLive).toBe(false);
+    });
+
+    it('returns Google Gemini provider and isLive: true when Gemini responds', async () => {
+      global.fetch = vi.fn().mockImplementation((url) => {
+        if (url.includes('open-meteo.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              hourly: {
+                time: ['2026-11-23T00:00'],
+                pm2_5: [25],
+                pm10: [40]
+              }
+            })
+          });
+        }
+        if (url.includes('generativelanguage.googleapis.com')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              candidates: [
+                {
+                  finishReason: 'STOP',
+                  content: {
+                    parts: [{ text: 'In Kolkata, estimated NAQI is 35 (Good).' }]
+                  }
+                }
+              ]
+            })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      });
+
+      const req = new Request('https://foggy.pages.dev/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'cf-connecting-ip': '10.0.99.2'
+        },
+        body: JSON.stringify({ message: 'What is Kolkata AQI?', city: 'Kolkata' })
+      });
+
+      const res = await onRequestPost({
+        request: req,
+        env: { GEMINI_API_KEY: 'test-real-looking-key-1234567890' }
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.isLive).toBe(true);
+      expect(json.provider).toBe('Google Gemini');
+      expect(json.model).toBeDefined();
     });
   });
 });
