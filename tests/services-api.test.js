@@ -1,5 +1,24 @@
 // tests/services-api.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const { mockAuth } = vi.hoisted(() => ({
+  mockAuth: {
+    currentUser: null
+  }
+}));
+
+vi.mock('../src/firebase.js', () => ({
+  auth: mockAuth,
+  isFirebaseConfigured: true,
+  missingFirebaseVars: []
+}));
+
+vi.mock('../src/firebase', () => ({
+  auth: mockAuth,
+  isFirebaseConfigured: true,
+  missingFirebaseVars: []
+}));
+
 import {
   getStoredCity,
   setStoredCity,
@@ -16,10 +35,12 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
+    mockAuth.currentUser = null;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    mockAuth.currentUser = null;
   });
 
   describe('Local Storage City Persistence', () => {
