@@ -36,6 +36,7 @@ import { extractIntentAndCities } from '../../shared/chat/cityExtractor.js';
 import {
   verifyModelAqiResponse,
   correctModelAqiResponse,
+  validateAndAlignReplyWithAqi,
   generateSmartFallbackResponse
 } from '../../shared/chat/responseValidator.js';
 import { callGeminiApi } from '../../shared/chat/geminiClient.js';
@@ -372,6 +373,30 @@ export async function onRequestPost(context) {
 
   const primaryReport = cityReports[0];
   const secondaryReport = cityReports.length > 1 ? cityReports[1] : null;
+
+  // Ensure single source of truth: align primaryReport with client's active aqiData if same place
+  const clientAqi = requestBody.aqiData;
+  if (clientAqi && clientAqi.aqi != null) {
+    const clientCityNorm = (clientAqi.city || '').toLowerCase().trim();
+    const primaryCityNorm = (primaryReport.city || '').toLowerCase().trim();
+    if (
+      intent.usedDefault ||
+      clientCityNorm.includes(primaryCityNorm) ||
+      primaryCityNorm.includes(clientCityNorm)
+    ) {
+      primaryReport.current.aqi = clientAqi.aqi;
+      if (clientAqi.category) {
+        primaryReport.current.category = clientAqi.category;
+      }
+      if (clientAqi.dominantPollutant) {
+        primaryReport.current.dominant = clientAqi.dominantPollutant;
+      }
+      if (clientAqi.isMock != null) {
+        primaryReport.isMock = Boolean(clientAqi.isMock);
+      }
+    }
+  }
+
   const isDifferentFromSelected =
     primaryReport.city.toLowerCase() !== currentSelectedCityName.toLowerCase();
 
@@ -410,29 +435,37 @@ export async function onRequestPost(context) {
     });
 
     if (geminiResult.success) {
+      const alignedReply = validateAndAlignReplyWithAqi(
+        geminiResult.rawReply,
+        primaryReport.current.aqi,
+        primaryReport.current.category
+      );
+
       const cityDataPayload = {
         name: primaryReport.city,
         lat: primaryReport.lat,
         lon: primaryReport.lon,
         admin1: primaryReport.admin1 || '',
         country: 'India',
-        aqi: geminiResult.quotedAqi,
-        category: geminiResult.quotedCategory,
+        aqi: primaryReport.current.aqi,
+        category: primaryReport.current.category,
         currentAqi: primaryReport.current.aqi,
         currentCategory: primaryReport.current.category,
         dominant: primaryReport.current.dominant,
         time: primaryReport.current.time,
-        timeframe: intent.timeframe
+        timeframe: intent.timeframe,
+        isMock: Boolean(primaryReport.isMock)
       };
 
       return new Response(
         JSON.stringify({
-          reply: geminiResult.rawReply,
-          memo: geminiResult.rawReply,
+          reply: alignedReply,
+          memo: alignedReply,
           city: primaryReport.city,
           cityData: cityDataPayload,
           isDifferentFromSelected,
-          isLive: true,
+          isLive: !primaryReport.isMock,
+          isSample: Boolean(primaryReport.isMock),
           model: geminiResult.modelName,
           provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
           extractedFacts: geminiResult.extractedFacts
@@ -466,6 +499,12 @@ export async function onRequestPost(context) {
     quotedCategory = primaryReport.tomorrow.category;
   }
 
+  const alignedFallbackReply = validateAndAlignReplyWithAqi(
+    fallback.reply,
+    quotedAqi,
+    quotedCategory
+  );
+
   const cityDataPayload = {
     name: primaryReport.city,
     lat: primaryReport.lat,
@@ -478,17 +517,19 @@ export async function onRequestPost(context) {
     currentCategory: primaryReport.current.category,
     dominant: primaryReport.current.dominant,
     time: primaryReport.current.time,
-    timeframe: intent.timeframe
+    timeframe: intent.timeframe,
+    isMock: Boolean(primaryReport.isMock)
   };
 
   return new Response(
     JSON.stringify({
-      reply: fallback.reply,
-      memo: fallback.reply,
+      reply: alignedFallbackReply,
+      memo: alignedFallbackReply,
       city: primaryReport.city,
       cityData: cityDataPayload,
       isDifferentFromSelected,
       isLive: false,
+      isSample: Boolean(primaryReport.isMock),
       model: FOGGY_FALLBACK_MODEL,
       provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
       reason: isKeyConfigured

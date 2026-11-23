@@ -58,23 +58,28 @@ export default function CompactChatModal({ isEmbedded = false }) {
   const dashboardCityName =
     profile?.city || profile?.location || currentSelectedCity?.name || aqiData?.city || 'Kolkata';
 
+  const normChatCity = (chatCityData?.name || '').toLowerCase().trim();
+  const normDashCity = (dashboardCityName || '').toLowerCase().trim();
+
   // If chat city matches dashboard city, prefer dashboard aqiData directly (single source of truth)
   const isSameAsDashboard =
-    !chatCityData?.name ||
-    chatCityData.name.toLowerCase() === dashboardCityName.toLowerCase();
+    !normChatCity ||
+    normDashCity.includes(normChatCity) ||
+    normChatCity.includes(normDashCity);
 
   const activeCityName = isSameAsDashboard ? (aqiData?.city || dashboardCityName) : chatCityData.name;
   const activeCityAqi = isSameAsDashboard
-    ? (aqiData?.aqi != null ? aqiData.aqi : 165)
-    : (chatCityData?.aqi != null ? chatCityData.aqi : aqiData?.aqi != null ? aqiData.aqi : 165);
+    ? (aqiData?.aqi != null ? aqiData.aqi : (chatCityData?.aqi != null ? chatCityData.aqi : 165))
+    : (chatCityData?.aqi != null ? chatCityData.aqi : (aqiData?.aqi != null ? aqiData.aqi : 165));
   const activeCategoryObj = getAQICategory(activeCityAqi);
   const activeCityCat = activeCategoryObj.label;
 
+  const isSampleData = isSameAsDashboard ? Boolean(aqiData?.isMock) : Boolean(chatCityData?.isMock);
+
   const isDifferentFromDashboard = Boolean(
     !isSameAsDashboard &&
-    chatCityData?.name &&
-    currentSelectedCity?.name &&
-    chatCityData.name.toLowerCase() !== currentSelectedCity.name.toLowerCase()
+    normChatCity &&
+    !normDashCity.includes(normChatCity)
   );
 
   const handleSwitch = () => {
@@ -154,6 +159,11 @@ export default function CompactChatModal({ isEmbedded = false }) {
                 >
                   {activeCityCat}
                 </span>
+                {isSampleData && (
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full border bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                    Sample Data
+                  </span>
+                )}
               </div>
               {isDifferentFromDashboard && (
                 <button

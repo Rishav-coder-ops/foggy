@@ -182,14 +182,14 @@ describe('tests/auth-onboarding-settings.test.js - Onboarding, Route Guards & Se
       ]);
     });
 
-    it('requires exact string "DELETE" before permitting account deletion', () => {
-      const confirmInput1 = 'delete';
-      const confirmInput2 = 'DELETE ';
-      const confirmInput3 = 'DELETE';
+    it('requires confirmation string "delete" (case-insensitive) without password re-authentication', () => {
+      const isConfirmed = (text) => text.trim().toLowerCase() === 'delete';
 
-      expect(confirmInput1 === 'DELETE').toBe(false);
-      expect(confirmInput2.trim() === 'DELETE').toBe(true);
-      expect(confirmInput3 === 'DELETE').toBe(true);
+      expect(isConfirmed('delete')).toBe(true);
+      expect(isConfirmed('DELETE')).toBe(true);
+      expect(isConfirmed(' Delete ')).toBe(true);
+      expect(isConfirmed('cancel')).toBe(false);
+      expect(isConfirmed('')).toBe(false);
     });
 
     it('exports user data clean JSON bundle with metadata', () => {

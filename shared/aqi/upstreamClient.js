@@ -7,6 +7,7 @@ import { INDIAN_METROS, INDIAN_CITY_ALIASES } from '../timeline/constants.js';
 import { INDIAN_FALLBACK_CITIES } from '../geocode.js';
 import { INDIAN_CITY_SIMULATION_DB, getDeterministicMockCity, generateHourlyForecast } from './simulationDb.js';
 import { calculateCPCBNAQI, getAQICategory, calculateRollingAverages } from '../aqi.js';
+import { saveLastGoodLiveAqi, getLastGoodLiveAqi } from './cache.js';
 
 export { calculateRollingAverages };
 
@@ -179,9 +180,14 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
     ]);
 
     if (openMeteoRes.status !== 'fulfilled' || !openMeteoRes.value.ok) {
-      throw new Error(
-        `Open-Meteo Air Quality failed: ${openMeteoRes.status === 'fulfilled' ? openMeteoRes.value.status : openMeteoRes.reason?.message}`
-      );
+      const status = openMeteoRes.status === 'fulfilled' ? openMeteoRes.value.status : null;
+      const detail =
+        status === 429
+          ? 'rate limit (HTTP 429)'
+          : status
+            ? `HTTP status ${status}`
+            : openMeteoRes.reason?.message || 'network connection error';
+      throw new Error(`Open-Meteo Air Quality failed: ${detail}`);
     }
 
     const data = await openMeteoRes.value.json();
@@ -270,7 +276,7 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
       }
     }
 
-    return {
+    const livePayload = {
       city: displayCity,
       requestedCoords: {
         lat: Number(Number(lat).toFixed(2)),
@@ -311,7 +317,53 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
         'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.',
       waqiReference
     };
+
+    saveLastGoodLiveAqi(lat, lon, livePayload);
+    return livePayload;
   } catch (_err) {
+    let safeReason = 'Upstream air quality service temporarily unavailable';
+    if (
+      _err?.name === 'TimeoutError' ||
+      _err?.name === 'AbortError' ||
+      _err?.message?.toLowerCase().includes('timeout')
+    ) {
+      safeReason = 'Upstream Open-Meteo request timeout (7.5s exceeded)';
+    } else if (_err?.message?.includes('429')) {
+      safeReason = 'Upstream Open-Meteo rate limit (HTTP 429)';
+    } else if (
+      _err?.message?.includes('500') ||
+      _err?.message?.includes('502') ||
+      _err?.message?.includes('503')
+    ) {
+      safeReason = 'Upstream atmospheric server error (HTTP 5xx)';
+    } else if (
+      _err?.message?.toLowerCase().includes('failed to fetch') ||
+      _err?.message?.toLowerCase().includes('network')
+    ) {
+      safeReason = 'Upstream network connection failure';
+    }
+
+    console.warn(
+      `[AQI Upstream Error] Failed to fetch live Open-Meteo data for ${displayCity} (${lat}, ${lon}): ${safeReason}`
+    );
+
+    // 3-Hour Last Good Live Cache: Never replace good live data with simulation samples
+    const cachedLive = getLastGoodLiveAqi(lat, lon);
+    if (cachedLive) {
+      console.log(
+        `[AQI Upstream Cache] Serving 3-hour cached live reading for ${displayCity} (last updated at ${cachedLive.updatedAt})`
+      );
+      return {
+        ...cachedLive,
+        isStaleLive: true,
+        isMock: false,
+        source: 'Live Open-Meteo CAMS Model Feed (Cached)',
+        liveNotice: `Live upstream service temporarily unavailable (${safeReason}); showing verified reading from ${cachedLive.updatedAt}`,
+        upstreamFailureReason: safeReason
+      };
+    }
+
+    // Only if NO live data has ever been fetched for this place within 3 hours
     const mock = getDeterministicMockCity(requestedCity, lat, lon);
     const cat = getAQICategory(mock.aqi);
     const hourlyForecast = generateHourlyForecast(mock.aqi);
@@ -351,9 +403,9 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
       updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       forecastHourly: hourlyForecast,
       isMock: true,
-      source: 'Simulation Mode (Sample data, live data unavailable)',
-      simulationReason:
-        'Upstream air quality service temporarily unavailable; using atmospheric simulation model.',
+      source: 'Simulation Mode (Sample Data)',
+      simulationReason: safeReason,
+      upstreamFailureReason: safeReason,
       attribution:
         'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
       disclaimer:

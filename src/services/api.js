@@ -6,7 +6,10 @@ import { auth } from '../firebase';
 import { INDIAN_METROS } from '../../shared/timeline/constants.js';
 import { getAQICategory } from '../../shared/aqi.js';
 import { classifyIntent } from '../../shared/chatIntent/intentClassifier.js';
-import { generateSmartFallbackResponse } from '../../shared/chat/responseValidator.js';
+import {
+  generateSmartFallbackResponse,
+  validateAndAlignReplyWithAqi
+} from '../../shared/chat/responseValidator.js';
 import { FOGGY_FALLBACK_MODEL, FOGGY_PROVIDER_LABELS } from '../../shared/constants.js';
 import { geocodeIndianCity } from '../../shared/timeline/timelineService.js';
 import { calculateDistanceKm } from '../../shared/aqi/upstreamClient.js';
@@ -16,6 +19,9 @@ export { INDIAN_METROS };
 export const clientAqiCache = new Map();
 export const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes client cache
 
+export const clientLastGoodLiveCache = new Map();
+export const CLIENT_LIVE_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours persistent fallback cache
+
 export function getClientAqiCacheKey(lat, lon, type = 'aqi') {
   if (lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) return null;
   return `${type}_${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
@@ -23,6 +29,64 @@ export function getClientAqiCacheKey(lat, lon, type = 'aqi') {
 
 export function clearClientAqiCache() {
   clientAqiCache.clear();
+}
+
+export function clearClientLastGoodLiveCache() {
+  clientLastGoodLiveCache.clear();
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('foggy_last_live_')) {
+          keys.push(k);
+        }
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch {}
+}
+
+export function saveClientLastGoodLive(lat, lon, data) {
+  if (lat == null || lon == null || !data || data.isMock) return;
+  const key = `${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
+  const entry = { data: JSON.parse(JSON.stringify(data)), savedAt: Date.now() };
+  clientLastGoodLiveCache.set(key, entry);
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`foggy_last_live_${key}`, JSON.stringify(entry));
+    }
+  } catch {}
+}
+
+export function getClientLastGoodLive(lat, lon, maxAgeMs = CLIENT_LIVE_CACHE_TTL_MS) {
+  if (lat == null || lon == null) return null;
+  const key = `${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
+  let entry = clientLastGoodLiveCache.get(key);
+
+  if (!entry) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(`foggy_last_live_${key}`);
+        if (raw) {
+          entry = JSON.parse(raw);
+          if (entry && entry.data) {
+            clientLastGoodLiveCache.set(key, entry);
+          }
+        }
+      }
+    } catch {}
+  }
+
+  if (entry && Date.now() - entry.savedAt <= maxAgeMs) {
+    const copy = JSON.parse(JSON.stringify(entry.data));
+    copy.isStaleLive = true;
+    copy.isMock = false;
+    copy.source = 'Live Open-Meteo CAMS Model (Cached)';
+    copy.liveNotice = `Live data temporarily unavailable from upstream. Showing last verified reading from ${copy.updatedAt || 'earlier'}.`;
+    return copy;
+  }
+  return null;
 }
 
 export const PRESET_CITY_COORDINATES = {
@@ -220,6 +284,20 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
 
     const json = await res.json();
 
+    // If server fell back to sample data, check if we have a recent (within 3 hours) live response saved on client
+    if (json.isMock && lat != null && lon != null) {
+      const cachedLive = getClientLastGoodLive(lat, lon);
+      if (cachedLive) {
+        if (cacheKey) {
+          clientAqiCache.set(cacheKey, {
+            data: cachedLive,
+            expiresAt: now + CLIENT_CACHE_TTL_MS
+          });
+        }
+        return cachedLive;
+      }
+    }
+
     // 3. Client-side Sanity Guard: Check distance between requested coordinates and returned grid point
     const gridLat = json.gridPoint?.lat ?? json.latitude;
     const gridLon = json.gridPoint?.lon ?? json.longitude;
@@ -269,6 +347,10 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
     json.healthImpact = officialCat.healthImpact;
     json.advisory = officialCat.advisory;
 
+    if (!json.isMock) {
+      saveClientLastGoodLive(lat, lon, json);
+    }
+
     if (cacheKey) {
       clientAqiCache.set(cacheKey, {
         data: json,
@@ -289,6 +371,19 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
         city: cleanCity
       };
     }
+
+    // Check if we have a valid live reading from within 3 hours
+    const cachedLive = getClientLastGoodLive(lat, lon);
+    if (cachedLive) {
+      if (cacheKey) {
+        clientAqiCache.set(cacheKey, {
+          data: cachedLive,
+          expiresAt: now + CLIENT_CACHE_TTL_MS
+        });
+      }
+      return cachedLive;
+    }
+
     const numLat = Number(lat);
     const numLon = Number(lon);
     const seed = Math.abs(Math.sin(numLat * 12.9898 + numLon * 78.233)) * 1000;
@@ -299,6 +394,17 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
     const windSpeed = Math.round((2.0 + (seed % 7)) * 10) / 10;
     const cat = getAQICategory(165);
 
+    let clientSafeReason = 'Upstream service temporarily unavailable';
+    if (err?.name === 'TimeoutError' || err?.message?.toLowerCase().includes('timeout')) {
+      clientSafeReason = 'Upstream request timeout';
+    } else if (err?.message?.includes('429')) {
+      clientSafeReason = 'Upstream rate limit (HTTP 429)';
+    } else if (err?.message?.includes('500') || err?.message?.includes('502') || err?.message?.includes('503')) {
+      clientSafeReason = 'Upstream server error (HTTP 5xx)';
+    } else if (err?.message?.toLowerCase().includes('network') || err?.message?.toLowerCase().includes('failed to fetch')) {
+      clientSafeReason = 'Upstream network connection error';
+    }
+
     const fallbackPayload = {
       city: cleanCity,
       requestedCoords: {
@@ -306,7 +412,7 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
         lon: Number(numLon.toFixed(2))
       },
       aqi: 165,
-      scale: 'CPCB National AQI (0-500)',
+      scale: 'CPCB National AQI (0-500) (Simulated)',
       standard: 'Estimated NAQI (from PM2.5 and PM10)',
       category: cat.name,
       color: cat.color,
@@ -331,6 +437,7 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
       updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       forecastHourly: [],
       isMock: true,
+      simulationReason: clientSafeReason,
       source: 'Simulation Mode (Sample data, live data unavailable)',
       attribution:
         'Air quality data: Open-Meteo.com, based on Copernicus Atmosphere Monitoring Service (CAMS) model data',
@@ -411,7 +518,26 @@ export async function sendChatMessage({
       throw errObj;
     }
 
-    return await res.json();
+    const data = await res.json();
+    if (data && data.reply && aqiData?.aqi != null) {
+      data.reply = validateAndAlignReplyWithAqi(data.reply, aqiData.aqi, aqiData.category);
+      if (data.memo) {
+        data.memo = data.reply;
+      }
+      if (data.cityData) {
+        const cName = (data.cityData.name || '').toLowerCase();
+        const aName = (aqiData.city || '').toLowerCase();
+        if (cName.includes(aName) || aName.includes(cName)) {
+          data.cityData.aqi = aqiData.aqi;
+          if (aqiData.category) data.cityData.category = aqiData.category;
+          if (aqiData.isMock != null) {
+            data.cityData.isMock = Boolean(aqiData.isMock);
+            data.isSample = Boolean(aqiData.isMock);
+          }
+        }
+      }
+    }
+    return data;
   } catch (err) {
     if (err.isRateLimited) {
       return {
@@ -462,6 +588,7 @@ export async function sendChatMessage({
     if (!reply.includes('Safeguards')) {
       reply += `\n\n### 🛡️ Recommended Safeguards:\n* **Indoor Air:** Keep windows sealed during peak smog and run damp-mopping.\n* **Outdoor Transit:** Wear a certified N95 respirator during high-traffic hours.`;
     }
+    reply = validateAndAlignReplyWithAqi(reply, cityAqi, cat.label);
 
     return {
       reply,
@@ -473,7 +600,8 @@ export async function sendChatMessage({
       cityData: {
         name: aqiData?.city || 'Kolkata',
         aqi: cityAqi,
-        category: cat.label
+        category: cat.label,
+        isMock: Boolean(aqiData?.isMock)
       }
     };
   }

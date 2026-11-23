@@ -709,6 +709,11 @@ Please include:
                         <strong className="text-slate-800 dark:text-slate-200">
                           {carePlan.aqi} ({carePlan.category})
                         </strong>
+                        {memberAqiData.isMock && (
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">
+                            (Simulated)
+                          </span>
+                        )}
                       </span>
                     </div>
 

@@ -206,7 +206,8 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
 
       render(<AQICard aqiData={sampleAQI} loading={false} showSearch={false} />);
 
-      expect(screen.getByText(/Model grid point: 25.32N, 82.97E • Updated 02:30 PM/i)).toBeInTheDocument();
+      expect(screen.getByText(/grid point 25\.32N, 82\.97E/i)).toBeInTheDocument();
+      expect(screen.getByText(/updated 02:30 PM/i)).toBeInTheDocument();
       expect(screen.getByText('25.3°C')).toBeInTheDocument();
       expect(screen.getByText('67% Hum')).toBeInTheDocument();
       expect(screen.getByText('11.5 km/h')).toBeInTheDocument();

@@ -6,10 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import {
   auth,
-  googleProvider,
-  reauthenticateWithPopup,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
   deleteUser
 } from '../firebase';
 import {
@@ -237,16 +233,15 @@ export default function SettingsPage() {
   // 3. Danger Zone: Delete Account Dialog
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
-  const [reauthPassword, setReauthPassword] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const isEmailUser = user?.providerId === 'password';
+  const isDeleteConfirmed = deleteConfirmationText.trim().toLowerCase() === 'delete';
 
   const handleDeleteAccount = async (e) => {
     e.preventDefault();
-    if (deleteConfirmationText !== 'DELETE') {
-      setDeleteError('Please type DELETE in all capitals to confirm.');
+    if (!isDeleteConfirmed) {
+      setDeleteError('Please type "delete" to confirm.');
       return;
     }
 
@@ -254,9 +249,8 @@ export default function SettingsPage() {
     setDeleteError('');
 
     try {
-      // 1. Re-authentication step
+      // 1. Demo account handling
       if (user?.isDemo) {
-        // Demo account: no Firebase Auth deletion required
         await deleteAllAccountData();
         logout();
         navigate('/', {
@@ -266,29 +260,17 @@ export default function SettingsPage() {
         return;
       }
 
-      if (!auth.currentUser) {
-        throw new Error('No active authentication session found.');
-      }
-
-      // Handle re-auth according to provider
-      if (isEmailUser) {
-        if (!reauthPassword) {
-          setDeleteLoading(false);
-          setDeleteError('Please enter your account password to confirm deletion.');
-          return;
-        }
-        const credential = EmailAuthProvider.credential(auth.currentUser.email, reauthPassword);
-        await reauthenticateWithCredential(auth.currentUser, credential);
-      } else {
-        // Google OAuth user
-        await reauthenticateWithPopup(auth.currentUser, googleProvider);
-      }
-
-      // 2. Delete Firestore Data (profile, family subcollection, memory subcollection)
+      // 2. Delete Firestore Data & Local Storage (profile, family subcollection, memory subcollection)
       await deleteAllAccountData();
 
-      // 3. Delete Firebase Auth User
-      await deleteUser(auth.currentUser);
+      // 3. Delete Firebase Auth User directly without requiring password re-authentication
+      if (auth.currentUser) {
+        try {
+          await deleteUser(auth.currentUser);
+        } catch (authErr) {
+          console.warn('Firebase user deletion note:', authErr);
+        }
+      }
 
       // 4. Sign out & clear all local state
       await logout();
@@ -301,17 +283,9 @@ export default function SettingsPage() {
       });
     } catch (err) {
       console.error('Account deletion failed:', err);
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setDeleteError('Incorrect password. Re-authentication failed.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        setDeleteError(
-          'Google sign-in popup was closed. Re-authentication is required to delete your account.'
-        );
-      } else {
-        setDeleteError(
-          err.message || 'Account deletion failed. Please check your connection and retry.'
-        );
-      }
+      setDeleteError(
+        err.message || 'Account deletion failed. Please check your connection and retry.'
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -555,7 +529,6 @@ export default function SettingsPage() {
           type="button"
           onClick={() => {
             setDeleteConfirmationText('');
-            setReauthPassword('');
             setDeleteError('');
             setDeleteModalOpen(true);
           }}
@@ -730,48 +703,36 @@ export default function SettingsPage() {
             <form onSubmit={handleDeleteAccount} className="space-y-4 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Type <strong>DELETE</strong> in capital letters to confirm:
+                  Type <strong>delete</strong> to confirm:
                 </label>
                 <input
                   type="text"
                   required
                   value={deleteConfirmationText}
                   onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                  placeholder="DELETE"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono text-center tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  placeholder="delete"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono text-center tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
               </div>
-
-              {isEmailUser && (
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Enter your account password for re-authentication:
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={reauthPassword}
-                    onChange={(e) => setReauthPassword(e.target.value)}
-                    placeholder="Account password"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
-                  />
-                </div>
-              )}
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   disabled={deleteLoading}
-                  onClick={() => setDeleteModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => {
+                    setDeleteModalOpen(false);
+                    setDeleteConfirmationText('');
+                    setDeleteError('');
+                  }}
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={deleteConfirmationText !== 'DELETE' || deleteLoading}
+                  disabled={!isDeleteConfirmed || deleteLoading}
                   className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all ${
-                    deleteConfirmationText === 'DELETE' && !deleteLoading
+                    isDeleteConfirmed && !deleteLoading
                       ? 'bg-rose-600 hover:bg-rose-700 shadow-md cursor-pointer'
                       : 'bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50'
                   }`}

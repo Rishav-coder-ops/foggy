@@ -33,7 +33,7 @@ const FAQS = [
   },
   {
     q: 'How can I permanently delete all my data and account?',
-    a: 'You have complete sovereignty over your data. Go to your Settings page, scroll to the "Danger Zone" section at the bottom, and click "Delete Account". After confirming with DELETE and re-authenticating, all your cloud Firestore records, family profiles, chat memories, and local browser storage are irreversibly wiped.'
+    a: 'You have complete sovereignty over your data. Go to your Settings page, scroll to the "Danger Zone" section at the bottom, and click "Delete Account". After typing delete to confirm, all your cloud Firestore records, family profiles, chat memories, and local browser storage are irreversibly wiped.'
   }
 ];
 

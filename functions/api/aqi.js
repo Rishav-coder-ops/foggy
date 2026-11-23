@@ -138,10 +138,14 @@ export async function onRequestGet(context) {
     });
   }
 
-  aqiCache.set(cacheKey, {
-    data: payload,
-    expiry: now + CACHE_TTL_MS
-  });
+  // Cache live and stale-live verified data in long-lived aqiCache (15m).
+  // Do NOT cache simulation sample data so user retries can immediately re-attempt live upstream fetch.
+  if (!payload.isMock) {
+    aqiCache.set(cacheKey, {
+      data: payload,
+      expiry: now + CACHE_TTL_MS
+    });
+  }
 
   return new Response(JSON.stringify(payload), {
     status: 200,

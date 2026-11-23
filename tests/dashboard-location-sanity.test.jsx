@@ -6,23 +6,30 @@ import AQICard from '../src/components/AQICard.jsx';
 import {
   fetchAQIData,
   getStoredCity,
-  clearClientAqiCache
+  clearClientAqiCache,
+  saveClientLastGoodLive,
+  getClientLastGoodLive,
+  clearClientLastGoodLiveCache,
+  sendChatMessage
 } from '../src/services/api.js';
 import { formatGreetingName } from '../src/utils/nameFormatter.js';
 import { getAQICategory } from '../shared/aqi.js';
 import { calculateDistanceKm, resolveCityCoordinates } from '../shared/aqi/upstreamClient.js';
 import { ensureVerifiedCoordinates } from '../src/context/ProfileContext.jsx';
+import { validateAndAlignReplyWithAqi } from '../shared/chat/responseValidator.js';
 
 describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity Guard, Badges & Names', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     clearClientAqiCache();
+    clearClientLastGoodLiveCache();
     localStorage.clear();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     clearClientAqiCache();
+    clearClientLastGoodLiveCache();
     localStorage.clear();
   });
 
@@ -248,7 +255,7 @@ describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity G
       expect(second.category).toBe('Poor');
     });
 
-    it('renders visible data line with Place, Requested coords, Grid point, and Update time', () => {
+    it('renders one tidy visible data line with Place, Requested coords, Grid point, and Update time without duplicates', () => {
       const validAqiData = {
         city: 'Noida, Uttar Pradesh',
         aqi: 278,
@@ -271,10 +278,159 @@ describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity G
         </BrowserRouter>
       );
 
-      expect(screen.getByText(/Place:/i)).toBeInTheDocument();
-      expect(screen.getByText(/Requested: 28.54°N, 77.39°E/i)).toBeInTheDocument();
-      expect(screen.getByText(/Grid point: 28.60°N, 77.40°E/i)).toBeInTheDocument();
-      expect(screen.getAllByText(/Updated 02:30 PM/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Noida, Uttar Pradesh').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/requested 28\.54N, 77\.39E/i)).toBeInTheDocument();
+      expect(screen.getByText(/grid point 28\.60N, 77\.40E/i)).toBeInTheDocument();
+      expect(screen.getByText(/updated 02:30 PM/i)).toBeInTheDocument();
+      expect(screen.getByText(/dominant PM2\.5/i)).toBeInTheDocument();
+
+      // Ensure "grid point" and "updated" appear exactly once in the data line
+      expect(screen.getAllByText(/grid point/i).length).toBe(1);
+      expect(screen.getAllByText(/updated/i).length).toBe(1);
+    });
+  });
+
+  describe('6. 3-Hour Live Cache Fallback vs Simulation Mode', () => {
+    it('returns cached live reading when upstream fails if live data was fetched within 3 hours', async () => {
+      const lat = 28.5355;
+      const lon = 77.391;
+
+      // Seed a recent good live response in client cache
+      saveClientLastGoodLive(lat, lon, {
+        city: 'Noida, Uttar Pradesh',
+        aqi: 278,
+        category: 'Poor',
+        updatedAt: '01:45 PM',
+        gridPoint: { lat: 28.6, lon: 77.4 },
+        pollutants: { pm25: 125, pm10: 210 }
+      });
+
+      const cached = getClientLastGoodLive(lat, lon);
+      expect(cached).not.toBeNull();
+      expect(cached.aqi).toBe(278);
+
+      // Upstream fails with HTTP 500
+      global.fetch = vi.fn().mockRejectedValueOnce(new Error('Open-Meteo upstream 500'));
+
+      const res = await fetchAQIData({
+        cityName: 'Noida',
+        stateName: 'Uttar Pradesh',
+        lat,
+        lon
+      });
+
+      expect(res.isMock).toBe(false);
+      expect(res.isStaleLive).toBe(true);
+      expect(res.aqi).toBe(278);
+      expect(res.updatedAt).toBe('01:45 PM');
+      expect(res.liveNotice).toContain('last verified reading');
+    });
+
+    it('returns simulation sample data with clear reason when upstream fails and no cached live data exists', async () => {
+      const lat = 28.5355;
+      const lon = 77.391;
+
+      // Upstream fails with HTTP 500, no prior cache
+      global.fetch = vi.fn().mockRejectedValueOnce(new Error('Open-Meteo upstream 500'));
+
+      const res = await fetchAQIData({
+        cityName: 'Noida',
+        stateName: 'Uttar Pradesh',
+        lat,
+        lon
+      });
+
+      expect(res.isMock).toBe(true);
+      expect(res.simulationReason).toBeDefined();
+      expect(res.scale).toContain('Simulated');
+    });
+
+    it('renders simulation banner with reason and clickable Retry Live Data button', () => {
+      const onRefreshMock = vi.fn();
+      const mockSampleData = {
+        city: 'Noida, Uttar Pradesh',
+        aqi: 149,
+        category: 'Moderate',
+        isMock: true,
+        simulationReason: 'Upstream rate limit (HTTP 429)',
+        updatedAt: '03:15 PM'
+      };
+
+      render(
+        <BrowserRouter>
+          <AQICard
+            aqiData={mockSampleData}
+            onRefresh={onRefreshMock}
+            locationTitle="Noida, Uttar Pradesh"
+          />
+        </BrowserRouter>
+      );
+
+      expect(screen.getAllByText(/Simulation Mode \(Sample Data\)/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Upstream rate limit \(HTTP 429\)/i)).toBeInTheDocument();
+
+      const retryBtn = screen.getByRole('button', { name: /Retry Live Data/i });
+      expect(retryBtn).toBeInTheDocument();
+      retryBtn.click();
+      expect(onRefreshMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('7. Sanity Guard Distance Checks for Noida', () => {
+    it('accepts valid Noida coordinates and atmospheric model grid point within 60 km', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          city: 'Noida, Uttar Pradesh',
+          aqi: 278,
+          gridPoint: { lat: 28.6, lon: 77.4 }, // Open-Meteo 0.1 deg grid point is ~10 km away
+          pollutants: { pm25: 128, pm10: 215 },
+          updatedAt: '03:00 PM'
+        })
+      });
+
+      const res = await fetchAQIData({
+        cityName: 'Noida',
+        stateName: 'Uttar Pradesh',
+        lat: 28.5355,
+        lon: 77.391
+      });
+
+      expect(res.error).toBeUndefined();
+      expect(res.aqi).toBe(278);
+      expect(res.category).toBe('Poor');
+    });
+  });
+
+  describe('8. Chat & Dashboard Single Source of Truth Alignment', () => {
+    it('validateAndAlignReplyWithAqi aligns mismatched AQI and category in AI reply', () => {
+      const mismatchedText = 'Currently, the AQI in Noida is 149 (Moderate), with PM2.5 being the primary pollutant.';
+      const aligned = validateAndAlignReplyWithAqi(mismatchedText, 278, 'Poor');
+
+      expect(aligned).toContain('278');
+      expect(aligned).toContain('Poor');
+      expect(aligned).not.toContain('149');
+    });
+
+    it('sendChatMessage aligns returned reply and cityData with active aqiData', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          reply: 'In Noida, the air quality is Moderate with AQI 149.',
+          city: 'Noida',
+          cityData: { name: 'Noida', aqi: 149, category: 'Moderate' }
+        })
+      });
+
+      const chatRes = await sendChatMessage({
+        message: 'How is the air in Noida?',
+        aqiData: { city: 'Noida, Uttar Pradesh', aqi: 278, category: 'Poor' }
+      });
+
+      expect(chatRes.reply).toContain('278');
+      expect(chatRes.reply).toContain('Poor');
+      expect(chatRes.cityData.aqi).toBe(278);
+      expect(chatRes.cityData.category).toBe('Poor');
     });
   });
 });

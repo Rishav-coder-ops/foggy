@@ -27,6 +27,20 @@ export default function SearchAQIPage() {
   const searchTimeoutRef = useRef(null);
   const abortControllerRef = useRef(null);
   const requestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Load AQI Data for the currently inspected city with race condition protection
   const loadAQI = useCallback(async (cityObj) => {
@@ -102,12 +116,18 @@ export default function SearchAQIPage() {
       try {
         const cleanQuery = sanitizeText(val, 60);
         const results = await geocodeLocation(cleanQuery, 'IN');
-        setSuggestions(results || []);
+        if (isMountedRef.current) {
+          setSuggestions(results || []);
+        }
       } catch (err) {
         console.warn('Geocode search error:', err);
-        setSuggestions([]);
+        if (isMountedRef.current) {
+          setSuggestions([]);
+        }
       } finally {
-        setSearching(false);
+        if (isMountedRef.current) {
+          setSearching(false);
+        }
       }
     }, 250);
   };

@@ -1,7 +1,7 @@
 // src/components/AQICard.jsx
 // Atmospheric Monitoring Station Card using CPCB National AQI Scale (0-500)
 import { useState } from 'react';
-import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertTriangle } from 'lucide-react';
+import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertTriangle, Info } from 'lucide-react';
 import { INDIAN_METROS } from '../services/api';
 import { getAQICategory } from '../../shared/aqi.js';
 import { AQI_CATEGORIES } from '../../shared/constants.js';
@@ -82,7 +82,7 @@ export default function AQICard({
     <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark transition-all">
       {/* Top Header: City Selector & Live Source Badge */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/80 pb-6">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-sky-600 dark:text-sky-400 uppercase tracking-wider">
             <MapPin className="w-3.5 h-3.5" />
             <span>Atmospheric Monitoring Station</span>
@@ -90,57 +90,56 @@ export default function AQICard({
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white mt-1">
             {locationTitle || aqiData?.city || 'Kolkata, West Bengal'}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-            <span>
-              Place:{' '}
-              <strong className="font-semibold text-slate-700 dark:text-slate-200">
-                {locationTitle || aqiData?.city || 'Location'}
-              </strong>
-            </span>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-1.5 leading-relaxed">
+            <span>{locationTitle || aqiData?.city || 'Location'}</span>
             {aqiData?.requestedCoords?.lat != null && aqiData?.requestedCoords?.lon != null && (
               <>
-                <span>•</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
                 <span>
-                  Requested: {Number(aqiData.requestedCoords.lat).toFixed(2)}°N,{' '}
-                  {Number(aqiData.requestedCoords.lon).toFixed(2)}°E
+                  requested {Number(aqiData.requestedCoords.lat).toFixed(2)}N,{' '}
+                  {Number(aqiData.requestedCoords.lon).toFixed(2)}E
                 </span>
               </>
             )}
             {aqiData?.gridPoint?.lat != null && aqiData?.gridPoint?.lon != null ? (
               <>
-                <span>•</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
                 <span>
-                  Grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}°N,{' '}
-                  {Number(aqiData.gridPoint.lon).toFixed(2)}°E (Model grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}N, {Number(aqiData.gridPoint.lon).toFixed(2)}E • Updated {aqiData?.updatedAt || 'Just now'})
+                  grid point {Number(aqiData.gridPoint.lat).toFixed(2)}N,{' '}
+                  {Number(aqiData.gridPoint.lon).toFixed(2)}E
                 </span>
               </>
             ) : aqiData?.latitude != null && aqiData?.longitude != null ? (
               <>
-                <span>•</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
                 <span>
-                  Grid point: {Number(aqiData.latitude).toFixed(2)}°N,{' '}
-                  {Number(aqiData.longitude).toFixed(2)}°E (Model grid point: {Number(aqiData.latitude).toFixed(2)}N, {Number(aqiData.longitude).toFixed(2)}E • Updated {aqiData?.updatedAt || 'Just now'})
+                  grid point {Number(aqiData.latitude).toFixed(2)}N,{' '}
+                  {Number(aqiData.longitude).toFixed(2)}E
                 </span>
               </>
             ) : null}
-            <span>•</span>
-            <span>Updated {aqiData?.updatedAt || 'Just now'}</span>
-            <span>•</span>
-            <span>
-              Dominant Pollutant:{' '}
-              <strong className="font-semibold text-slate-700 dark:text-slate-200">
-                {aqiData?.dominantPollutant || 'PM2.5'}
-              </strong>
-            </span>
+            <span className="text-slate-400 dark:text-slate-500">•</span>
+            <span>updated {aqiData?.updatedAt || 'Just now'}</span>
+            {aqiData?.dominantPollutant && (
+              <>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
+                <span>dominant {aqiData.dominantPollutant}</span>
+              </>
+            )}
           </p>
         </div>
 
-        {/* Source Badge with transparency */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Source Badge with transparency & Refresh Button */}
+        <div className="shrink-0 flex items-center gap-2 self-start md:self-center flex-wrap">
           {aqiData?.isMock ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
               <span>Simulation Mode (Sample Data)</span>
+            </div>
+          ) : aqiData?.isStaleLive ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-sky-50 dark:bg-sky-950/50 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+              <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+              <span>Open-Meteo CAMS Model (Cached)</span>
             </div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -153,7 +152,7 @@ export default function AQICard({
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Refresh AQI reading"
             aria-label="Refresh AQI reading"
           >
@@ -161,6 +160,46 @@ export default function AQICard({
           </button>
         </div>
       </div>
+
+      {/* Persistent Cache Stale Notice */}
+      {aqiData?.isStaleLive && aqiData?.liveNotice && (
+        <div className="mt-3 p-3 rounded-2xl bg-sky-50/80 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-800 dark:text-sky-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 shrink-0 text-sky-600 dark:text-sky-400" />
+            <span>{aqiData.liveNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-sky-100 hover:bg-sky-200 dark:bg-sky-900/60 dark:hover:bg-sky-800 text-sky-900 dark:text-sky-200 transition-colors shrink-0 cursor-pointer"
+          >
+            Retry Live
+          </button>
+        </div>
+      )}
+
+      {/* Simulation Mode Banner with Short Reason and Retry Button */}
+      {aqiData?.isMock && (
+        <div className="mt-3 p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <span className="font-bold">Simulation Mode (Sample Data): </span>
+              <span>{aqiData.simulationReason || 'Live telemetry temporarily unavailable from upstream.'}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 active:scale-95 text-white transition-all shadow-xs shrink-0 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Retry Live Data</span>
+          </button>
+        </div>
+      )}
 
       {/* City Search Bar & Indian Metro Quick Picks (Rendered only when showSearch is true) */}
       {showSearch && (

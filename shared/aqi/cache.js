@@ -10,7 +10,34 @@ export { getCorsHeaders };
 
 export const aqiCache = new Map();
 export const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+export const LIVE_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours (never replace live with samples)
+export const lastGoodLiveAqiCache = new Map();
 const ipRateLimitMap = new Map();
+
+export function saveLastGoodLiveAqi(lat, lon, data) {
+  if (!data || data.isMock || data.error) return;
+  const key = getAqiCacheKey(lat, lon, 'live');
+  lastGoodLiveAqiCache.set(key, {
+    data: { ...data, isMock: false },
+    timestamp: Date.now()
+  });
+}
+
+export function getLastGoodLiveAqi(lat, lon, maxAgeMs = LIVE_CACHE_TTL_MS) {
+  const key = getAqiCacheKey(lat, lon, 'live');
+  const entry = lastGoodLiveAqiCache.get(key);
+  if (!entry) return null;
+  const age = Date.now() - entry.timestamp;
+  if (age > maxAgeMs) {
+    lastGoodLiveAqiCache.delete(key);
+    return null;
+  }
+  return { ...entry.data, ageMs: age };
+}
+
+export function clearLastGoodLiveAqiCache() {
+  lastGoodLiveAqiCache.clear();
+}
 
 export function getAqiCacheKey(lat, lon, type = 'aqi') {
   const roundedLat = Number(lat).toFixed(2);
