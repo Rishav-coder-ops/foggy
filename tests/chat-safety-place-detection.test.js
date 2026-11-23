@@ -20,9 +20,18 @@ import {
 } from '../shared/safety/safetyValidator.js';
 import {
   GEMINI_PRIMARY_MODEL,
+  GEMINI_CANDIDATE_MODELS,
   FOGGY_FALLBACK_MODEL,
   FOGGY_PROVIDER_LABELS
 } from '../shared/constants.js';
+import {
+  trimToLastCompleteSentence,
+  balanceMarkdownMarkers,
+  checkMinimumResponseQuality,
+  sanitizeModelReplyText
+} from '../shared/chat/markdownSanitizer.js';
+import { callGeminiApi } from '../shared/chat/geminiClient.js';
+import { cleanAndExtractMarkdown } from '../src/components/FormattedChatMessage.jsx';
 import { onRequestPost } from '../functions/api/chat.js';
 
 describe('1. Place Detection - Strict Location Intent vs General Conversation', () => {
@@ -464,6 +473,318 @@ describe('4. Full End-to-End Chat API Pipeline - Noida NAQI 324 + Child + COPD R
       expect(json.city).toBe('Noida');
       expect(json.cityData.aqi).toBe(324);
       expect(json.cityData.category).toBe('Very Poor');
+    } finally {
+      global.fetch = globalFetch;
+    }
+  });
+});
+
+describe('5. Truncation, Markdown Sanitization, and Response Quality Tests', () => {
+  it('trims truncated reply ending at dangling **Morning and strips trailing broken markers', () => {
+    const truncatedReply =
+      'To stay safe during high pollution, plan your outdoor errands carefully.\n\n* Keep doors and windows tightly sealed.\n* Run your air purifier in bedroom.\n\n**Morning';
+
+    const trimmed = trimToLastCompleteSentence(truncatedReply);
+    expect(trimmed).not.toContain('**Morning');
+    expect(trimmed).toContain('Run your air purifier in bedroom.');
+
+    const sanitized = sanitizeModelReplyText(truncatedReply, 'MAX_TOKENS');
+    expect(sanitized).not.toContain('**Morning');
+    expect(sanitized).toMatch(/\.$/);
+  });
+
+  it('balances unclosed bold, italic, and inline code markdown markers', () => {
+    const unclosedBold = 'Make sure to wear an **N95 respirator during high smog.';
+    expect(balanceMarkdownMarkers(unclosedBold)).toBe(
+      'Make sure to wear an **N95 respirator during high smog.**'
+    );
+
+    const unclosedItalic = 'Always prioritize *indoor air quality when AQI is Poor.';
+    expect(balanceMarkdownMarkers(unclosedItalic)).toBe(
+      'Always prioritize *indoor air quality when AQI is Poor.*'
+    );
+
+    const unclosedCode = 'Check the current sensor via `aqi-feed command line.';
+    expect(balanceMarkdownMarkers(unclosedCode)).toBe(
+      'Check the current sensor via `aqi-feed command line.`'
+    );
+  });
+
+  it('enforces minimum response quality (>=20 words, no mid-sentence cutoff)', () => {
+    // Too short (stub like "You can")
+    const shortStub = 'You can.';
+    const shortCheck = checkMinimumResponseQuality(shortStub);
+    expect(shortCheck.isQualityPass).toBe(false);
+    expect(shortCheck.reason).toContain('too short');
+
+    // Ends mid-sentence without terminal punctuation
+    const cutMidSentence =
+      'To improve indoor air quality when outdoor pollution is elevated, you should consider sealing windows with foam tape and running an';
+    const midSentenceCheck = checkMinimumResponseQuality(cutMidSentence);
+    expect(midSentenceCheck.isQualityPass).toBe(false);
+    expect(midSentenceCheck.reason).toContain('terminal punctuation');
+
+    // Complete response >= 20 words with terminal punctuation passes
+    const validFullReply =
+      'You can effectively clean your home air on a budget by wet-mopping floors daily, sealing window gaps with weatherstripping tape, and creating a DIY Corsi-Rosenthal filter box using a standard box fan and MERV-13 filter.';
+    const validCheck = checkMinimumResponseQuality(validFullReply);
+    expect(validCheck.isQualityPass).toBe(true);
+    expect(validCheck.wordCount).toBeGreaterThanOrEqual(20);
+  });
+
+  it('cleans and extracts markdown in FormattedChatMessage helper', () => {
+    const replyWithDanglingAndDisclaimer = `Here are 3 ways to clean your room air:
+* **Damp mopping:** Mopping traps settled dust.
+* **Sealing:** Tape window edges.
+**Morning
+
+> 🩺 Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112 or 108.`;
+
+    const { cleanText, hasDisclaimer } = cleanAndExtractMarkdown(replyWithDanglingAndDisclaimer);
+    expect(hasDisclaimer).toBe(true);
+    expect(cleanText).not.toContain('Medical disclaimer');
+    expect(cleanText).not.toContain('**Morning');
+    expect(cleanText).toContain('Damp mopping');
+  });
+});
+
+describe('6. "You Can" Case & Budget Cleaning with Topic Words Untouched', () => {
+  const budgetCleaningText = `You can effectively clean your indoor air on a budget with practical steps:
+* Free (₹0): Keep windows tightly shut during morning and evening peak smog hours. Use wet mopping instead of sweeping to avoid re-suspending settled dust.
+* Budget (under ₹1,000): Install foam weatherstripping tape along window and door cracks to prevent toxic ambient air infiltration.
+* Filter solution (₹1,500 - ₹3,000): Build a DIY Corsi-Rosenthal box fan air purifier using a basic domestic fan and a MERV-13 filter.
+* Protection: Wear a reusable N95 or FFP2 respirator mask if you must briefly step outside.`;
+
+  it('leaves topic words ("clean", "air", "safe", "mask", "filter", "clean my home air") completely untouched', () => {
+    const poorVerdict = computeSafetyVerdict({
+      aqi: 278,
+      category: 'Poor',
+      query: 'How do I clean my home air on a budget?'
+    });
+
+    const check = validateReplySafety(budgetCleaningText, poorVerdict, 278, 'Poor');
+    expect(check.isValid).toBe(true);
+    expect(check.shouldRegenerate).toBe(false);
+    expect(check.issues.length).toBe(0);
+    expect(check.repairedText).toBe(budgetCleaningText);
+  });
+
+  it('preserves multi-part budget responses without truncating down to "You can"', async () => {
+    const multiPartCleaningResponse = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: 'You can clean indoor air on a budget using free and low-cost measures.\n\n* **Free (₹0):** Keep windows and balcony doors shut during peak smog hours. Damp-mop floors twice daily instead of dry sweeping.\n'
+              },
+              {
+                text: '* **Budget (under ₹1,000):** Seal door bottoms and window seams with draft tape. Place snake draft stoppers at external doorways.\n* **Filtration:** Use an N95 mask when stepping out, and run a domestic HEPA purifier on medium fan speed.'
+              }
+            ]
+          },
+          finishReason: 'STOP'
+        }
+      ],
+      usageMetadata: { promptTokenCount: 150, candidatesTokenCount: 120 }
+    };
+
+    const globalFetch = global.fetch;
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      if (urlStr.includes('generativelanguage.googleapis.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => multiPartCleaningResponse
+        };
+      }
+      return globalFetch(url);
+    });
+
+    try {
+      const payload = {
+        message: 'How do I clean my home air on a budget?',
+        selectedCity: { name: 'Noida', lat: 28.5355, lon: 77.391 },
+        aqiData: { city: 'Noida', aqi: 278, category: 'Poor', isMock: false }
+      };
+
+      const req = new Request('https://foggy.app/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer demo_token'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const res = await onRequestPost({
+        request: req,
+        env: { GEMINI_API_KEY: 'test-real-key-simulation-string-12345' }
+      });
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+
+      // Must NOT be truncated to "You can"
+      expect(json.reply).not.toBe('You can');
+      expect(json.reply.length).toBeGreaterThan(100);
+      expect(json.reply).toContain('Damp-mop floors');
+      expect(json.reply).toContain('Budget (under ₹1,000)');
+      expect(json.reply).toContain('N95 mask');
+      expect(json.provider).toBe(FOGGY_PROVIDER_LABELS.LIVE_GEMINI);
+    } finally {
+      global.fetch = globalFetch;
+    }
+  });
+});
+
+describe('7. Targeted Sentence-Level Replacement for Unsafe Outdoor Claims', () => {
+  it('replaces ONLY the contradicted outdoor sentence, keeping remaining sentences intact', () => {
+    const poorVerdict = computeSafetyVerdict({
+      aqi: 260,
+      category: 'Poor',
+      query: 'is it safe for my kid to play outside'
+    });
+
+    const replyWithOneUnsafeSentence =
+      'Air quality in Noida is poor with high particulate matter today. Feel free to let your kids play outside in the park this evening. Make sure to keep bedroom windows closed and run an air purifier indoors.';
+
+    const result = validateReplySafety(replyWithOneUnsafeSentence, poorVerdict, 260, 'Poor');
+
+    // Only 1 issue flagged
+    expect(result.issues.length).toBe(1);
+    expect(result.issues[0]).toContain('Asserts outdoor activity is safe');
+    expect(result.shouldRegenerate).toBe(false);
+
+    // Offending sentence is replaced by verdict warning
+    expect(result.repairedText).not.toContain('Feel free to let your kids play outside');
+    expect(result.repairedText).toContain('No, it is not safe for your child to play outside today.');
+
+    // Surrounding sentences remain intact!
+    expect(result.repairedText).toContain('Air quality in Noida is poor with high particulate matter today.');
+    expect(result.repairedText).toContain('Make sure to keep bedroom windows closed and run an air purifier indoors.');
+  });
+});
+
+describe('8. Model Order, Fallback Attribution, and Thoughts Tokens Metrics', () => {
+  it('has primary model gemini-3.1-flash-lite as first candidate model', () => {
+    expect(GEMINI_CANDIDATE_MODELS[0]).toBe('gemini-3.1-flash-lite');
+  });
+
+  it('falls back to secondary model and logs fallback when primary model returns 503', async () => {
+    const candidateResponses = {
+      'gemini-flash-latest': {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'No, outdoor play is strictly unsafe today in Noida with high smog. Keep your children indoors with air filtration running, and ensure windows remain tightly shut.'
+                }
+              ]
+            },
+            finishReason: 'STOP'
+          }
+        ],
+        usageMetadata: { promptTokenCount: 80, candidatesTokenCount: 30 }
+      }
+    };
+
+    const globalFetch = global.fetch;
+    global.fetch = vi.fn().mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      if (urlStr.includes('/models?key=') || urlStr.includes('/models?')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            models: [
+              { name: 'models/gemini-3.1-flash-lite', supportedGenerationMethods: ['generateContent'] },
+              { name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] }
+            ]
+          })
+        };
+      }
+      if (urlStr.includes('gemini-3.1-flash-lite')) {
+        return {
+          ok: false,
+          status: 503,
+          text: async () => 'Service Unavailable (High demand spike)'
+        };
+      }
+      if (urlStr.includes('gemini-flash-latest')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => candidateResponses['gemini-flash-latest']
+        };
+      }
+      return globalFetch(url);
+    });
+
+    try {
+      const res = await callGeminiApi({
+        apiKey: 'test-api-key-1234567890',
+        systemPrompt: 'You are Foggy.',
+        contents: [{ role: 'user', parts: [{ text: 'is it safe for my kid to play outside' }] }],
+        primaryReport: { current: { aqi: 280, category: 'Poor' } }
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.modelName).toBe('gemini-flash-latest');
+      expect(res.rawReply).toContain('strictly unsafe');
+    } finally {
+      global.fetch = globalFetch;
+    }
+  });
+
+  it('extracts only text parts from multi-part response with thoughts tokens', async () => {
+    const responseWithThoughts = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                thought: true,
+                text: 'Internal thinking: User father has COPD, air is Poor, must advise staying indoors and carrying inhaler.'
+              },
+              {
+                text: 'No, it is not safe for your father to walk outside this evening with Poor air quality. Have him exercise indoors and keep his rescue inhaler accessible.'
+              }
+            ]
+          },
+          finishReason: 'STOP'
+        }
+      ],
+      usageMetadata: {
+        promptTokenCount: 120,
+        candidatesTokenCount: 160,
+        candidatesTokensDetails: [{ thought: true, tokenCount: 420 }]
+      }
+    };
+
+    const globalFetch = global.fetch;
+    global.fetch = vi.fn().mockImplementation(async (_url) => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => responseWithThoughts
+      };
+    });
+
+    try {
+      const res = await callGeminiApi({
+        apiKey: 'test-api-key-1234567890',
+        systemPrompt: 'You are Foggy.',
+        contents: [{ role: 'user', parts: [{ text: 'is it safe for my father with COPD to walk this evening' }] }],
+        primaryReport: { current: { aqi: 280, category: 'Poor' } }
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.rawReply).not.toContain('Internal thinking');
+      expect(res.rawReply).toContain('rescue inhaler accessible');
+      expect(res.thoughtsTokens).toBe(420);
     } finally {
       global.fetch = globalFetch;
     }

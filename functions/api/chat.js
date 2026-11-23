@@ -47,6 +47,10 @@ import {
   buildDeterministicSafetyReply
 } from '../../shared/safety/safetyValidator.js';
 import {
+  sanitizeModelReplyText,
+  checkMinimumResponseQuality
+} from '../../shared/chat/markdownSanitizer.js';
+import {
   GEMINI_PRIMARY_MODEL,
   GEMINI_FALLBACK_MODEL,
   GEMINI_CANDIDATE_MODELS,
@@ -474,78 +478,138 @@ export async function onRequestPost(context) {
         primaryReport.current.category
       );
 
-      if (!safetyCheck.isValid) {
-        console.warn('Gemini reply failed safety verification:', safetyCheck.issues);
-        const correctiveInstruction = buildCorrectivePrompt(safetyCheck.issues, safetyVerdict);
-        const retryPayload = `${userMessagePayload}\n\n${correctiveInstruction}`;
-        const retryContents = buildGeminiContents(history, retryPayload);
+      const lengthBeforeSafety = finalReply ? finalReply.length : 0;
+      let lengthAfterSafety = lengthBeforeSafety;
 
-        const retryResult = await callGeminiApi({
-          apiKey,
-          systemPrompt,
-          contents: retryContents,
-          primaryReport,
-          timeframe: intent.timeframe
-        });
-
-        if (retryResult.success) {
-          const retryCheck = validateReplySafety(
-            retryResult.rawReply,
-            safetyVerdict,
-            primaryReport.current.aqi,
-            primaryReport.current.category
+      if (!safetyCheck.isValid || safetyCheck.issues.length > 0) {
+        if (safetyCheck.shouldRegenerate) {
+          console.warn(
+            'Gemini reply failed safety verification (>1/3 replaced); attempting 1-time regeneration:',
+            safetyCheck.issues
           );
-          if (retryCheck.isValid) {
-            finalReply = retryResult.rawReply;
-            finalModelName = retryResult.modelName;
-            finalExtractedFacts = retryResult.extractedFacts;
+          const correctiveInstruction = buildCorrectivePrompt(safetyCheck.issues, safetyVerdict);
+          const retryPayload = `${userMessagePayload}\n\n${correctiveInstruction}`;
+          const retryContents = buildGeminiContents(history, retryPayload);
+
+          const retryResult = await callGeminiApi({
+            apiKey,
+            systemPrompt,
+            contents: retryContents,
+            primaryReport,
+            timeframe: intent.timeframe
+          });
+
+          if (retryResult.success) {
+            const retryCheck = validateReplySafety(
+              retryResult.rawReply,
+              safetyVerdict,
+              primaryReport.current.aqi,
+              primaryReport.current.category
+            );
+            if (!retryCheck.shouldRegenerate) {
+              finalReply = retryCheck.repairedText;
+              finalModelName = retryResult.modelName;
+              finalExtractedFacts = retryResult.extractedFacts;
+            } else {
+              console.warn(
+                'Gemini retry also failed safety verification; using deterministic safety guidance.'
+              );
+              finalReply = null; // force deterministic safety fallback
+            }
           } else {
-            console.warn('Gemini retry also failed safety verification; using deterministic safety guidance.');
-            finalReply = null; // force deterministic safety fallback
+            finalReply = null;
           }
         } else {
-          finalReply = null;
+          // Targeted sentence-level repair: replace ONLY the contradicted sentence
+          finalReply = safetyCheck.repairedText;
         }
       }
+      lengthAfterSafety = finalReply ? finalReply.length : 0;
 
       if (finalReply) {
-        const alignedReply = validateAndAlignReplyWithAqi(
+        const lengthBeforeAqiAlign = finalReply.length;
+        let alignedReply = validateAndAlignReplyWithAqi(
           finalReply,
           primaryReport.current.aqi,
           primaryReport.current.category
         );
+        const lengthAfterAqiAlign = alignedReply.length;
 
-        const cityDataPayload = {
-          name: primaryReport.city,
-          lat: primaryReport.lat,
-          lon: primaryReport.lon,
-          admin1: primaryReport.admin1 || '',
-          country: 'India',
-          aqi: primaryReport.current.aqi,
-          category: primaryReport.current.category,
-          currentAqi: primaryReport.current.aqi,
-          currentCategory: primaryReport.current.category,
-          dominant: primaryReport.current.dominant,
-          time: primaryReport.current.time,
-          timeframe: intent.timeframe,
-          isMock: Boolean(primaryReport.isMock)
-        };
+        // Ensure markdown formatting is balanced and dangling tokens stripped
+        alignedReply = sanitizeModelReplyText(alignedReply, geminiResult.finishReason);
+        const lengthAfterSanitize = alignedReply.length;
 
-        return new Response(
+        // Check minimum quality: >= 20 words for standard queries and not ending mid-sentence
+        const isShortExpected =
+          intentType === INTENT_TYPES.AQI_STATUS ||
+          intentType === INTENT_TYPES.SMALL_TALK ||
+          intentType === 'aqi_status' ||
+          intentType === 'small_talk' ||
+          intentType === 'greeting';
+        const quality = checkMinimumResponseQuality(alignedReply, isShortExpected);
+        if (!quality.isQualityPass) {
+          console.warn(
+            `[Chat Diagnostic] Model reply failed minimum quality check: ${quality.reason} (words=${quality.wordCount}). Falling back.`
+          );
+          alignedReply = null;
+          finalReply = null;
+        }
+
+        // Safe structured diagnostics logging (never secrets)
+        console.log(
+          '[Chat Diagnostic]',
           JSON.stringify({
-            reply: alignedReply,
-            memo: alignedReply,
-            city: primaryReport.city,
-            cityData: cityDataPayload,
-            isDifferentFromSelected,
-            isLive: !primaryReport.isMock,
-            isSample: Boolean(primaryReport.isMock),
             model: finalModelName,
-            provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
-            extractedFacts: finalExtractedFacts
-          }),
-          { status: 200, headers }
+            finishReason: geminiResult.finishReason,
+            usageMetadata: geminiResult.usageMetadata,
+            thoughtsTokens: geminiResult.thoughtsTokens || 0,
+            rawLength: geminiResult.rawLength,
+            lengthAfterMemoryStrip: geminiResult.lengthAfterMemoryStrip,
+            lengthAfterAqiCorrect: geminiResult.lengthAfterAqiCorrect,
+            lengthBeforeSafety,
+            lengthAfterSafety,
+            lengthBeforeAqiAlign,
+            lengthAfterAqiAlign,
+            lengthAfterSanitize,
+            safetyIssues: safetyCheck.issues,
+            shouldRegenerate: safetyCheck.shouldRegenerate,
+            finalLength: alignedReply ? alignedReply.length : 0
+          })
         );
+
+        if (alignedReply) {
+          const cityDataPayload = {
+            name: primaryReport.city,
+            lat: primaryReport.lat,
+            lon: primaryReport.lon,
+            admin1: primaryReport.admin1 || '',
+            country: 'India',
+            aqi: primaryReport.current.aqi,
+            category: primaryReport.current.category,
+            currentAqi: primaryReport.current.aqi,
+            currentCategory: primaryReport.current.category,
+            dominant: primaryReport.current.dominant,
+            time: primaryReport.current.time,
+            timeframe: intent.timeframe,
+            isMock: Boolean(primaryReport.isMock)
+          };
+
+          return new Response(
+            JSON.stringify({
+              reply: alignedReply,
+              memo: alignedReply,
+              city: primaryReport.city,
+              cityData: cityDataPayload,
+              isDifferentFromSelected,
+              isLive: !primaryReport.isMock,
+              isSample: Boolean(primaryReport.isMock),
+              model: finalModelName,
+              provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
+              extractedFacts: finalExtractedFacts
+            }),
+            { status: 200, headers }
+          );
+        }
       }
     }
   }

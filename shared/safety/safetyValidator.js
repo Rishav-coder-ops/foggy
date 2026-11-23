@@ -1,140 +1,191 @@
 // shared/safety/safetyValidator.js
 /**
- * @fileoverview Post-generation safety validation and repair engine.
+ * @fileoverview Post-generation safety validation and sentence-level repair engine.
  * Inspects AI responses against deterministic safety verdicts and atmospheric ground truth.
- * Rejects/repairs unsafe claims (e.g., claiming outdoor play is safe during Moderate/Poor/Very Poor smog),
- * detects self-contradictory statements, forbids prescription modifications, and enforces medical disclaimers.
+ * Replaces ONLY sentences that assert outdoor exposure/activity is safe during Moderate or worse smog,
+ * while leaving indoor tips, budget guidance, and clean air topic words untouched.
+ * If more than one-third of the reply is contradicted, triggers a 1-time regeneration.
  */
 
 import { getAQICategory } from '../aqi.js';
 
 /**
- * List of forbidden phrases claiming outdoor activity is safe or air is clean
- * when AQI is Moderate, Poor, Very Poor, or Severe.
+ * Regex identifying an outdoor activity or outdoor exposure context.
  */
-export const FORBIDDEN_POSITIVE_ACTIVITY_PHRASES = [
-  'entirely safe',
-  'completely safe',
-  'perfectly safe',
-  'totally safe',
-  'no risk',
-  'little or no risk',
-  'unrestricted',
-  'any time of the day',
-  'go ahead and play',
-  'go ahead and run',
-  'go ahead and exercise',
-  'pristine',
-  'clean air',
-  'clean aqi',
-  'great day to play',
-  'great day for outdoor',
-  'feel free to play',
-  'feel free to go out',
-  'enjoy outdoor play',
-  'enjoy outdoor exercise',
-  'enjoy unrestricted',
-  'unrestricted outdoor play',
-  'unrestricted outdoor',
-  'safe for your kid to play outside',
-  'safe for your child to play outside',
-  'safe for outdoor play',
-  'safe to run outside',
-  'safe to exercise outside'
-];
+const OUTDOOR_CONTEXT_REGEX =
+  /\b(outside|outdoors|outdoor|play\s+outside|run\s+outside|jog\s+outside|walk\s+outside|morning\s+walk|evening\s+walk|step\s+out|go\s+out|playground|park|fresh\s+air\s+outside|open\s+windows|ambient\s+air|stroll\s+outside)\b/i;
 
 /**
- * Validates model-generated reply against ground-truth verdict and AQI.
+ * Regex identifying an affirmative safety or risk-free claim.
+ */
+const SAFETY_CLAIM_REGEX =
+  /\b(entirely\s+safe|completely\s+safe|perfectly\s+safe|totally\s+safe|is\s+safe|are\s+safe|safe\s+to\s+play|safe\s+to\s+run|safe\s+to\s+walk|safe\s+for\s+(?:your\s+)?(?:kids?|children|child)|no\s+risk|little\s+or\s+no\s+risk|zero\s+risk|unrestricted|unrestricted\s+outdoor|any\s+time\s+of\s+the\s+day|go\s+ahead\s+and\s+play|go\s+ahead\s+and\s+run|go\s+ahead\s+and\s+(?:let\s+[^.!?]*\s+)?(?:play|go|run|walk|step|exercise)|feel\s+free\s+to\s+play|feel\s+free\s+to\s+go|feel\s+free\s+to\s+(?:let\s+[^.!?]*\s+)?(?:play|go|run|walk|step|exercise)|enjoy\s+outdoor|air\s+is\s+clean\s+outside|clean\s+air\s+outside|pristine\s+air)\b/i;
+
+/**
+ * Regex identifying negation words that invert a safety claim into a warning.
+ */
+const NEGATION_REGEX =
+  /\b(not|never|hardly|scarcely|isn't|is not|cannot|should not|must not|avoid|unsafe|strictly unsafe|far from|un-safe)\b/i;
+
+/**
+ * Regex identifying high AQI numbers incorrectly described as clean.
+ */
+const CLEAN_HIGH_AQI_REGEX =
+  /\b(clean|fresh|safe|pristine)\s+(?:naqi|aqi|air|reading)\s*(?:of|is|at|:)?\s*([0-9]{3})\b/i;
+
+/**
+ * Checks if a single sentence makes an unsafe claim contradicting the safety verdict.
+ * Only flags sentences that assert OUTDOOR exposure/activity is safe during Moderate, Poor, Very Poor, or Severe air.
+ *
+ * @param {string} sentence - A single sentence from the reply.
+ * @param {boolean} isModerateOrWorse - True if active AQI category is Moderate or worse.
+ * @returns {{ isUnsafe: boolean, reason: string | null }}
+ */
+export function isSentenceUnsafe(sentence, isModerateOrWorse) {
+  if (!sentence || typeof sentence !== 'string' || !isModerateOrWorse) {
+    return { isUnsafe: false, reason: null };
+  }
+
+  const s = sentence.trim();
+
+  // 1. Self-contradiction: High AQI number (>= 201) referred to as clean/safe
+  const cleanHighMatch = s.match(CLEAN_HIGH_AQI_REGEX);
+  if (cleanHighMatch) {
+    const num = parseInt(cleanHighMatch[2], 10);
+    if (num >= 201) {
+      return {
+        isUnsafe: true,
+        reason: `Self-contradiction: asserts AQI ${num} is ${cleanHighMatch[1]}`
+      };
+    }
+  }
+
+  // 2. Outdoor activity asserted as safe when category is Moderate or worse
+  const hasOutdoorContext = OUTDOOR_CONTEXT_REGEX.test(s);
+  const hasSafetyClaim = SAFETY_CLAIM_REGEX.test(s);
+
+  if (hasOutdoorContext && hasSafetyClaim) {
+    // Check if the safety claim is negated (e.g. "not safe to play outside", "strictly unsafe")
+    const hasNegation = NEGATION_REGEX.test(s);
+    if (!hasNegation) {
+      return {
+        isUnsafe: true,
+        reason: `Asserts outdoor activity is safe during polluted air: "${s}"`
+      };
+    }
+  }
+
+  // 3. Opening affirmative contradiction (e.g. "Yes, it is entirely safe...")
+  if (/^yes,?\s+(?:it is\s+)?(?:entirely|completely|perfectly|totally)?\s*safe\b/i.test(s)) {
+    if (!NEGATION_REGEX.test(s.slice(0, 30))) {
+      return {
+        isUnsafe: true,
+        reason: `Opens with affirmative safety claim during polluted air: "${s}"`
+      };
+    }
+  }
+
+  return { isUnsafe: false, reason: null };
+}
+
+/**
+ * Validates model-generated reply and performs targeted sentence-level repair.
+ * When a sentence asserts outdoor activity is safe during bad air, replaces ONLY that sentence
+ * with the deterministic verdict warning, keeping the rest of the reply intact.
+ * If more than one-third of the reply is replaced, triggers regeneration.
  *
  * @param {string} replyText - Model generated text.
  * @param {object} verdict - Deterministic safety verdict from computeSafetyVerdict.
  * @param {number} aqi - Ground-truth NAQI.
  * @param {string} [category] - Ground-truth category label.
- * @returns {{ isValid: boolean, issues: Array<string>, shouldRegenerate: boolean }}
+ * @returns {{ isValid: boolean, repairedText: string, issues: Array<string>, shouldRegenerate: boolean, replacedRatio: number }}
  */
 export function validateReplySafety(replyText, verdict, aqi, category = null) {
   if (!replyText || typeof replyText !== 'string') {
-    return { isValid: false, issues: ['Empty or invalid reply text'], shouldRegenerate: true };
+    return {
+      isValid: false,
+      repairedText: '',
+      issues: ['Empty or invalid reply text'],
+      shouldRegenerate: true,
+      replacedRatio: 1
+    };
   }
 
-  const issues = [];
-  const textLower = replyText.toLowerCase();
   const numericAqi = Math.round(Number(aqi ?? verdict?.aqi ?? 0));
   const catName = category || verdict?.category || getAQICategory(numericAqi).name;
-  const isPolluted = catName === 'Poor' || catName === 'Very Poor' || catName === 'Severe';
-  const isModerateOrWorse = isPolluted || catName === 'Moderate';
+  const isModerateOrWorse =
+    catName === 'Moderate' ||
+    catName === 'Poor' ||
+    catName === 'Very Poor' ||
+    catName === 'Severe';
 
-  // 1. Check for forbidden positive claims when air is Moderate or worse
-  if (isModerateOrWorse) {
-    for (const phrase of FORBIDDEN_POSITIVE_ACTIVITY_PHRASES) {
-      if (textLower.includes(phrase)) {
-        const idx = textLower.indexOf(phrase);
-        // If 'safe' is part of 'unsafe' (e.g. "strictly unsafe for your child to play outside"), it's a safety warning, not a violation
-        if (idx > 0 && textLower.slice(idx - 2, idx) === 'un') {
-          continue;
-        }
-        // Exception: only allowed if preceded by negation (e.g., "not entirely safe", "never unrestricted", "not safe")
-        const prefix = textLower.slice(Math.max(0, idx - 30), idx);
-        const isNegated = /\b(not|never|hardly|scarcely|isn't|is not|cannot be|is no longer|neither|no|unsafe|strictly unsafe|far from|un-safe)\s*$/i.test(
-          prefix.trim()
+  const issues = [];
+  let totalLength = replyText.length;
+  let replacedLength = 0;
+
+  // Split text by lines/paragraphs to preserve formatting, bullets, and spacing
+  const lines = replyText.split('\n');
+  const repairedLines = [];
+
+  for (let l = 0; l < lines.length; l++) {
+    const line = lines[l];
+    // If empty line or heading, keep intact
+    if (!line.trim() || /^#{1,6}\s+/.test(line)) {
+      repairedLines.push(line);
+      continue;
+    }
+
+    // Split line into sentences while preserving sentence endings
+    const sentenceTokens = line.split(/(?<=[.!?])\s+(?=[A-Z0-9*#\-<])/);
+    const repairedSentences = [];
+
+    for (let sIdx = 0; sIdx < sentenceTokens.length; sIdx++) {
+      let sentence = sentenceTokens[sIdx];
+
+      // Check for unauthorized medication alterations
+      const medAlteration =
+        /\b(?:increase|decrease|double|stop|change|prescribe|administer\s+a\s+dose\s+of)\s+(?:your\s+)?(?:dosage|dose|medication|medicine|tablets|pills|steroids)\b/i;
+      if (medAlteration.test(sentence)) {
+        issues.push(`Medication modification advice detected: "${sentence}"`);
+        replacedLength += sentence.length;
+        repairedSentences.push(
+          'Always follow your doctor-prescribed medication plan and consult a physician before modifying any dosage.'
         );
-        if (!isNegated) {
-          issues.push(
-            `Claims outdoor activity is safe or unrestricted despite ${catName} air ("${phrase}")`
-          );
-          break;
-        }
+        continue;
+      }
+
+      // Check for unsafe outdoor activity claims
+      const check = isSentenceUnsafe(sentence, isModerateOrWorse);
+      if (check.isUnsafe) {
+        issues.push(check.reason);
+        replacedLength += sentence.length;
+
+        // Replace ONLY this sentence with the deterministic verdict warning
+        const replacement =
+          verdict?.directAnswerPhrase ||
+          `No, outdoor activity is strictly unsafe today with air quality in the ${catName} range (NAQI ${numericAqi}).`;
+        repairedSentences.push(replacement);
+      } else {
+        repairedSentences.push(sentence);
       }
     }
+
+    repairedLines.push(repairedSentences.join(' '));
   }
 
-  // 2. Check for self-contradictions (e.g. positive words near Poor/Very Poor/Severe or AQI >= 201)
-  if (numericAqi >= 201 || isPolluted) {
-    // Check for "clean NAQI of X" or "safe NAQI of X" or "clean air ... X"
-    const cleanNearAqi = /\b(clean|fresh|safe|healthy|pristine)\s+(?:naqi|aqi|air|reading)\s*(?:of|is|at|:)?\s*([0-9]{3})/i;
-    const match = replyText.match(cleanNearAqi);
-    if (match) {
-      const matchedNum = parseInt(match[2], 10);
-      if (matchedNum >= 201) {
-        issues.push(
-          `Self-contradiction: refers to high AQI ${matchedNum} as "${match[1]}"`
-        );
-      }
-    }
+  const repairedText = repairedLines.join('\n');
+  const replacedRatio = totalLength > 0 ? replacedLength / totalLength : 0;
 
-    // Check for direct contradiction phrases like "Yes, it is entirely safe ... Poor/Very Poor"
-    if (
-      /\b(?:yes,?\s+(?:it is\s+)?(?:entirely|completely|perfectly|totally)?\s*safe)\b/i.test(replyText) &&
-      !/\b(?:not|never)\b/i.test(replyText.slice(0, 30))
-    ) {
-      issues.push(`Affirmatively states outdoor activity is safe when AQI is ${catName}`);
-    }
-  }
+  // If more than a third of the reply would be changed, trigger regeneration
+  const shouldRegenerate = replacedRatio > 0.333;
+  const isValid = issues.length === 0 || (!shouldRegenerate && replacedLength > 0);
 
-  // 3. Check for unauthorized medication adjustments
-  const medAlteration = /\b(?:increase|decrease|double|stop|change|prescribe|administer\s+a\s+dose\s+of)\s+(?:your\s+)?(?:dosage|dose|medication|medicine|tablets|pills|steroids)\b/i;
-  if (medAlteration.test(textLower)) {
-    issues.push('Advises modifying medication dosage without physician consultation');
-  }
-
-  // 4. Check for verdict adherence: If verdict strictly said outdoor activity is unsafe, reply must not recommend going out
-  if (verdict && !verdict.isOutdoorSafe && verdict.isOutdoorQuery) {
-    const openingSentences = replyText.slice(0, 200).toLowerCase();
-    const opensWithDirectNo = /\b(no|avoid|unsafe|not safe|not recommended|stay indoors|should not)\b/i.test(
-      openingSentences
-    );
-    const opensWithDirectYes = /\b(yes|safe|fine|go ahead|enjoy)\b/i.test(openingSentences);
-
-    if (opensWithDirectYes && !opensWithDirectNo) {
-      issues.push(`Verdict requires outdoor activity to be avoided, but reply opens affirmatively`);
-    }
-  }
-
-  const isValid = issues.length === 0;
   return {
     isValid,
+    repairedText,
     issues,
-    shouldRegenerate: !isValid
+    shouldRegenerate,
+    replacedRatio
   };
 }
 
@@ -155,7 +206,7 @@ Your previous draft failed safety verification for the following reason(s):
 MANDATORY RULES FOR THIS ATTEMPT:
 1. Current ground-truth air quality is NAQI ${aqi} (${cat}).
 2. You MUST start your response with: "${verdict.directAnswerPhrase || 'No, outdoor activity is not safe today.'}"
-3. Do NOT claim the air is clean, safe, pristine, or unrestricted.
+3. Do NOT claim the air is clean, safe, pristine, or unrestricted outdoors.
 4. Keep the answer under 200 words, direct, empathetic, and actionable.
 5. Emphasize staying indoors, using certified N95/FFP2 masks for any essential transit, and damp-mopping.`;
 }
@@ -165,13 +216,14 @@ MANDATORY RULES FOR THIS ATTEMPT:
  *
  * @param {object} verdict - Deterministic safety verdict from computeSafetyVerdict.
  * @param {string} [cityName='your city'] - Active city name.
- * @param {string} [query=''] - User query.
+ * @param {string} [_query=''] - User query.
  * @returns {string} Safe, structured markdown reply.
  */
 export function buildDeterministicSafetyReply(verdict, cityName = 'your city', _query = '') {
   const aqi = verdict.aqi ?? 150;
   const category = verdict.category || 'Moderate';
-  const directAnswer = verdict.directAnswerPhrase || 'Outdoor activity should be approached with caution today.';
+  const directAnswer =
+    verdict.directAnswerPhrase || 'Outdoor activity should be approached with caution today.';
 
   const bullets = (verdict.actionableGuidance || []).map((g) => `- ${g}`).join('\n');
   const indoor = (verdict.indoorRecommendations || []).map((r) => `- ${r}`).join('\n');

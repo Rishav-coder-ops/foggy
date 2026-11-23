@@ -5,6 +5,11 @@
 
 import { correctModelAqiResponse } from './responseValidator.js';
 import {
+  sanitizeModelReplyText,
+  checkMinimumResponseQuality
+} from './markdownSanitizer.js';
+import {
+  GEMINI_PRIMARY_MODEL,
   GEMINI_CANDIDATE_MODELS,
   GEMINI_GENERATION_CONFIG
 } from '../constants.js';
@@ -14,6 +19,8 @@ let cachedModelsExpiresAt = 0;
 
 /**
  * Discovers and caches available Gemini models supporting generateContent.
+ * Enforces GEMINI_PRIMARY_MODEL is always index 0, followed by preferred fallbacks.
+ *
  * @param {string} apiKey
  * @returns {Promise<Array<string>>}
  */
@@ -23,6 +30,7 @@ export async function getAvailableGeminiModels(apiKey) {
     return cachedModels;
   }
 
+  const primary = GEMINI_PRIMARY_MODEL;
   const fallbackList = [...GEMINI_CANDIDATE_MODELS];
   if (
     !apiKey ||
@@ -47,11 +55,29 @@ export async function getAvailableGeminiModels(apiKey) {
         .map((m) => (m.name || '').replace(/^models\//, ''))
         .filter(Boolean);
 
-      const preferred = [...GEMINI_CANDIDATE_MODELS];
-      const ordered = [
-        ...preferred.filter((p) => list.includes(p)),
-        ...list.filter((m) => !preferred.includes(m) && m.includes('flash'))
-      ];
+      // Primary model MUST ALWAYS be first
+      const ordered = [primary];
+
+      // Append known fallback candidates after primary
+      for (const m of fallbackList) {
+        if (!ordered.includes(m) && list.includes(m)) {
+          ordered.push(m);
+        }
+      }
+
+      // Append any additional stable text flash models from ListModels
+      for (const m of list) {
+        if (
+          !ordered.includes(m) &&
+          m.includes('flash') &&
+          !m.includes('tts') &&
+          !m.includes('image') &&
+          !m.includes('transcribe') &&
+          !m.includes('computer-use')
+        ) {
+          ordered.push(m);
+        }
+      }
 
       if (ordered.length > 0) {
         cachedModels = ordered;
@@ -82,19 +108,22 @@ export async function callGeminiApi({
 
   for (const modelName of candidateModels) {
     for (let attempt = 0; attempt < 2; attempt++) {
+      let apiRes = null;
       try {
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey.trim()}`;
-        const apiRes = await fetch(geminiUrl, {
+        const requestBody = {
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: {
+            temperature: GEMINI_GENERATION_CONFIG.temperature,
+            maxOutputTokens: GEMINI_GENERATION_CONFIG.maxOutputTokens
+          }
+        };
+
+        apiRes = await fetch(geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents,
-            generationConfig: {
-              temperature: GEMINI_GENERATION_CONFIG.temperature,
-              maxOutputTokens: GEMINI_GENERATION_CONFIG.maxOutputTokens
-            }
-          }),
+          body: JSON.stringify(requestBody),
           signal: AbortSignal.timeout(GEMINI_GENERATION_CONFIG.timeoutMs)
         });
 
@@ -113,9 +142,11 @@ export async function callGeminiApi({
             );
             continue; // retry this model once
           }
-          console.warn(
-            `Gemini model ${modelName} unavailable after retries (status ${apiRes.status} high demand spike); safely falling back to next candidate model.`
-          );
+          if (modelName === candidateModels[0]) {
+            console.warn(
+              `[Gemini Fallback] Primary model ${modelName} unavailable after retries (status ${apiRes.status} high demand spike); safely falling back to next model.`
+            );
+          }
           break; // move to next model
         }
 
@@ -123,16 +154,48 @@ export async function callGeminiApi({
           const errText = await apiRes.text().catch(() => '');
           lastErrorReason = `AI service returned HTTP ${apiRes.status}`;
           console.warn(`Gemini call returned ${apiRes.status} for ${modelName}:`, errText);
+          if (modelName === candidateModels[0]) {
+            console.warn(
+              `[Gemini Fallback] Primary model ${modelName} failed with HTTP ${apiRes.status}; falling back to next model.`
+            );
+          }
           break; // move to next model
         }
 
         const data = await apiRes.json();
         const candidate = data.candidates?.[0];
-        let rawReply = candidate?.content?.parts?.[0]?.text;
         const isBlocked =
           candidate?.finishReason === 'SAFETY' || candidate?.finishReason === 'RECITATION';
 
-        // Treat finishReason === 'MAX_TOKENS' as usable text rather than blocking or discarding
+        // Extract all text parts, explicitly filtering out thought parts
+        const parts = candidate?.content?.parts || [];
+        let rawReply = parts
+          .filter((p) => !p.thought && typeof p.text === 'string')
+          .map((p) => p.text)
+          .join('')
+          .trim();
+
+        // Calculate usage metadata and thought token metrics safely
+        const thoughtsCount =
+          data.usageMetadata?.candidatesTokensDetails?.find((d) => d.thought)?.tokenCount ||
+          data.usageMetadata?.thoughtsTokenCount ||
+          0;
+        const rawLength = rawReply.length;
+
+        // Structured diagnostics logging (safe, no secrets)
+        console.log(
+          '[Gemini Response Diagnostics]',
+          JSON.stringify({
+            model: modelName,
+            finishReason: candidate?.finishReason || 'STOP',
+            promptTokens: data.usageMetadata?.promptTokenCount,
+            candidatesTokens: data.usageMetadata?.candidatesTokenCount,
+            thoughtsTokens: thoughtsCount,
+            rawLength
+          })
+        );
+
+        // Treat finishReason === 'MAX_TOKENS' as usable text, trimming and balancing safely
         if (rawReply && !isBlocked) {
           let extractedFacts = [];
           const memoryMatch = rawReply.match(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/);
@@ -143,6 +206,7 @@ export async function callGeminiApi({
             } catch {}
             rawReply = rawReply.replace(/\[FOGGY_MEMORY_EXTRACTION:\s*({[\s\S]*?})\]/, '').trim();
           }
+          const lengthAfterMemoryStrip = rawReply.length;
 
           let quotedAqi = primaryReport?.current?.aqi ?? 35;
           let quotedCategory = primaryReport?.current?.category || 'Good';
@@ -163,11 +227,33 @@ export async function callGeminiApi({
 
           // Correct (rather than discard) replies that quote inaccurate AQI numbers conflicting with ground truth
           rawReply = correctModelAqiResponse(rawReply, quotedAqi, allowedNumbers);
+          const lengthAfterAqiCorrect = rawReply.length;
+
+          // Sanitize truncation and dangling markdown markers
+          rawReply = sanitizeModelReplyText(rawReply, candidate?.finishReason);
+          const lengthAfterTrim = rawReply.length;
+
+          // Validate minimum response quality (allow brief factual answers at client level if complete)
+          const quality = checkMinimumResponseQuality(rawReply, true);
+          if (!quality.isQualityPass) {
+            console.warn(
+              `[Gemini Response Quality] Failed minimum quality check on ${modelName}: ${quality.reason} (length=${rawReply.length}, words=${quality.wordCount})`
+            );
+            lastErrorReason = quality.reason;
+            break; // move to next candidate model
+          }
 
           return {
             success: true,
             rawReply,
             modelName,
+            finishReason: candidate?.finishReason || 'STOP',
+            usageMetadata: data.usageMetadata,
+            thoughtsTokens: thoughtsCount,
+            rawLength,
+            lengthAfterMemoryStrip,
+            lengthAfterAqiCorrect,
+            lengthAfterTrim,
             extractedFacts,
             quotedAqi,
             quotedCategory
@@ -176,11 +262,17 @@ export async function callGeminiApi({
           lastErrorReason = `Safety filter triggered (${candidate?.finishReason})`;
           break; // do not retry blocked safety response on same model
         } else {
+          lastErrorReason = 'Empty response from model';
           break; // empty response, proceed to next model
         }
       } catch (err) {
         lastErrorReason = err.name === 'TimeoutError' ? 'AI request timed out' : err.message;
         console.warn(`Gemini call failed for model ${modelName} (attempt ${attempt + 1}):`, err.message);
+        if (modelName === candidateModels[0]) {
+          console.warn(
+            `[Gemini Fallback] Primary model ${modelName} timed out or failed: ${err.message}. Falling back to next model.`
+          );
+        }
         if (err.name === 'TimeoutError') {
           // If a model timed out, proceed immediately to the next candidate model without redundant retry
           break;

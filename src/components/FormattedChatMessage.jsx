@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { AlertCircle } from 'lucide-react';
+import { balanceMarkdownMarkers } from '../../shared/chat/markdownSanitizer.js';
 
 export function cleanAndExtractMarkdown(text) {
   if (!text || typeof text !== 'string') {
@@ -43,6 +44,9 @@ export function cleanAndExtractMarkdown(text) {
 
   // Strip stray unclosed lone asterisks
   cleaned = cleaned.replace(/(?<=\s)\*(?=\s|$)/g, '');
+
+  // Balance markdown markers (**, *, `) and strip trailing dangling tokens
+  cleaned = balanceMarkdownMarkers(cleaned);
 
   return { cleanText: cleaned.trim(), hasDisclaimer };
 }
