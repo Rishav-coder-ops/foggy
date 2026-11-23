@@ -29,7 +29,7 @@ flowchart TD
     subgraph External ["External Services & APIs"]
         Firebase["Google Firebase (Authentication & Cloud Firestore)"]
         OpenMeteo["Open-Meteo CAMS Model API (Hourly Particulate Feeds)"]
-        GeminiAPI["Google Gemini 1.5 Flash (Generative AI Engine)"]
+        GeminiAPI["Google Gemini 3.1 Flash Lite (Generative AI Engine)"]
         WAQI["World Air Quality Index (Station Reference API)"]
     end
 

@@ -39,6 +39,14 @@ import {
   generateSmartFallbackResponse
 } from '../../shared/chat/responseValidator.js';
 import { callGeminiApi } from '../../shared/chat/geminiClient.js';
+import {
+  GEMINI_PRIMARY_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_CANDIDATE_MODELS,
+  GEMINI_GENERATION_CONFIG,
+  FOGGY_FALLBACK_MODEL,
+  FOGGY_PROVIDER_LABELS
+} from '../../shared/constants.js';
 
 export {
   INTENT_TYPES,
@@ -56,7 +64,13 @@ export {
   extractMemoryFacts,
   verifyModelAqiResponse,
   correctModelAqiResponse,
-  generateSmartFallbackResponse
+  generateSmartFallbackResponse,
+  GEMINI_PRIMARY_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_CANDIDATE_MODELS,
+  GEMINI_GENERATION_CONFIG,
+  FOGGY_FALLBACK_MODEL,
+  FOGGY_PROVIDER_LABELS
 };
 
 /**
@@ -321,8 +335,8 @@ export async function onRequestPost(context) {
         cityData: null,
         isDifferentFromSelected: false,
         isLive: false,
-        model: 'foggy-atmospheric-core',
-        provider: "Answered by Foggy's built-in guidance",
+        model: FOGGY_FALLBACK_MODEL,
+        provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
         reason: 'Unrecognized city location',
         extractedFacts: fallback.extractedFacts
       }),
@@ -347,8 +361,8 @@ export async function onRequestPost(context) {
         cityData: null,
         isDifferentFromSelected: false,
         isLive: false,
-        model: 'foggy-atmospheric-core',
-        provider: "Answered by Foggy's built-in guidance",
+        model: FOGGY_FALLBACK_MODEL,
+        provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
         reason: 'City data temporarily unavailable',
         extractedFacts: []
       }),
@@ -420,7 +434,7 @@ export async function onRequestPost(context) {
           isDifferentFromSelected,
           isLive: true,
           model: geminiResult.modelName,
-          provider: 'Google Gemini',
+          provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
           extractedFacts: geminiResult.extractedFacts
         }),
         { status: 200, headers }
@@ -475,8 +489,8 @@ export async function onRequestPost(context) {
       cityData: cityDataPayload,
       isDifferentFromSelected,
       isLive: false,
-      model: 'foggy-atmospheric-core',
-      provider: "Answered by Foggy's built-in guidance",
+      model: FOGGY_FALLBACK_MODEL,
+      provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
       reason: isKeyConfigured
         ? geminiResult?.errorReason || 'AI temporarily unavailable'
         : 'API key not configured',

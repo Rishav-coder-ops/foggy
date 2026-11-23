@@ -8,7 +8,7 @@
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF.svg?logo=vite)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?logo=tailwind-css)](https://tailwindcss.com/)
 [![Express.js](https://img.shields.io/badge/Express-4.21-000000.svg?logo=express)](https://expressjs.com/)
-[![Google Gemini](https://img.shields.io/badge/Google_Gemini-1.5_Flash-4285F4.svg?logo=google)](https://aistudio.google.com/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.1_Flash_Lite-4285F4.svg?logo=google)](https://aistudio.google.com/)
 [![WCAG AA](https://img.shields.io/badge/Accessibility-WCAG_AA_Compliant-blue.svg)](https://www.w3.org/WAI/WCAG2AA-Conformance)
 
 🌐 **Live Production Application**: [https://foggy-278.pages.dev](https://foggy-278.pages.dev)
@@ -66,7 +66,7 @@ Commercial advice often promotes costly purifiers (₹15,000–₹40,000+) or ca
 
 ### 1. 🤖 Foggy Personalized Assistant (GenAI Chat)
 
-- Conversational chat powered by **Google Gemini API** (`gemini-1.5-flash`), with an intelligent built-in fallback core when keys are unset or offline.
+- Conversational chat powered by **Google Gemini API** (`gemini-3.1-flash-lite` with automatic fallback to `gemini-flash-latest`), with an intelligent built-in rule-based offline guidance core when keys are unset or offline.
 - Greets signed-in users by their first name and adapts recommendations to their household profile.
 - Branded Foggy mascot avatar with emotional states (happy, listening, thinking).
 - Suggested starter prompts: _"Plan my low-pollution day"_, _"How do I clean my home's air on a budget?"_, _"What mask should I wear today?"_.
@@ -147,7 +147,7 @@ Every recommendation features visual badges detailing:
 
 - **Frontend**: React 18, Vite 5, Tailwind CSS 3.4, React Router 7, Lucide Icons
 - **Backend Proxy**: Node.js 24, Express 4.21, CORS, Dotenv, In-memory Sliding Window Rate Limiter
-- **AI Engine**: Google Gemini API (`gemini-1.5-flash`) via secure backend proxy + Built-in Atmospheric Core Fallback
+- **AI Engine**: Google Gemini API (`gemini-3.1-flash-lite`, fallback `gemini-flash-latest`) via secure backend proxy + Built-in Atmospheric Core Fallback
 - **Air Quality Data**: World Air Quality Index (WAQI) API (`https://api.waqi.info`) + High-Fidelity Simulation Fallback
 - **State & Storage**: React Context API (`ThemeContext`, `AuthContext`, `ProfileContext`) + `localStorage` persistence layer
 
@@ -174,7 +174,7 @@ flowchart TD
     end
 
     subgraph External ["External Cloud APIs"]
-        Gemini["Google Gemini 1.5 Flash API"]
+        Gemini["Google Gemini 3.1 Flash Lite API"]
         WAQI["World Air Quality Index (WAQI)"]
     end
 

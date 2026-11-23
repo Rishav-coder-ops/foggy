@@ -9,6 +9,15 @@ import {
   onRequest as handleChatRequest
 } from './chat.js';
 
+export {
+  GEMINI_PRIMARY_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_CANDIDATE_MODELS,
+  GEMINI_GENERATION_CONFIG,
+  FOGGY_FALLBACK_MODEL,
+  FOGGY_PROVIDER_LABELS
+} from './chat.js';
+
 export async function onRequestPost(context) {
   return handleChatPost(context);
 }
@@ -20,3 +29,4 @@ export async function onRequestOptions(context) {
 export async function onRequest(context) {
   return handleChatRequest(context);
 }
+

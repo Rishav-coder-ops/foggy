@@ -7,6 +7,7 @@ import { INDIAN_METROS } from '../../shared/timeline/constants.js';
 import { getAQICategory } from '../../shared/aqi.js';
 import { classifyIntent } from '../../shared/chatIntent/intentClassifier.js';
 import { generateSmartFallbackResponse } from '../../shared/chat/responseValidator.js';
+import { FOGGY_FALLBACK_MODEL, FOGGY_PROVIDER_LABELS } from '../../shared/constants.js';
 
 export { INDIAN_METROS };
 
@@ -244,7 +245,7 @@ export async function sendChatMessage({
       return {
         reply: `⚠️ **Rate Limit Notice**\n\n${err.message}\n\n> 💡 *Signed-in users enjoy a higher limit (60 messages/hour). Please sign in or try again shortly.*`,
         extractedFacts: [],
-        provider: 'System Rate Limiter'
+        provider: FOGGY_PROVIDER_LABELS.RATE_LIMITER
       };
     }
     console.warn('Chat request failed, providing supportive client fallback:', err.message);
@@ -293,8 +294,8 @@ export async function sendChatMessage({
     return {
       reply,
       extractedFacts: fallback.extractedFacts || [],
-      provider: "Answered by Foggy's built-in guidance",
-      model: 'foggy-atmospheric-core',
+      provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
+      model: FOGGY_FALLBACK_MODEL,
       isLive: false,
       reason,
       cityData: {

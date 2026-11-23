@@ -3,6 +3,11 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useProfile } from './ProfileContext';
 import { sendChatMessage, fetchAQIData, getStoredCity, setStoredCity } from '../services/api';
+import {
+  GEMINI_PRIMARY_MODEL,
+  FOGGY_FALLBACK_MODEL,
+  FOGGY_PROVIDER_LABELS
+} from '../../shared/constants.js';
 
 const ChatContext = createContext();
 
@@ -184,10 +189,10 @@ export function ChatProvider({ children }) {
         text: response.reply,
         provider:
           response.provider ||
-          (response.isLive ? 'Google Gemini' : "Answered by Foggy's built-in guidance"),
+          (response.isLive ? FOGGY_PROVIDER_LABELS.LIVE_GEMINI : FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE),
         model:
           response.model ||
-          (response.isLive ? 'gemini-3.1-flash-lite' : 'foggy-built-in-guidance'),
+          (response.isLive ? GEMINI_PRIMARY_MODEL : FOGGY_FALLBACK_MODEL),
         isLive: Boolean(response.isLive),
         reason: response.reason || null,
         cityData: response.cityData,
@@ -206,8 +211,8 @@ export function ChatProvider({ children }) {
         id: 'msg_err_' + Date.now(),
         sender: 'foggy',
         text: 'Foggy had a brief connection hiccup. Please try asking again!',
-        provider: "Answered by Foggy's built-in guidance",
-        model: 'foggy-built-in-guidance',
+        provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
+        model: FOGGY_FALLBACK_MODEL,
         isLive: false,
         reason: 'Connection interrupted',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

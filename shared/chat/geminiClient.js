@@ -4,6 +4,12 @@
  */
 
 import { correctModelAqiResponse } from './responseValidator.js';
+import {
+  GEMINI_PRIMARY_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_CANDIDATE_MODELS,
+  GEMINI_GENERATION_CONFIG
+} from '../constants.js';
 
 let cachedModels = null;
 let cachedModelsExpiresAt = 0;
@@ -19,7 +25,7 @@ export async function getAvailableGeminiModels(apiKey) {
     return cachedModels;
   }
 
-  const fallbackList = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+  const fallbackList = [GEMINI_PRIMARY_MODEL, GEMINI_FALLBACK_MODEL, 'gemini-2.5-flash'];
   if (
     !apiKey ||
     typeof apiKey !== 'string' ||
@@ -33,7 +39,7 @@ export async function getAvailableGeminiModels(apiKey) {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey.trim()}`,
       {
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(GEMINI_GENERATION_CONFIG.listModelsTimeoutMs)
       }
     );
     if (res.ok) {
@@ -43,14 +49,7 @@ export async function getAvailableGeminiModels(apiKey) {
         .map((m) => (m.name || '').replace(/^models\//, ''))
         .filter(Boolean);
 
-      const preferred = [
-        'gemini-3.1-flash-lite',
-        'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
-      ];
+      const preferred = [...GEMINI_CANDIDATE_MODELS];
       const ordered = [
         ...preferred.filter((p) => list.includes(p)),
         ...list.filter((m) => !preferred.includes(m) && m.includes('flash'))
@@ -76,7 +75,7 @@ export async function callGeminiApi({
   primaryReport,
   timeframe
 }) {
-  let candidateModels = ['gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+  let candidateModels = [GEMINI_PRIMARY_MODEL, GEMINI_FALLBACK_MODEL, 'gemini-2.5-flash'];
   try {
     candidateModels = await getAvailableGeminiModels(apiKey);
   } catch {}
@@ -93,9 +92,12 @@ export async function callGeminiApi({
           body: JSON.stringify({
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents,
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1500 }
+            generationConfig: {
+              temperature: GEMINI_GENERATION_CONFIG.temperature,
+              maxOutputTokens: GEMINI_GENERATION_CONFIG.maxOutputTokens
+            }
           }),
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(GEMINI_GENERATION_CONFIG.timeoutMs)
         });
 
         // Safe retry for HTTP 429 and 503
@@ -105,7 +107,9 @@ export async function callGeminiApi({
               ? 'Rate limited by AI provider (429)'
               : 'AI provider temporarily overloaded (503)';
           if (attempt === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 750));
+            await new Promise((resolve) =>
+              setTimeout(resolve, GEMINI_GENERATION_CONFIG.retryDelayMs)
+            );
             continue; // retry this model once
           }
           break; // move to next model

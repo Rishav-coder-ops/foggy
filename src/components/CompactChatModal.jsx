@@ -7,6 +7,10 @@ import { useChat } from '../context/ChatContext';
 import { useProfile } from '../context/ProfileContext';
 import { getStoredCity } from '../services/api';
 import { getAQICategory } from '../../shared/aqi.js';
+import {
+  GEMINI_PRIMARY_MODEL,
+  FOGGY_PROVIDER_LABELS
+} from '../../shared/constants.js';
 
 function getCategoryBadge(cat) {
   switch (cat) {
@@ -271,14 +275,14 @@ export default function CompactChatModal({ isEmbedded = false }) {
                       <span
                         title={
                           msg.isLive
-                            ? `Live AI Model: ${msg.model || 'gemini-3.1-flash-lite'}`
+                            ? `Live AI Model: ${msg.model || GEMINI_PRIMARY_MODEL}`
                             : msg.reason || 'Built-in rule-based guidance'
                         }
                         className="cursor-help"
                       >
                         {msg.isLive
-                          ? `Google Gemini (${msg.model || 'gemini-3.1-flash-lite'})`
-                          : msg.provider || "Answered by Foggy's built-in guidance"}
+                          ? `${FOGGY_PROVIDER_LABELS.LIVE_GEMINI} (${msg.model || GEMINI_PRIMARY_MODEL})`
+                          : msg.provider || FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE}
                       </span>
                     </div>
                   )}

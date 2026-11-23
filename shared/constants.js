@@ -103,3 +103,35 @@ export const INDIAN_METROS = Object.freeze({
   ahmedabad: { name: 'Ahmedabad', state: 'Gujarat', lat: 23.0225, lon: 72.5714 },
   pune: { name: 'Pune', state: 'Maharashtra', lat: 18.5204, lon: 73.8567 }
 });
+
+/**
+ * Model identifiers, generation settings, and provider labels.
+ */
+export const GEMINI_PRIMARY_MODEL = 'gemini-3.1-flash-lite';
+export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
+
+export const GEMINI_CANDIDATE_MODELS = Object.freeze([
+  GEMINI_PRIMARY_MODEL,
+  GEMINI_FALLBACK_MODEL,
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash'
+]);
+
+export const GEMINI_GENERATION_CONFIG = Object.freeze({
+  temperature: 0.3,
+  maxOutputTokens: 1500,
+  timeout: 10000,
+  timeoutMs: 10000,
+  listModelsTimeoutMs: 5000,
+  retryDelayMs: 750
+});
+
+export const FOGGY_FALLBACK_MODEL = 'foggy-atmospheric-core';
+
+export const FOGGY_PROVIDER_LABELS = Object.freeze({
+  LIVE_GEMINI: 'Google Gemini',
+  BUILT_IN_GUIDANCE: "Answered by Foggy's built-in guidance",
+  RATE_LIMITER: 'System Rate Limiter'
+});
+
