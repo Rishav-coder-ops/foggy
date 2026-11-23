@@ -79,17 +79,46 @@ export function calculateCPCBNAQI(pm25, pm10) {
 }
 
 /**
- * Maps an AQI number to the corresponding CPCB category and UI colors.
+ * Maps an AQI number or category name to the corresponding CPCB category and UI colors.
+ * Single source of truth for:
+ * 0-50 Good green (#10b981)
+ * 51-100 Satisfactory light green (#84cc16)
+ * 101-200 Moderate yellow (#eab308)
+ * 201-300 Poor orange (#f97316)
+ * 301-400 Very Poor red (#ef4444)
+ * 401-500 Severe maroon (#7f1d1d)
  *
- * @param {number | null | undefined} aqi - AQI numeric value.
- * @returns {{ label: string, color: string, textColor: string, severity: number }}
+ * @param {number | string | null | undefined} input - AQI numeric value or category string.
+ * @returns {{ label: string, name: string, color: string, textColor: string, badgeClass: string, healthImpact: string, advisory: string, severity: number }}
  */
-export function getAQICategory(aqi) {
-  if (typeof aqi !== 'number' || isNaN(aqi)) {
-    return { label: 'Unknown', name: 'Unknown', color: '#64748b', textColor: '#ffffff', severity: 0 };
+export function getAQICategory(input) {
+  if (typeof input === 'string') {
+    const norm = input.trim().toLowerCase().replace(/[\s_-]+/g, '');
+    for (const key of Object.keys(AQI_CATEGORIES)) {
+      const cat = AQI_CATEGORIES[key];
+      if (cat.name.toLowerCase().replace(/[\s_-]+/g, '') === norm) {
+        const severityMap = { GOOD: 1, SATISFACTORY: 2, MODERATE: 3, POOR: 4, VERY_POOR: 5, SEVERE: 6 };
+        return { ...cat, severity: severityMap[key] || 0 };
+      }
+    }
   }
 
-  const val = Math.max(0, Math.min(500, Math.round(aqi)));
+  const num = typeof input === 'number' ? input : parseFloat(input);
+  if (isNaN(num) || input === null || input === undefined) {
+    return {
+      label: 'Unknown',
+      name: 'Unknown',
+      color: '#64748b',
+      textColor: '#ffffff',
+      badgeClass:
+        'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700',
+      healthImpact: 'Data unavailable',
+      advisory: 'Check back shortly for updated atmospheric readings.',
+      severity: 0
+    };
+  }
+
+  const val = Math.max(0, Math.min(500, Math.round(num)));
 
   if (val <= 50) return { ...AQI_CATEGORIES.GOOD, severity: 1 };
   if (val <= 100) return { ...AQI_CATEGORIES.SATISFACTORY, severity: 2 };

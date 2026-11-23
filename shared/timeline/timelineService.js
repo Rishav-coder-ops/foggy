@@ -12,10 +12,17 @@ import { generateSampleTimelineData, getSlotAdvice } from './sampleFallback.js';
 export async function geocodeIndianCity(cityName) {
   if (!cityName || typeof cityName !== 'string') return null;
   const trimmed = cityName.trim();
-  const canonicalName = INDIAN_CITY_ALIASES[trimmed.toLowerCase()] || trimmed;
+  const baseName = trimmed.split(/[,–—|-]/)[0].trim();
+  const canonicalName =
+    INDIAN_CITY_ALIASES[trimmed.toLowerCase()] ||
+    INDIAN_CITY_ALIASES[baseName.toLowerCase()] ||
+    baseName;
 
   const fallback = INDIAN_FALLBACK_CITIES.find(
-    (c) => c.name.toLowerCase() === canonicalName.toLowerCase()
+    (c) =>
+      c.name.toLowerCase() === canonicalName.toLowerCase() ||
+      c.name.toLowerCase() === trimmed.toLowerCase() ||
+      c.name.toLowerCase() === baseName.toLowerCase()
   );
   if (fallback) {
     return {
@@ -29,7 +36,10 @@ export async function geocodeIndianCity(cityName) {
   }
 
   const metro = INDIAN_METROS.find(
-    (m) => m.name.toLowerCase() === canonicalName.toLowerCase()
+    (m) =>
+      m.name.toLowerCase() === canonicalName.toLowerCase() ||
+      m.name.toLowerCase() === trimmed.toLowerCase() ||
+      m.name.toLowerCase() === baseName.toLowerCase()
   );
   if (metro) {
     return {

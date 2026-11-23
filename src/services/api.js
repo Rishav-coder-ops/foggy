@@ -8,8 +8,22 @@ import { getAQICategory } from '../../shared/aqi.js';
 import { classifyIntent } from '../../shared/chatIntent/intentClassifier.js';
 import { generateSmartFallbackResponse } from '../../shared/chat/responseValidator.js';
 import { FOGGY_FALLBACK_MODEL, FOGGY_PROVIDER_LABELS } from '../../shared/constants.js';
+import { geocodeIndianCity } from '../../shared/timeline/timelineService.js';
+import { calculateDistanceKm } from '../../shared/aqi/upstreamClient.js';
 
 export { INDIAN_METROS };
+
+export const clientAqiCache = new Map();
+export const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes client cache
+
+export function getClientAqiCacheKey(lat, lon, type = 'aqi') {
+  if (lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) return null;
+  return `${type}_${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
+}
+
+export function clearClientAqiCache() {
+  clientAqiCache.clear();
+}
 
 export const PRESET_CITY_COORDINATES = {
   kolkata: { name: 'Kolkata', country: 'India', admin1: 'West Bengal', lat: 22.5726, lon: 88.3639 },
@@ -46,6 +60,15 @@ export function getStoredCity() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.name && parsed.lat && parsed.lon) {
+        // Detect stale Kolkata coordinates for non-Kolkata cities
+        if (
+          parsed.name.toLowerCase() !== 'kolkata' &&
+          Math.abs(Number(parsed.lat) - 22.5726) < 0.01 &&
+          Math.abs(Number(parsed.lon) - 88.3639) < 0.01
+        ) {
+          localStorage.removeItem('foggy_selected_city');
+          return DEFAULT_CITY;
+        }
         return parsed;
       }
     }
@@ -60,6 +83,17 @@ export function getStoredCity() {
 export function setStoredCity(cityObj) {
   try {
     if (cityObj && cityObj.name) {
+      // Ensure we do not save stale Kolkata coordinates for non-Kolkata city
+      if (
+        cityObj.name.toLowerCase() !== 'kolkata' &&
+        cityObj.lat != null &&
+        cityObj.lon != null &&
+        Math.abs(Number(cityObj.lat) - 22.5726) < 0.01 &&
+        Math.abs(Number(cityObj.lon) - 88.3639) < 0.01
+      ) {
+        // Do not persist corrupt coordinates
+        return;
+      }
       localStorage.setItem('foggy_selected_city', JSON.stringify(cityObj));
     }
   } catch {}
@@ -76,9 +110,10 @@ export function setStoredCity(cityObj) {
 export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = null) {
   let lat = null;
   let lon = null;
-  let cityName = 'Kolkata';
+  let cityName = '';
   let stateName = '';
   let signal = null;
+  let bypassCache = false;
 
   if (typeof params === 'string') {
     cityName = params;
@@ -87,17 +122,62 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
   } else if (params && typeof params === 'object') {
     lat = params.lat ?? params.latitude ?? null;
     lon = params.lon ?? params.longitude ?? null;
-    cityName = params.cityName || params.city || params.name || 'Kolkata';
+    cityName = params.cityName || params.city || params.name || '';
     stateName = params.stateName || params.state || params.admin1 || '';
     signal = params.signal || null;
+    bypassCache = Boolean(params.bypassCache);
   }
 
-  const cleanCity = stateName ? `${cityName}, ${stateName}` : cityName;
+  // Detect and purge stale Kolkata coordinates for non-Kolkata cities
+  const isCityKolkata = cityName && cityName.toLowerCase().includes('kolkata');
+  const hasKolkataCoords =
+    lat != null &&
+    lon != null &&
+    Math.abs(Number(lat) - 22.5726) < 0.01 &&
+    Math.abs(Number(lon) - 88.3639) < 0.01;
+
+  if (!isCityKolkata && hasKolkataCoords) {
+    lat = null;
+    lon = null;
+  }
+
+  // 1. Resolve coordinates if missing and cityName is provided
+  let resolvedCity = cityName;
+  let resolvedState = stateName;
+  if ((lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) && cityName) {
+    const geo = await geocodeIndianCity(stateName ? `${cityName}, ${stateName}` : cityName);
+    if (geo && typeof geo.latitude === 'number' && typeof geo.longitude === 'number') {
+      lat = geo.latitude;
+      lon = geo.longitude;
+      resolvedCity = geo.name || cityName;
+      if (!resolvedState && geo.admin1) resolvedState = geo.admin1;
+    }
+  }
+
+  // Default to Kolkata only if no city and no coordinates were provided at all
+  if (!resolvedCity && (lat == null || lon == null)) {
+    resolvedCity = 'Kolkata';
+    resolvedState = 'West Bengal';
+    lat = 22.5726;
+    lon = 88.3639;
+  }
+
+  const cleanCity = resolvedState ? `${resolvedCity}, ${resolvedState}` : resolvedCity;
+
+  // 2. Check client cache keyed by rounded coordinates + 'aqi'
+  const cacheKey = getClientAqiCacheKey(lat, lon, 'aqi');
+  const now = Date.now();
+  if (cacheKey && !bypassCache) {
+    const cached = clientAqiCache.get(cacheKey);
+    if (cached && now < cached.expiresAt) {
+      return cached.data;
+    }
+  }
 
   if (import.meta.env?.DEV) {
     console.log('[AQI Service] Requesting AQI with coordinates:', {
-      cityName,
-      stateName,
+      cityName: resolvedCity,
+      stateName: resolvedState,
       lat,
       lon
     });
@@ -122,34 +202,117 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
 
     const res = await fetch(url, fetchOptions);
     if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.error === 'GRID_MISMATCH' || errJson.error === 'LOCATION_NOT_FOUND') {
+        return {
+          error: errJson.error,
+          message: errJson.message || `Could not load verified air data for ${cleanCity}.`,
+          city: cleanCity,
+          requestedCoords:
+            lat != null && lon != null
+              ? { lat: Number(Number(lat).toFixed(2)), lon: Number(Number(lon).toFixed(2)) }
+              : null,
+          gridPoint: errJson.gridPoint || null
+        };
+      }
       throw new Error(`Failed to load AQI data (Status ${res.status})`);
     }
-    return await res.json();
+
+    const json = await res.json();
+
+    // 3. Client-side Sanity Guard: Check distance between requested coordinates and returned grid point
+    const gridLat = json.gridPoint?.lat ?? json.latitude;
+    const gridLon = json.gridPoint?.lon ?? json.longitude;
+
+    if (lat != null && lon != null && gridLat != null && gridLon != null) {
+      const dist = calculateDistanceKm(Number(lat), Number(lon), Number(gridLat), Number(gridLon));
+      if (dist > 60) {
+        console.error(
+          `[AQI Sanity Guard] Discarding response: model grid point (${gridLat}, ${gridLon}) is ${dist.toFixed(1)} km from requested (${lat}, ${lon}) which exceeds 60 km limit.`
+        );
+        return {
+          error: 'GRID_MISMATCH',
+          message: `Atmospheric model grid point (${Number(gridLat).toFixed(2)}°N, ${Number(gridLon).toFixed(2)}°E) is ${dist.toFixed(1)} km from ${cleanCity}, exceeding the 60 km accuracy boundary.`,
+          city: cleanCity,
+          requestedCoords: {
+            lat: Number(Number(lat).toFixed(2)),
+            lon: Number(Number(lon).toFixed(2))
+          },
+          gridPoint: {
+            lat: Number(Number(gridLat).toFixed(2)),
+            lon: Number(Number(gridLon).toFixed(2))
+          },
+          distanceKm: Math.round(dist * 10) / 10
+        };
+      }
+    }
+
+    // Attach requestedCoords
+    if (lat != null && lon != null) {
+      json.requestedCoords = {
+        lat: Number(Number(lat).toFixed(2)),
+        lon: Number(Number(lon).toFixed(2))
+      };
+    }
+    if (!json.gridPoint && gridLat != null && gridLon != null) {
+      json.gridPoint = {
+        lat: Number(Number(gridLat).toFixed(2)),
+        lon: Number(Number(gridLon).toFixed(2))
+      };
+    }
+
+    // Standardize category and badges via getAQICategory
+    const officialCat = getAQICategory(json.aqi);
+    json.category = officialCat.name;
+    json.color = officialCat.color;
+    json.badgeClass = officialCat.badgeClass;
+    json.healthImpact = officialCat.healthImpact;
+    json.advisory = officialCat.advisory;
+
+    if (cacheKey) {
+      clientAqiCache.set(cacheKey, {
+        data: json,
+        expiresAt: now + CLIENT_CACHE_TTL_MS
+      });
+    }
+
+    return json;
   } catch (err) {
     if (err.name === 'AbortError') {
       throw err;
     }
     console.warn('AQI fetch error, using safe client fallback:', err);
-    const numLat = lat !== null && !isNaN(Number(lat)) ? Number(lat) : 22.5726;
-    const numLon = lon !== null && !isNaN(Number(lon)) ? Number(lon) : 88.3639;
+    if (lat == null || lon == null || isNaN(Number(lat)) || isNaN(Number(lon))) {
+      return {
+        error: 'LOCATION_NOT_FOUND',
+        message: `Could not resolve verified Indian coordinates for '${cleanCity}'. Please check your location.`,
+        city: cleanCity
+      };
+    }
+    const numLat = Number(lat);
+    const numLon = Number(lon);
     const seed = Math.abs(Math.sin(numLat * 12.9898 + numLon * 78.233)) * 1000;
     const pm25 = Math.round((25 + (seed % 110)) * 10) / 10;
     const pm10 = Math.round((pm25 * 1.55 + (seed % 35)) * 10) / 10;
     const temp = Math.round(18 + (seed % 14));
     const humidity = Math.round(40 + (seed % 42));
     const windSpeed = Math.round((2.0 + (seed % 7)) * 10) / 10;
+    const cat = getAQICategory(165);
 
-    return {
-      city: cleanCity || 'Kolkata, West Bengal',
+    const fallbackPayload = {
+      city: cleanCity,
+      requestedCoords: {
+        lat: Number(numLat.toFixed(2)),
+        lon: Number(numLon.toFixed(2))
+      },
       aqi: 165,
       scale: 'CPCB National AQI (0-500)',
       standard: 'Estimated NAQI (from PM2.5 and PM10)',
-      category: 'Moderate',
-      color: '#EAB308',
-      badgeClass:
-        'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800',
-      healthImpact: 'Breathing discomfort to the people with lungs, asthma and heart diseases',
-      advisory: 'Moderate smog: sensitive individuals limit prolonged outdoor exertion.',
+      category: cat.name,
+      color: cat.color,
+      badgeClass: cat.badgeClass,
+      healthImpact: cat.healthImpact,
+      advisory: cat.advisory,
       dominantPollutant: 'PM2.5',
       pollutants: { pm25, pm10, no2: 44, o3: 32, so2: 12, co: 1.1 },
       weather: {
@@ -175,6 +338,15 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
         'Estimated from modelled data; official CPCB station readings may differ. Check the official CPCB bulletin or the SAMEER app for authoritative values.',
       medicalDisclaimer: 'Foggy is an AI assistant, not a doctor. In a medical emergency, call 112.'
     };
+
+    if (cacheKey) {
+      clientAqiCache.set(cacheKey, {
+        data: fallbackPayload,
+        expiresAt: now + CLIENT_CACHE_TTL_MS
+      });
+    }
+
+    return fallbackPayload;
   }
 }
 

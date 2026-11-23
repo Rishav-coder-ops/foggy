@@ -19,6 +19,7 @@ import { fetchAQIData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useChat } from '../context/ChatContext';
+import { formatGreetingName } from '../utils/nameFormatter';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -28,15 +29,27 @@ export default function DashboardPage() {
   const [aqiData, setAqiData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const savedCity = profile?.city || profile?.location || 'Kolkata';
-  const savedState = profile?.state || 'West Bengal';
-  const locationTitle = `${savedCity}, ${savedState}`;
-  const greetingName =
-    profile?.preferredName ||
-    (user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend');
+  const savedCity = profile?.city || profile?.location || '';
+  const savedState = profile?.state || '';
+  const locationTitle = savedCity
+    ? savedState
+      ? `${savedCity}, ${savedState}`
+      : savedCity
+    : 'Your Location';
+  const greetingName = formatGreetingName(profile, user);
 
   // Load AQI Data for saved location
   const loadAQI = useCallback(async () => {
+    if (!savedCity && (profile?.latitude == null || profile?.longitude == null)) {
+      setLoading(false);
+      setAqiData({
+        error: 'LOCATION_NOT_FOUND',
+        message: 'No location saved in your profile. Please set your city in Settings.',
+        city: 'Unknown'
+      });
+      return;
+    }
+
     setLoading(true);
     const data = await fetchAQIData({
       lat: profile?.latitude,

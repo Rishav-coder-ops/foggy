@@ -16,41 +16,12 @@ import { getAQICategory } from '../../../functions/api/aqi-timeline.js';
 
 // CPCB National AQI Badge renderer (Always text + dot, WCAG AA contrast)
 export function CategoryBadge({ aqi, categoryName }) {
-  const cat = getAQICategory(aqi);
+  const cat = getAQICategory(aqi != null ? aqi : categoryName);
   const name = categoryName || cat.name;
-
-  let badgeStyles =
-    'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
-
-  if (aqi <= 50) {
-    // Good (Green)
-    badgeStyles =
-      'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
-  } else if (aqi <= 100) {
-    // Satisfactory (Light Green)
-    badgeStyles =
-      'bg-green-100 text-green-950 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800';
-  } else if (aqi <= 200) {
-    // Moderate (Yellow)
-    badgeStyles =
-      'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800';
-  } else if (aqi <= 300) {
-    // Poor (Orange)
-    badgeStyles =
-      'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800';
-  } else if (aqi <= 400) {
-    // Very Poor (Red)
-    badgeStyles =
-      'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800';
-  } else {
-    // Severe (Maroon)
-    badgeStyles =
-      'bg-rose-200 text-rose-950 dark:bg-rose-950/90 dark:text-rose-200 border-rose-400 dark:border-rose-800';
-  }
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${badgeStyles}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${cat.badgeClass}`}
     >
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
       <span>{name}</span>

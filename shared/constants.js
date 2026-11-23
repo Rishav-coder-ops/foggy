@@ -29,16 +29,33 @@ export const CPCB_BREAKPOINTS = Object.freeze({
 
 /**
  * CPCB AQI Category bands and descriptions.
+ * 0-50 Good green, 51-100 Satisfactory light green, 101-200 Moderate yellow,
+ * 201-300 Poor orange, 301-400 Very Poor red, 401-500 Severe maroon.
  */
 export const AQI_CATEGORIES = Object.freeze({
-  GOOD: { label: 'Good', name: 'Good', min: 0, max: 50, color: '#10b981', textColor: '#ffffff' },
+  GOOD: {
+    label: 'Good',
+    name: 'Good',
+    min: 0,
+    max: 50,
+    color: '#10b981',
+    textColor: '#ffffff',
+    badgeClass:
+      'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
+    healthImpact: 'Minimal impact',
+    advisory: 'Air quality is considered satisfactory, and air pollution poses little or no risk.'
+  },
   SATISFACTORY: {
     label: 'Satisfactory',
     name: 'Satisfactory',
     min: 51,
     max: 100,
     color: '#84cc16',
-    textColor: '#0f172a'
+    textColor: '#0f172a',
+    badgeClass:
+      'bg-lime-100 text-lime-950 dark:bg-lime-950/80 dark:text-lime-300 border-lime-300 dark:border-lime-800',
+    healthImpact: 'Minor breathing discomfort to sensitive people',
+    advisory: 'Sensitive individuals should consider limiting prolonged outdoor exertion.'
   },
   MODERATE: {
     label: 'Moderate',
@@ -46,16 +63,36 @@ export const AQI_CATEGORIES = Object.freeze({
     min: 101,
     max: 200,
     color: '#eab308',
-    textColor: '#0f172a'
+    textColor: '#0f172a',
+    badgeClass:
+      'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/80 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800',
+    healthImpact: 'Breathing discomfort to the people with lungs, asthma and heart diseases',
+    advisory:
+      'Children, seniors, and individuals with respiratory issues should reduce prolonged outdoor exertion.'
   },
-  POOR: { label: 'Poor', name: 'Poor', min: 201, max: 300, color: '#f97316', textColor: '#ffffff' },
+  POOR: {
+    label: 'Poor',
+    name: 'Poor',
+    min: 201,
+    max: 300,
+    color: '#f97316',
+    textColor: '#ffffff',
+    badgeClass:
+      'bg-orange-100 text-orange-950 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800',
+    healthImpact: 'Breathing discomfort to most people on prolonged exposure',
+    advisory: 'Wear an N95 mask outdoors. Avoid strenuous outdoor activities.'
+  },
   VERY_POOR: {
     label: 'Very Poor',
     name: 'Very Poor',
     min: 301,
     max: 400,
     color: '#ef4444',
-    textColor: '#ffffff'
+    textColor: '#ffffff',
+    badgeClass:
+      'bg-red-100 text-red-950 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800',
+    healthImpact: 'Respiratory illness on prolonged exposure',
+    advisory: 'Avoid outdoor activities. Keep windows closed and run air filtration.'
   },
   SEVERE: {
     label: 'Severe',
@@ -63,7 +100,11 @@ export const AQI_CATEGORIES = Object.freeze({
     min: 401,
     max: 500,
     color: '#7f1d1d',
-    textColor: '#ffffff'
+    textColor: '#ffffff',
+    badgeClass:
+      'bg-rose-950 text-rose-100 dark:bg-rose-950/90 dark:text-rose-200 border-rose-800 dark:border-rose-900',
+    healthImpact: 'Affects healthy people and seriously impacts those with existing diseases',
+    advisory: 'Remain indoors. Keep windows and doors sealed. Run HEPA filtration.'
   }
 });
 

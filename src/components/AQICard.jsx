@@ -1,8 +1,10 @@
 // src/components/AQICard.jsx
 // Atmospheric Monitoring Station Card using CPCB National AQI Scale (0-500)
 import { useState } from 'react';
-import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin } from 'lucide-react';
+import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertTriangle } from 'lucide-react';
 import { INDIAN_METROS } from '../services/api';
+import { getAQICategory } from '../../shared/aqi.js';
+import { AQI_CATEGORIES } from '../../shared/constants.js';
 
 const PRESET_CITIES = INDIAN_METROS.map((m) => m.name);
 
@@ -24,6 +26,58 @@ export default function AQICard({
     }
   };
 
+  const cat = getAQICategory(aqiData?.aqi != null ? aqiData.aqi : aqiData?.category);
+
+  // Error State: Location resolution failure or grid point sanity mismatch (>60km)
+  if (aqiData?.error) {
+    return (
+      <div className="rounded-3xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 p-6 md:p-8 shadow-soft dark:shadow-soft-dark transition-all">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-3 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                <span>Location Verification Guard</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white mt-1">
+                Unable to verify air data for {locationTitle || aqiData?.city || 'Location'}
+              </h2>
+              <p className="text-xs text-slate-700 dark:text-slate-300 mt-1.5 max-w-2xl leading-relaxed">
+                {aqiData.message ||
+                  'The atmospheric model grid point did not match your requested coordinates within the 60 km accuracy boundary.'}
+              </p>
+              {aqiData.distanceKm && (
+                <p className="text-[11px] font-mono text-amber-900 dark:text-amber-200 mt-1">
+                  Measured distance: <strong>{aqiData.distanceKm} km</strong> (exceeds 60 km sanity threshold)
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-200 hover:bg-amber-300 dark:bg-amber-900 dark:hover:bg-amber-800 text-amber-950 dark:text-amber-100 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Retry</span>
+            </button>
+            <a
+              href="/settings"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-600 text-white transition-colors"
+            >
+              Update my location
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark transition-all">
       {/* Top Header: City Selector & Live Source Badge */}
@@ -37,21 +91,40 @@ export default function AQICard({
             {locationTitle || aqiData?.city || 'Kolkata, West Bengal'}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2">
-            {aqiData?.gridPoint?.lat != null && aqiData?.gridPoint?.lon != null ? (
-              <span>
-                Model grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}N,{' '}
-                {Number(aqiData.gridPoint.lon).toFixed(2)}E • Updated{' '}
-                {aqiData?.updatedAt || 'Just now'}
-              </span>
-            ) : aqiData?.latitude != null && aqiData?.longitude != null ? (
-              <span>
-                Model grid point: {Number(aqiData.latitude).toFixed(2)}N,{' '}
-                {Number(aqiData.longitude).toFixed(2)}E • Updated{' '}
-                {aqiData?.updatedAt || 'Just now'}
-              </span>
-            ) : (
-              <span>Updated: {aqiData?.updatedAt || 'Just now'}</span>
+            <span>
+              Place:{' '}
+              <strong className="font-semibold text-slate-700 dark:text-slate-200">
+                {locationTitle || aqiData?.city || 'Location'}
+              </strong>
+            </span>
+            {aqiData?.requestedCoords?.lat != null && aqiData?.requestedCoords?.lon != null && (
+              <>
+                <span>•</span>
+                <span>
+                  Requested: {Number(aqiData.requestedCoords.lat).toFixed(2)}°N,{' '}
+                  {Number(aqiData.requestedCoords.lon).toFixed(2)}°E
+                </span>
+              </>
             )}
+            {aqiData?.gridPoint?.lat != null && aqiData?.gridPoint?.lon != null ? (
+              <>
+                <span>•</span>
+                <span>
+                  Grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}°N,{' '}
+                  {Number(aqiData.gridPoint.lon).toFixed(2)}°E (Model grid point: {Number(aqiData.gridPoint.lat).toFixed(2)}N, {Number(aqiData.gridPoint.lon).toFixed(2)}E • Updated {aqiData?.updatedAt || 'Just now'})
+                </span>
+              </>
+            ) : aqiData?.latitude != null && aqiData?.longitude != null ? (
+              <>
+                <span>•</span>
+                <span>
+                  Grid point: {Number(aqiData.latitude).toFixed(2)}°N,{' '}
+                  {Number(aqiData.longitude).toFixed(2)}°E (Model grid point: {Number(aqiData.latitude).toFixed(2)}N, {Number(aqiData.longitude).toFixed(2)}E • Updated {aqiData?.updatedAt || 'Just now'})
+                </span>
+              </>
+            ) : null}
+            <span>•</span>
+            <span>Updated {aqiData?.updatedAt || 'Just now'}</span>
             <span>•</span>
             <span>
               Dominant Pollutant:{' '}
@@ -140,18 +213,18 @@ export default function AQICard({
               National AQI (CPCB Scale)
             </span>
             <span
-              className={`text-xs px-2.5 py-1 rounded-full font-bold border ${aqiData?.badgeClass || 'bg-amber-100 text-amber-800'}`}
+              className={`text-xs px-2.5 py-1 rounded-full font-bold border ${cat.badgeClass}`}
             >
-              {aqiData?.category || 'Moderate'}
+              {cat.label}
             </span>
           </div>
 
           <div className="my-4 flex items-baseline gap-3">
             <span
               className="text-6xl md:text-7xl font-extrabold tracking-tight"
-              style={{ color: aqiData?.color || '#D97706' }}
+              style={{ color: cat.color }}
             >
-              {aqiData?.aqi ?? 165}
+              {aqiData?.aqi ?? 0}
             </span>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -166,12 +239,36 @@ export default function AQICard({
           {/* CPCB NAQI Gradient Spectrum Bar (0 - 500) */}
           <div className="space-y-1.5">
             <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 relative overflow-hidden flex">
-              <div className="h-full w-[10%] bg-emerald-500" title="Good (0-50)"></div>
-              <div className="h-full w-[10%] bg-green-500" title="Satisfactory (51-100)"></div>
-              <div className="h-full w-[20%] bg-yellow-500" title="Moderate (101-200)"></div>
-              <div className="h-full w-[20%] bg-orange-500" title="Poor (201-300)"></div>
-              <div className="h-full w-[20%] bg-red-500" title="Very Poor (301-400)"></div>
-              <div className="h-full w-[20%] bg-rose-950" title="Severe (401-500)"></div>
+              <div
+                className="h-full w-[10%]"
+                style={{ backgroundColor: AQI_CATEGORIES.GOOD.color }}
+                title="Good (0-50)"
+              />
+              <div
+                className="h-full w-[10%]"
+                style={{ backgroundColor: AQI_CATEGORIES.SATISFACTORY.color }}
+                title="Satisfactory (51-100)"
+              />
+              <div
+                className="h-full w-[20%]"
+                style={{ backgroundColor: AQI_CATEGORIES.MODERATE.color }}
+                title="Moderate (101-200)"
+              />
+              <div
+                className="h-full w-[20%]"
+                style={{ backgroundColor: AQI_CATEGORIES.POOR.color }}
+                title="Poor (201-300)"
+              />
+              <div
+                className="h-full w-[20%]"
+                style={{ backgroundColor: AQI_CATEGORIES.VERY_POOR.color }}
+                title="Very Poor (301-400)"
+              />
+              <div
+                className="h-full w-[20%]"
+                style={{ backgroundColor: AQI_CATEGORIES.SEVERE.color }}
+                title="Severe (401-500)"
+              />
             </div>
             <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400 font-medium">
               <span>0 (Good)</span>

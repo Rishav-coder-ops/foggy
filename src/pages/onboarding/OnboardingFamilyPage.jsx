@@ -32,17 +32,17 @@ export default function OnboardingFamilyPage() {
 
   // If user completed page 1, use their default geo location
   const defaultCountry = profile?.country || 'India';
-  const defaultState = profile?.state || 'West Bengal';
-  const defaultCity = profile?.city || 'Kolkata';
-  const defaultLocationObj = {
-    name: defaultCity,
-    latitude: profile?.latitude || 22.5726,
-    longitude: profile?.longitude || 88.3639,
+  const defaultState = profile?.state || '';
+  const defaultCity = profile?.city || '';
+  const defaultLocationObj = profile?.latitude && profile?.longitude ? {
+    name: defaultCity || 'Location',
+    latitude: Number(profile.latitude),
+    longitude: Number(profile.longitude),
     timezone: profile?.timezone || 'Asia/Kolkata',
     admin1: defaultState,
     country: defaultCountry,
     id: profile?.placeId || 1275004
-  };
+  } : null;
 
   const [members, setMembers] = useState([]);
   const [livesAlone, setLivesAlone] = useState(false);

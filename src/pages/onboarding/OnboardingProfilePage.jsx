@@ -41,25 +41,27 @@ export default function OnboardingProfilePage() {
   const [state, setState] = useState(initialData.state || 'West Bengal');
   const [city, setCity] = useState(initialData.city || 'Kolkata');
   const [locationObj, setLocationObj] = useState(
-    initialData.latitude
+    initialData.latitude && initialData.longitude
       ? {
           name: initialData.city || 'Kolkata',
-          latitude: initialData.latitude,
-          longitude: initialData.longitude,
+          latitude: Number(initialData.latitude),
+          longitude: Number(initialData.longitude),
           timezone: initialData.timezone || 'Asia/Kolkata',
           admin1: initialData.state || 'West Bengal',
           country: initialData.country || 'India',
           id: initialData.placeId || 1275004
         }
-      : {
-          name: 'Kolkata',
-          latitude: 22.5726,
-          longitude: 88.3639,
-          timezone: 'Asia/Kolkata',
-          admin1: 'West Bengal',
-          country: 'India',
-          id: 1275004
-        }
+      : initialData.city && initialData.city.toLowerCase() !== 'kolkata'
+        ? null
+        : {
+            name: 'Kolkata',
+            latitude: 22.5726,
+            longitude: 88.3639,
+            timezone: 'Asia/Kolkata',
+            admin1: 'West Bengal',
+            country: 'India',
+            id: 1275004
+          }
   );
 
   const [conditions, setConditions] = useState(

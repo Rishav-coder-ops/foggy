@@ -3,67 +3,130 @@
  * @fileoverview Upstream atmospheric fetching from Open-Meteo, rolling averages, and city coordinate resolution.
  */
 
-import { INDIAN_METROS } from '../timeline/constants.js';
+import { INDIAN_METROS, INDIAN_CITY_ALIASES } from '../timeline/constants.js';
 import { INDIAN_FALLBACK_CITIES } from '../geocode.js';
 import { INDIAN_CITY_SIMULATION_DB, getDeterministicMockCity, generateHourlyForecast } from './simulationDb.js';
 import { calculateCPCBNAQI, getAQICategory, calculateRollingAverages } from '../aqi.js';
 
 export { calculateRollingAverages };
 
-export function resolveCityCoordinates(requestedCity, rawLat, rawLon) {
-  let lat = 22.5726;
-  let lon = 88.3639;
-  let displayCity = requestedCity || 'Kolkata, West Bengal';
-
+/**
+ * Calculates great-circle distance between two coordinate pairs using Haversine formula (in km).
+ * @param {number} lat1
+ * @param {number} lon1
+ * @param {number} lat2
+ * @param {number} lon2
+ * @returns {number} Distance in kilometers
+ */
+export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   if (
+    lat1 == null ||
+    lon1 == null ||
+    lat2 == null ||
+    lon2 == null ||
+    isNaN(lat1) ||
+    isNaN(lon1) ||
+    isNaN(lat2) ||
+    isNaN(lon2)
+  ) {
+    return Infinity;
+  }
+  const R = 6371; // Earth's mean radius in km
+  const dLat = ((Number(lat2) - Number(lat1)) * Math.PI) / 180;
+  const dLon = ((Number(lon2) - Number(lon1)) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((Number(lat1) * Math.PI) / 180) *
+      Math.cos((Number(lat2) * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function resolveCityCoordinates(requestedCity, rawLat, rawLon) {
+  const queryClean = (requestedCity || '').trim();
+  const parts = queryClean.split(',').map((p) => p.trim());
+  const cityPart = parts[0] || '';
+  const cityNorm = cityPart.toLowerCase();
+  const canonicalCity = INDIAN_CITY_ALIASES[cityNorm] || cityPart;
+  const canonicalNorm = canonicalCity.toLowerCase();
+
+  let matchedCity = null;
+
+  // 1. Check Indian Metros by city name
+  const metroMatch = INDIAN_METROS.find(
+    (m) => m.name.toLowerCase() === cityNorm || m.name.toLowerCase() === canonicalNorm
+  );
+  if (metroMatch) {
+    matchedCity = {
+      lat: metroMatch.lat,
+      lon: metroMatch.lon,
+      displayCity: `${metroMatch.name}, ${metroMatch.admin1 || 'India'}`
+    };
+  }
+
+  // 2. Check Indian Fallback Cities by city name (prioritize city name over state)
+  if (!matchedCity && Array.isArray(INDIAN_FALLBACK_CITIES)) {
+    const fallbackMatch = INDIAN_FALLBACK_CITIES.find(
+      (c) => c.name.toLowerCase() === cityNorm || c.name.toLowerCase() === canonicalNorm
+    );
+    if (fallbackMatch) {
+      matchedCity = {
+        lat: fallbackMatch.latitude,
+        lon: fallbackMatch.longitude,
+        displayCity: `${fallbackMatch.name}, ${fallbackMatch.admin1 ? fallbackMatch.admin1 + ', ' : ''}India`
+      };
+    }
+  }
+
+  // 3. Check Simulation DB
+  if (!matchedCity) {
+    const dbKey = Object.keys(INDIAN_CITY_SIMULATION_DB).find(
+      (k) => k.toLowerCase() === cityNorm || k.toLowerCase() === canonicalNorm
+    );
+    if (dbKey) {
+      matchedCity = {
+        lat: INDIAN_CITY_SIMULATION_DB[dbKey].lat,
+        lon: INDIAN_CITY_SIMULATION_DB[dbKey].lon,
+        displayCity: INDIAN_CITY_SIMULATION_DB[dbKey].city
+      };
+    }
+  }
+
+  const hasValidRawCoords =
     !Number.isNaN(rawLat) &&
     !Number.isNaN(rawLon) &&
     rawLat >= -90 &&
     rawLat <= 90 &&
     rawLon >= -180 &&
-    rawLon <= 180
-  ) {
-    return { lat: rawLat, lon: rawLon, displayCity: requestedCity };
-  }
+    rawLon <= 180;
 
-  const queryNorm = (requestedCity || '').toLowerCase().trim();
-
-  const metroMatch = INDIAN_METROS.find(
-    (m) => m.name.toLowerCase() === queryNorm || queryNorm.includes(m.name.toLowerCase())
-  );
-  if (metroMatch) {
-    lat = metroMatch.lat;
-    lon = metroMatch.lon;
-    displayCity = `${metroMatch.name}, ${metroMatch.admin1 || 'India'}`;
-    return { lat, lon, displayCity };
-  }
-
-  if (Array.isArray(INDIAN_FALLBACK_CITIES)) {
-    const fallbackMatch = INDIAN_FALLBACK_CITIES.find(
-      (c) =>
-        c.name.toLowerCase() === queryNorm ||
-        queryNorm.includes(c.name.toLowerCase()) ||
-        (c.admin1 && queryNorm.includes(c.admin1.toLowerCase()))
-    );
-    if (fallbackMatch) {
-      lat = fallbackMatch.latitude;
-      lon = fallbackMatch.longitude;
-      displayCity = `${fallbackMatch.name}, ${fallbackMatch.admin1 ? fallbackMatch.admin1 + ', ' : ''}India`;
-      return { lat, lon, displayCity };
+  if (matchedCity) {
+    if (hasValidRawCoords) {
+      const dist = calculateDistanceKm(rawLat, rawLon, matchedCity.lat, matchedCity.lon);
+      if (dist <= 60) {
+        // Raw coords are reasonably close to the matched city
+        return { lat: rawLat, lon: rawLon, displayCity: queryClean || matchedCity.displayCity };
+      }
+      console.warn(
+        `[resolveCityCoordinates] Overriding mismatched coordinates (${rawLat}, ${rawLon}) for city '${queryClean}' with verified city coordinates (${matchedCity.lat}, ${matchedCity.lon}) - distance: ${dist.toFixed(1)} km.`
+      );
+      return { lat: matchedCity.lat, lon: matchedCity.lon, displayCity: matchedCity.displayCity };
     }
+    return { lat: matchedCity.lat, lon: matchedCity.lon, displayCity: matchedCity.displayCity };
   }
 
-  const dbKey = Object.keys(INDIAN_CITY_SIMULATION_DB).find(
-    (k) => queryNorm.includes(k) || k.includes(queryNorm)
-  );
-  if (dbKey) {
-    lat = INDIAN_CITY_SIMULATION_DB[dbKey].lat;
-    lon = INDIAN_CITY_SIMULATION_DB[dbKey].lon;
-    displayCity = INDIAN_CITY_SIMULATION_DB[dbKey].city;
-    return { lat, lon, displayCity };
+  if (hasValidRawCoords) {
+    return { lat: rawLat, lon: rawLon, displayCity: queryClean || 'Custom Location' };
   }
 
-  return { lat, lon, displayCity };
+  // If city is empty or default
+  if (!queryClean || queryClean.toLowerCase().includes('kolkata')) {
+    return { lat: 22.5726, lon: 88.3639, displayCity: 'Kolkata, West Bengal' };
+  }
+
+  return { notFound: true, requestedCity: queryClean, lat: null, lon: null, displayCity: queryClean };
 }
 
 export async function fetchWaqiReference(requestedCity, waqiToken) {
@@ -171,6 +234,21 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
       lon: Number(gridLon.toFixed(2))
     };
 
+    const gridDistance = calculateDistanceKm(lat, lon, gridLat, gridLon);
+    if (gridDistance > 60) {
+      console.error(
+        `[AQI Sanity Guard] Discarding response: model grid point (${gridLat}, ${gridLon}) is ${gridDistance.toFixed(1)} km from requested (${lat}, ${lon}) which exceeds 60 km threshold.`
+      );
+      return {
+        error: 'GRID_MISMATCH',
+        message: `Returned atmospheric model grid point (${gridPoint.lat}°N, ${gridPoint.lon}°E) is ${gridDistance.toFixed(1)} km from requested location (${Number(lat).toFixed(2)}°N, ${Number(lon).toFixed(2)}°E), exceeding the 60 km accuracy boundary.`,
+        city: displayCity,
+        requestedCoords: { lat: Number(Number(lat).toFixed(2)), lon: Number(Number(lon).toFixed(2)) },
+        gridPoint,
+        distanceKm: Math.round(gridDistance * 10) / 10
+      };
+    }
+
     const rawTime =
       data.current?.time ||
       (data.hourly?.time && data.hourly.time.length > 0
@@ -194,6 +272,10 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
 
     return {
       city: displayCity,
+      requestedCoords: {
+        lat: Number(Number(lat).toFixed(2)),
+        lon: Number(Number(lon).toFixed(2))
+      },
       aqi: naqi.aqi,
       scale: 'CPCB National AQI (0-500)',
       standard: 'Estimated NAQI (from PM2.5 and PM10)',

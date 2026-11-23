@@ -13,22 +13,7 @@ import {
 } from '../../shared/constants.js';
 
 function getCategoryBadge(cat) {
-  switch (cat) {
-    case 'Good':
-      return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
-    case 'Satisfactory':
-      return 'bg-green-100 text-green-900 dark:bg-green-950/80 dark:text-green-300 border-green-300 dark:border-green-800';
-    case 'Moderate':
-      return 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800';
-    case 'Poor':
-      return 'bg-orange-100 text-orange-900 dark:bg-orange-950/80 dark:text-orange-300 border-orange-300 dark:border-orange-800';
-    case 'Very Poor':
-      return 'bg-purple-100 text-purple-900 dark:bg-purple-950/80 dark:text-purple-300 border-purple-300 dark:border-purple-800';
-    case 'Severe':
-      return 'bg-rose-100 text-rose-900 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-800';
-    default:
-      return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700';
-  }
+  return getAQICategory(cat).badgeClass;
 }
 
 const STARTER_PROMPTS = [
@@ -70,19 +55,23 @@ export default function CompactChatModal({ isEmbedded = false }) {
     return () => window.removeEventListener('foggy_city_changed', handleCity);
   }, []);
 
-  const activeCityName =
-    chatCityData?.name ||
-    currentSelectedCity?.name ||
-    aqiData?.city ||
-    profile?.location ||
-    'Kolkata';
-  const activeCityAqi =
-    chatCityData?.aqi != null ? chatCityData.aqi : aqiData?.aqi != null ? aqiData.aqi : 165;
+  const dashboardCityName =
+    profile?.city || profile?.location || currentSelectedCity?.name || aqiData?.city || 'Kolkata';
+
+  // If chat city matches dashboard city, prefer dashboard aqiData directly (single source of truth)
+  const isSameAsDashboard =
+    !chatCityData?.name ||
+    chatCityData.name.toLowerCase() === dashboardCityName.toLowerCase();
+
+  const activeCityName = isSameAsDashboard ? (aqiData?.city || dashboardCityName) : chatCityData.name;
+  const activeCityAqi = isSameAsDashboard
+    ? (aqiData?.aqi != null ? aqiData.aqi : 165)
+    : (chatCityData?.aqi != null ? chatCityData.aqi : aqiData?.aqi != null ? aqiData.aqi : 165);
   const activeCategoryObj = getAQICategory(activeCityAqi);
-  const activeCityCat =
-    activeCategoryObj?.label || chatCityData?.category || aqiData?.category || 'Moderate';
+  const activeCityCat = activeCategoryObj.label;
 
   const isDifferentFromDashboard = Boolean(
+    !isSameAsDashboard &&
     chatCityData?.name &&
     currentSelectedCity?.name &&
     chatCityData.name.toLowerCase() !== currentSelectedCity.name.toLowerCase()

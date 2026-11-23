@@ -160,7 +160,7 @@ describe('tests/components.test.jsx - Core UI Component Verification', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText(/Delhi, India/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Delhi, India/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('285')).toBeInTheDocument();
       expect(screen.getByText('Poor')).toBeInTheDocument();
       expect(screen.getByText(/Open-Meteo CAMS Model/i)).toBeInTheDocument();

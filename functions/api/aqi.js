@@ -89,7 +89,19 @@ export async function onRequestGet(context) {
     .slice(0, 60)
     .replace(/[^a-zA-Z0-9\s.,\-_'()]/g, '');
 
-  const { lat, lon, displayCity } = resolveCityCoordinates(requestedCity, rawLat, rawLon);
+  const resolved = resolveCityCoordinates(requestedCity, rawLat, rawLon);
+  if (resolved.notFound || resolved.lat == null || resolved.lon == null) {
+    return new Response(
+      JSON.stringify({
+        error: 'LOCATION_NOT_FOUND',
+        message: `Could not resolve verified Indian coordinates for '${requestedCity}'. Please check your location.`,
+        city: requestedCity
+      }),
+      { status: 404, headers }
+    );
+  }
+
+  const { lat, lon, displayCity } = resolved;
   const cacheKey = getAqiCacheKey(lat, lon, 'aqi');
 
   if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
@@ -118,6 +130,13 @@ export async function onRequestGet(context) {
   }
 
   const payload = await fetchUpstreamAqiData(lat, lon, requestedCity, displayCity, env?.AQI_API_KEY);
+
+  if (payload.error) {
+    return new Response(JSON.stringify(payload), {
+      status: payload.error === 'GRID_MISMATCH' ? 422 : 400,
+      headers
+    });
+  }
 
   aqiCache.set(cacheKey, {
     data: payload,

@@ -6,6 +6,7 @@ import { ShieldCheck, Sparkles, MessageSquare } from 'lucide-react';
 import ExpandablePanelModal from '../ExpandablePanelModal';
 import PanelCitySearch from '../PanelCitySearch';
 import { useChat } from '../../context/ChatContext';
+import { getAQICategory } from '../../../shared/aqi.js';
 
 const PLAYBOOK_DATA = {
   free: [
@@ -270,57 +271,11 @@ export default function PlaybookPanel({
   };
 
   const getAQIAdviceBanner = (aqi) => {
-    if (aqi <= 50) {
-      return {
-        level: 'Good (0-50)',
-        message:
-          'Air is clean today! Focus on natural ventilation (1-3 PM) and enjoy outdoor exercise.',
-        badgeClass:
-          'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/50 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800'
-      };
-    }
-    if (aqi <= 100) {
-      return {
-        level: 'Satisfactory (51-100)',
-        message:
-          'Satisfactory air quality: prioritize daily damp-mopping (pocha) and keep kitchen exhaust fans active.',
-        badgeClass:
-          'bg-green-100 text-green-950 dark:bg-green-950/50 dark:text-green-200 border-green-300 dark:border-green-800'
-      };
-    }
-    if (aqi <= 200) {
-      return {
-        level: 'Moderate (101-200)',
-        message:
-          'Moderate smog alert: deploy door threshold draft sealing, plan outdoor walks for midday (1-3:30 PM), and consider a DIY box fan.',
-        badgeClass:
-          'bg-yellow-100 text-yellow-950 dark:bg-yellow-950/50 dark:text-yellow-200 border-yellow-300 dark:border-yellow-800'
-      };
-    }
-    if (aqi <= 300) {
-      return {
-        level: 'Poor (201-300)',
-        message:
-          'Poor air alert: wear certified N95 masks outdoors, seal window drafts, and run Corsi-Rosenthal DIY box fans or HEPA purifiers.',
-        badgeClass:
-          'bg-orange-100 text-orange-950 dark:bg-orange-950/50 dark:text-orange-200 border-orange-300 dark:border-orange-800'
-      };
-    }
-    if (aqi <= 400) {
-      return {
-        level: 'Very Poor (301-400)',
-        message:
-          'Very Poor air quality: avoid all outdoor exercise, seal door thresholds with damp towels, and keep mechanical air filtration running continuously.',
-        badgeClass:
-          'bg-red-100 text-red-950 dark:bg-red-950/60 dark:text-red-200 border-red-300 dark:border-red-800'
-      };
-    }
+    const cat = getAQICategory(aqi);
     return {
-      level: 'Severe (401-500)',
-      message:
-        'Severe smog emergency: stay strictly indoors, run HEPA / DIY box fans 24/7, seal all perimeter gaps, and use N95 masks if transit is unavoidable.',
-      badgeClass:
-        'bg-rose-100 text-rose-950 dark:bg-rose-950/60 dark:text-rose-200 border-rose-300 dark:border-rose-800'
+      level: `${cat.name} (${cat.min}-${cat.max})`,
+      message: cat.advisory,
+      badgeClass: cat.badgeClass
     };
   };
 

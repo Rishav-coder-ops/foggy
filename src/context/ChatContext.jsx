@@ -8,6 +8,7 @@ import {
   FOGGY_FALLBACK_MODEL,
   FOGGY_PROVIDER_LABELS
 } from '../../shared/constants.js';
+import { formatGreetingName } from '../utils/nameFormatter';
 
 const ChatContext = createContext();
 
@@ -42,8 +43,7 @@ export function ChatProvider({ children }) {
       if (saved) return JSON.parse(saved);
     } catch {}
 
-    const firstName =
-      user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+    const firstName = formatGreetingName(profile, user);
     return [
       {
         id: 'msg_initial',
@@ -51,7 +51,7 @@ export function ChatProvider({ children }) {
         text:
           `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
+          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.city || profile?.location || 'your area'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -72,8 +72,7 @@ export function ChatProvider({ children }) {
       }
     } catch {}
 
-    const firstName =
-      user?.displayName || user?.name ? (user.displayName || user.name).split(' ')[0] : 'friend';
+    const firstName = formatGreetingName(profile, user);
     setMessages([
       {
         id: 'msg_initial_' + Date.now(),
@@ -81,7 +80,7 @@ export function ChatProvider({ children }) {
         text:
           `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
           `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.location || 'Kolkata'}). How can I help you today?`,
+          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.city || profile?.location || 'your area'}). How can I help you today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -92,12 +91,22 @@ export function ChatProvider({ children }) {
   // Sync AQI context
   useEffect(() => {
     async function load() {
+      const userCity = profile?.city || profile?.location;
+      const userLat = profile?.latitude;
+      const userLon = profile?.longitude;
+      const userState = profile?.state;
       const stored = getStoredCity();
+
+      const targetCity = userCity || stored?.name || 'Kolkata';
+      const targetLat = userLat != null ? userLat : stored?.lat;
+      const targetLon = userLon != null ? userLon : stored?.lon;
+      const targetState = userState || stored?.admin1 || '';
+
       const data = await fetchAQIData({
-        lat: stored?.lat,
-        lon: stored?.lon,
-        cityName: stored?.name || profile?.location || 'Kolkata',
-        stateName: stored?.admin1 || ''
+        lat: targetLat,
+        lon: targetLon,
+        cityName: targetCity,
+        stateName: targetState
       });
       setAqiData(data);
     }
@@ -115,7 +124,7 @@ export function ChatProvider({ children }) {
 
     window.addEventListener('foggy_city_changed', handleCityChange);
     return () => window.removeEventListener('foggy_city_changed', handleCityChange);
-  }, [profile?.location]);
+  }, [profile?.latitude, profile?.longitude, profile?.city, profile?.location, profile?.state]);
 
   // Switch dashboard city to the city currently discussed in chat
   const switchDashboardToChatCity = (target) => {
@@ -123,8 +132,8 @@ export function ChatProvider({ children }) {
     if (!cityObj || !cityObj.name) return;
     const formatted = {
       name: cityObj.name,
-      lat: cityObj.lat || 22.5726,
-      lon: cityObj.lon || 88.3639,
+      lat: cityObj.lat != null ? Number(cityObj.lat) : null,
+      lon: cityObj.lon != null ? Number(cityObj.lon) : null,
       admin1: cityObj.admin1 || '',
       country: 'India'
     };

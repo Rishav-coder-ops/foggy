@@ -9,6 +9,7 @@ import { useAuth } from './AuthContext';
 import { db } from '../firebase';
 import { setStoredCity, DEFAULT_CITY } from '../services/api';
 import { sanitizeObject, sanitizeText } from '../utils/validation';
+import { geocodeIndianCity } from '../../shared/timeline/timelineService.js';
 import {
   CURRENT_PROFILE_SEED_VERSION,
   COOKING_OPTIONS,
@@ -38,6 +39,38 @@ export {
   DEFAULT_DEMO_HOUSEHOLD
 };
 
+export async function ensureVerifiedCoordinates(profileObj) {
+  if (!profileObj || !profileObj.city) return profileObj;
+  const isKolkata = profileObj.city.toLowerCase().includes('kolkata');
+  const hasKolkataCoords =
+    profileObj.latitude != null &&
+    profileObj.longitude != null &&
+    Math.abs(Number(profileObj.latitude) - 22.5726) < 0.01 &&
+    Math.abs(Number(profileObj.longitude) - 88.3639) < 0.01;
+  const missingCoords =
+    profileObj.latitude == null ||
+    profileObj.longitude == null ||
+    isNaN(Number(profileObj.latitude)) ||
+    isNaN(Number(profileObj.longitude));
+
+  if (missingCoords || (!isKolkata && hasKolkataCoords)) {
+    const query = profileObj.state ? `${profileObj.city}, ${profileObj.state}` : profileObj.city;
+    try {
+      const resolved = await geocodeIndianCity(query);
+      if (resolved && resolved.latitude != null && resolved.longitude != null) {
+        return {
+          ...profileObj,
+          latitude: resolved.latitude,
+          longitude: resolved.longitude,
+          city: resolved.name || profileObj.city,
+          state: resolved.admin1 || profileObj.state || ''
+        };
+      }
+    } catch {}
+  }
+  return profileObj;
+}
+
 const ProfileContext = createContext();
 
 export function ProfileProvider({ children }) {
@@ -66,7 +99,18 @@ export function ProfileProvider({ children }) {
 
     if (isDemo) {
       const demoState = loadDemoProfile();
-      setProfileData(demoState.profile);
+      ensureVerifiedCoordinates(demoState.profile).then((verified) => {
+        setProfileData(verified);
+        if (verified?.latitude != null && verified?.longitude != null) {
+          setStoredCity({
+            name: verified.city,
+            admin1: verified.state || '',
+            country: verified.country || 'India',
+            lat: verified.latitude,
+            lon: verified.longitude
+          });
+        }
+      });
       setPreferredName(demoState.preferredName || 'Demo User');
       setOnboarding(demoState.onboarding || { step: 'done', completedAt: new Date().toISOString() });
       setFamilyMembers(demoState.familyMembers || []);
@@ -89,7 +133,7 @@ export function ProfileProvider({ children }) {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
-          setProfileData(data.profile || null);
+          const rawProf = data.profile || null;
           setPreferredName(
             data.preferredName ||
               data.profile?.fullName?.split(' ')[0] ||
@@ -98,14 +142,29 @@ export function ProfileProvider({ children }) {
           );
           setOnboarding(data.onboarding || { step: 'profile', completedAt: null });
 
-          if (data.profile?.city) {
-            setStoredCity({
-              name: data.profile.city,
-              admin1: data.profile.state || '',
-              country: data.profile.country || 'India',
-              lat: data.profile.latitude || 22.5726,
-              lon: data.profile.longitude || 88.3639
+          if (rawProf && rawProf.city) {
+            ensureVerifiedCoordinates(rawProf).then((verified) => {
+              setProfileData(verified);
+              if (verified?.latitude != null && verified?.longitude != null) {
+                setStoredCity({
+                  name: verified.city,
+                  admin1: verified.state || '',
+                  country: verified.country || 'India',
+                  lat: verified.latitude,
+                  lon: verified.longitude
+                });
+              }
+              if (
+                verified?.latitude !== rawProf.latitude ||
+                verified?.longitude !== rawProf.longitude
+              ) {
+                if (db && uid) {
+                  saveUserDoc(db, uid, { profile: verified }).catch(() => {});
+                }
+              }
             });
+          } else {
+            setProfileData(rawProf);
           }
         } else {
           setProfileData(null);
@@ -380,14 +439,14 @@ export function ProfileProvider({ children }) {
 
   const normalizedProfile = {
     ...(profileData || {}),
-    location: profileData?.city || profileData?.location || 'Kolkata',
-    city: profileData?.city || profileData?.location || 'Kolkata',
-    state: profileData?.state || 'West Bengal',
+    location: profileData?.city || profileData?.location || '',
+    city: profileData?.city || profileData?.location || '',
+    state: profileData?.state || '',
     country: profileData?.country || 'India',
     fullName: profileData?.fullName || preferredName || user?.displayName || 'User',
     preferredName: preferredName || profileData?.fullName?.split(' ')[0] || 'Friend',
-    latitude: profileData?.latitude || 22.5726,
-    longitude: profileData?.longitude || 88.3639,
+    latitude: profileData?.latitude != null && !isNaN(Number(profileData.latitude)) ? Number(profileData.latitude) : null,
+    longitude: profileData?.longitude != null && !isNaN(Number(profileData.longitude)) ? Number(profileData.longitude) : null,
     timezone: profileData?.timezone || 'Asia/Kolkata',
     commute: Array.isArray(profileData?.commute)
       ? profileData.commute.join(', ')
