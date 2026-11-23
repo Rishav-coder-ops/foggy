@@ -9,7 +9,8 @@ export function buildCompactContext(
   primaryReport,
   profile = {},
   intentType = INTENT_TYPES.AQI_STATUS,
-  secondaryReport = null
+  secondaryReport = null,
+  safetyVerdict = null
 ) {
   const familyList = profile?.familyMembers || [];
 
@@ -90,6 +91,14 @@ export function buildCompactContext(
 
   if (compactFamily.length > 0) {
     contextObj.relevantFamilyMembers = compactFamily;
+  }
+
+  if (safetyVerdict) {
+    contextObj.safetyVerdict = {
+      isOutdoorSafe: safetyVerdict.isOutdoorSafe,
+      verdictLabel: safetyVerdict.verdictLabel,
+      directAnswerPhrase: safetyVerdict.directAnswerPhrase
+    };
   }
 
   return contextObj;

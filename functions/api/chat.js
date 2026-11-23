@@ -40,6 +40,12 @@ import {
   generateSmartFallbackResponse
 } from '../../shared/chat/responseValidator.js';
 import { callGeminiApi } from '../../shared/chat/geminiClient.js';
+import { computeSafetyVerdict } from '../../shared/safety/safetyVerdict.js';
+import {
+  validateReplySafety,
+  buildCorrectivePrompt,
+  buildDeterministicSafetyReply
+} from '../../shared/safety/safetyValidator.js';
 import {
   GEMINI_PRIMARY_MODEL,
   GEMINI_FALLBACK_MODEL,
@@ -66,6 +72,10 @@ export {
   verifyModelAqiResponse,
   correctModelAqiResponse,
   generateSmartFallbackResponse,
+  computeSafetyVerdict,
+  validateReplySafety,
+  buildCorrectivePrompt,
+  buildDeterministicSafetyReply,
   GEMINI_PRIMARY_MODEL,
   GEMINI_FALLBACK_MODEL,
   GEMINI_CANDIDATE_MODELS,
@@ -398,9 +408,19 @@ export async function onRequestPost(context) {
   }
 
   const isDifferentFromSelected =
+    !intent.usedDefault &&
     primaryReport.city.toLowerCase() !== currentSelectedCityName.toLowerCase();
 
-  // 7. Check Gemini API configuration
+  // 7. Deterministic Safety Verdict Engine
+  const safetyVerdict = computeSafetyVerdict({
+    aqi: primaryReport.current.aqi,
+    category: primaryReport.current.category,
+    query: trimmedMessage,
+    profile,
+    familyMembers: profile?.familyMembers
+  });
+
+  // Check Gemini API configuration
   const apiKey =
     env?.GEMINI_API_KEY ||
     (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
@@ -409,7 +429,13 @@ export async function onRequestPost(context) {
   );
 
   const intentType = intent.intentType || classifyIntent(trimmedMessage, sanitizedHistory);
-  const compactContext = buildCompactContext(primaryReport, profile, intentType, secondaryReport);
+  const compactContext = buildCompactContext(
+    primaryReport,
+    profile,
+    intentType,
+    secondaryReport,
+    safetyVerdict
+  );
   const intentInstruction = getIntentInstruction(intentType, primaryReport);
   const systemPrompt = buildSystemPrompt({
     isHindi: intent.isHindi,
@@ -418,10 +444,11 @@ export async function onRequestPost(context) {
   const userMessagePayload = buildUserMessageWithContext({
     message: trimmedMessage,
     compactContext,
-    intentInstruction
+    intentInstruction,
+    safetyVerdict
   });
 
-  // 8. Try live Gemini call
+  // 8. Try live Gemini call with automated safety validation & 1-time repair
   let geminiResult = null;
   if (isKeyConfigured) {
     const contents = buildGeminiContents(history, userMessagePayload);
@@ -435,59 +462,120 @@ export async function onRequestPost(context) {
     });
 
     if (geminiResult.success) {
-      const alignedReply = validateAndAlignReplyWithAqi(
-        geminiResult.rawReply,
+      let finalReply = geminiResult.rawReply;
+      let finalModelName = geminiResult.modelName;
+      let finalExtractedFacts = geminiResult.extractedFacts;
+
+      // Validate reply safety against ground truth and deterministic verdict
+      const safetyCheck = validateReplySafety(
+        finalReply,
+        safetyVerdict,
         primaryReport.current.aqi,
         primaryReport.current.category
       );
 
-      const cityDataPayload = {
-        name: primaryReport.city,
-        lat: primaryReport.lat,
-        lon: primaryReport.lon,
-        admin1: primaryReport.admin1 || '',
-        country: 'India',
-        aqi: primaryReport.current.aqi,
-        category: primaryReport.current.category,
-        currentAqi: primaryReport.current.aqi,
-        currentCategory: primaryReport.current.category,
-        dominant: primaryReport.current.dominant,
-        time: primaryReport.current.time,
-        timeframe: intent.timeframe,
-        isMock: Boolean(primaryReport.isMock)
-      };
+      if (!safetyCheck.isValid) {
+        console.warn('Gemini reply failed safety verification:', safetyCheck.issues);
+        const correctiveInstruction = buildCorrectivePrompt(safetyCheck.issues, safetyVerdict);
+        const retryPayload = `${userMessagePayload}\n\n${correctiveInstruction}`;
+        const retryContents = buildGeminiContents(history, retryPayload);
 
-      return new Response(
-        JSON.stringify({
-          reply: alignedReply,
-          memo: alignedReply,
-          city: primaryReport.city,
-          cityData: cityDataPayload,
-          isDifferentFromSelected,
-          isLive: !primaryReport.isMock,
-          isSample: Boolean(primaryReport.isMock),
-          model: geminiResult.modelName,
-          provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
-          extractedFacts: geminiResult.extractedFacts
-        }),
-        { status: 200, headers }
-      );
+        const retryResult = await callGeminiApi({
+          apiKey,
+          systemPrompt,
+          contents: retryContents,
+          primaryReport,
+          timeframe: intent.timeframe
+        });
+
+        if (retryResult.success) {
+          const retryCheck = validateReplySafety(
+            retryResult.rawReply,
+            safetyVerdict,
+            primaryReport.current.aqi,
+            primaryReport.current.category
+          );
+          if (retryCheck.isValid) {
+            finalReply = retryResult.rawReply;
+            finalModelName = retryResult.modelName;
+            finalExtractedFacts = retryResult.extractedFacts;
+          } else {
+            console.warn('Gemini retry also failed safety verification; using deterministic safety guidance.');
+            finalReply = null; // force deterministic safety fallback
+          }
+        } else {
+          finalReply = null;
+        }
+      }
+
+      if (finalReply) {
+        const alignedReply = validateAndAlignReplyWithAqi(
+          finalReply,
+          primaryReport.current.aqi,
+          primaryReport.current.category
+        );
+
+        const cityDataPayload = {
+          name: primaryReport.city,
+          lat: primaryReport.lat,
+          lon: primaryReport.lon,
+          admin1: primaryReport.admin1 || '',
+          country: 'India',
+          aqi: primaryReport.current.aqi,
+          category: primaryReport.current.category,
+          currentAqi: primaryReport.current.aqi,
+          currentCategory: primaryReport.current.category,
+          dominant: primaryReport.current.dominant,
+          time: primaryReport.current.time,
+          timeframe: intent.timeframe,
+          isMock: Boolean(primaryReport.isMock)
+        };
+
+        return new Response(
+          JSON.stringify({
+            reply: alignedReply,
+            memo: alignedReply,
+            city: primaryReport.city,
+            cityData: cityDataPayload,
+            isDifferentFromSelected,
+            isLive: !primaryReport.isMock,
+            isSample: Boolean(primaryReport.isMock),
+            model: finalModelName,
+            provider: FOGGY_PROVIDER_LABELS.LIVE_GEMINI,
+            extractedFacts: finalExtractedFacts
+          }),
+          { status: 200, headers }
+        );
+      }
     }
   }
 
-  // 9. Smart Fallback with exact live data injection
-  const fallback = generateSmartFallbackResponse({
-    message: trimmedMessage,
-    cityReports,
-    timeframe: intent.timeframe,
-    isComparison: intent.isComparison,
-    usedDefault: intent.usedDefault,
-    isFirstMessage,
-    profile,
-    isHindi: intent.isHindi,
-    isHinglish: intent.isHinglish,
-    intentType
-  });
+  // 9. Smart Fallback with deterministic safety injection
+  let rawFallbackText = '';
+  let fallbackFacts = [];
+
+  if (safetyVerdict.isOutdoorQuery) {
+    rawFallbackText = buildDeterministicSafetyReply(
+      safetyVerdict,
+      primaryReport.city,
+      trimmedMessage
+    );
+  } else {
+    const fallback = generateSmartFallbackResponse({
+      message: trimmedMessage,
+      cityReports,
+      timeframe: intent.timeframe,
+      isComparison: intent.isComparison,
+      usedDefault: intent.usedDefault,
+      isFirstMessage,
+      profile,
+      isHindi: intent.isHindi,
+      isHinglish: intent.isHinglish,
+      intentType
+    });
+    rawFallbackText = fallback.reply;
+    fallbackFacts = fallback.extractedFacts || [];
+  }
 
   let quotedAqi = primaryReport.current.aqi;
   let quotedCategory = primaryReport.current.category;
@@ -500,7 +588,7 @@ export async function onRequestPost(context) {
   }
 
   const alignedFallbackReply = validateAndAlignReplyWithAqi(
-    fallback.reply,
+    rawFallbackText,
     quotedAqi,
     quotedCategory
   );
@@ -535,7 +623,7 @@ export async function onRequestPost(context) {
       reason: isKeyConfigured
         ? geminiResult?.errorReason || 'AI temporarily unavailable'
         : 'API key not configured',
-      extractedFacts: fallback.extractedFacts || []
+      extractedFacts: fallbackFacts
     }),
     { status: 200, headers }
   );

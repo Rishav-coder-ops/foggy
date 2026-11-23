@@ -60,8 +60,27 @@ export async function geocodeIndianCity(cityName) {
     });
     if (res.ok) {
       const data = await res.json();
-      const top = (data.results || []).find((r) => r.country === 'India') || data.results?.[0];
+      const validResults = (data.results || []).filter(
+        (r) => r && (r.country === 'India' || r.country_code === 'IN')
+      );
+      const validFeatureCodes = [
+        'PPLC',
+        'PPLA',
+        'PPLA2',
+        'PPLA3',
+        'PPLA4',
+        'PPL',
+        'ADM1',
+        'ADM2',
+        'ADM3'
+      ];
+      const top = validResults.find((r) => !r.feature_code || validFeatureCodes.includes(r.feature_code)) || null;
+
       if (top) {
+        // Prevent fuzzy prefix false positives for short words (<= 4 chars)
+        if (canonicalName.length <= 4 && top.name.toLowerCase() !== canonicalName.toLowerCase()) {
+          return null;
+        }
         return {
           name: top.name,
           latitude: top.latitude,

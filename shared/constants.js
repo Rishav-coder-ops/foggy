@@ -154,9 +154,9 @@ export const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
 export const GEMINI_CANDIDATE_MODELS = Object.freeze([
   GEMINI_PRIMARY_MODEL,
   GEMINI_FALLBACK_MODEL,
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.0-flash'
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash'
 ]);
 
 export const GEMINI_GENERATION_CONFIG = Object.freeze({

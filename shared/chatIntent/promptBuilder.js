@@ -36,12 +36,29 @@ CORE DIRECTIVES (STRICT):
    - End medical symptom responses with: "> 🩺 *Medical disclaimer: Foggy is an AI assistant, not a doctor. In a medical emergency, call 112 or 108.*"`;
 }
 
-export function buildUserMessageWithContext({ message, compactContext, intentInstruction }) {
+export function buildUserMessageWithContext({
+  message,
+  compactContext,
+  intentInstruction,
+  safetyVerdict = null
+}) {
+  let verdictBlock = '';
+  if (safetyVerdict) {
+    verdictBlock = `
+### 🚨 MANDATORY HEALTH & ACTIVITY VERDICT (STRICT ADHERENCE REQUIRED):
+- Active City Ground Truth: ${compactContext?.city || 'Selected City'} — NAQI ${safetyVerdict.aqi} (${safetyVerdict.category})
+- People Involved: ${safetyVerdict.peopleInvolved?.join(', ') || 'Household'}
+- Verdict: ${safetyVerdict.verdictLabel} (${safetyVerdict.isOutdoorSafe ? 'Outdoor activity safe/acceptable' : 'Outdoor activity strictly restricted or prohibited'})
+- Mandatory Direct Answer: You MUST open with "${safetyVerdict.directAnswerPhrase}" or equivalent direct statement.
+- Safety Directive: NEVER contradict this verdict. NEVER claim that outdoor play, running, or walks are "safe", "unrestricted", or "clean" when AQI is Moderate, Poor, Very Poor, or Severe.
+`;
+  }
+
   return `CONTEXT (Air Quality & Household Data):
 \`\`\`json
 ${JSON.stringify(compactContext, null, 2)}
 \`\`\`
-
+${verdictBlock}
 ${intentInstruction}
 
 USER QUESTION:

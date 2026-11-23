@@ -5,8 +5,6 @@
 
 import { correctModelAqiResponse } from './responseValidator.js';
 import {
-  GEMINI_PRIMARY_MODEL,
-  GEMINI_FALLBACK_MODEL,
   GEMINI_CANDIDATE_MODELS,
   GEMINI_GENERATION_CONFIG
 } from '../constants.js';
@@ -25,7 +23,7 @@ export async function getAvailableGeminiModels(apiKey) {
     return cachedModels;
   }
 
-  const fallbackList = [GEMINI_PRIMARY_MODEL, GEMINI_FALLBACK_MODEL, 'gemini-2.5-flash'];
+  const fallbackList = [...GEMINI_CANDIDATE_MODELS];
   if (
     !apiKey ||
     typeof apiKey !== 'string' ||
@@ -75,7 +73,7 @@ export async function callGeminiApi({
   primaryReport,
   timeframe
 }) {
-  let candidateModels = [GEMINI_PRIMARY_MODEL, GEMINI_FALLBACK_MODEL, 'gemini-2.5-flash'];
+  let candidateModels = [...GEMINI_CANDIDATE_MODELS];
   try {
     candidateModels = await getAvailableGeminiModels(apiKey);
   } catch {}
@@ -105,13 +103,19 @@ export async function callGeminiApi({
           lastErrorReason =
             apiRes.status === 429
               ? 'Rate limited by AI provider (429)'
-              : 'AI provider temporarily overloaded (503)';
+              : 'AI provider temporarily overloaded (status 503 high demand spike)';
+          console.warn(
+            `Gemini model ${modelName} returned status ${apiRes.status} (${apiRes.status === 503 ? 'high demand spike' : 'rate limited'}). Attempt ${attempt + 1}.`
+          );
           if (attempt === 0) {
             await new Promise((resolve) =>
               setTimeout(resolve, GEMINI_GENERATION_CONFIG.retryDelayMs)
             );
             continue; // retry this model once
           }
+          console.warn(
+            `Gemini model ${modelName} unavailable after retries (status ${apiRes.status} high demand spike); safely falling back to next candidate model.`
+          );
           break; // move to next model
         }
 
@@ -177,6 +181,10 @@ export async function callGeminiApi({
       } catch (err) {
         lastErrorReason = err.name === 'TimeoutError' ? 'AI request timed out' : err.message;
         console.warn(`Gemini call failed for model ${modelName} (attempt ${attempt + 1}):`, err.message);
+        if (err.name === 'TimeoutError') {
+          // If a model timed out, proceed immediately to the next candidate model without redundant retry
+          break;
+        }
       }
     }
   }
