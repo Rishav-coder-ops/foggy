@@ -30,8 +30,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run Local CI Suite (Lint, Shuffled Tests in UTC & Asia/Kolkata, Build)
-        run: pnpm run ci:local
+      - name: Verify Code Style & Lint
+        run: pnpm run lint
+        env:
+          CI: true
+
+      - name: Run Shuffled Test Suite with Coverage (UTC)
+        run: pnpm exec vitest run --coverage --sequence.shuffle
+        env:
+          CI: true
+          TZ: UTC
+
+      - name: Run Shuffled Test Suite (Asia/Kolkata)
+        run: pnpm exec vitest run --sequence.shuffle
+        env:
+          CI: true
+          TZ: Asia/Kolkata
+
+      - name: Build Production Bundle
+        run: pnpm run build
+        env:
+          CI: true
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v7

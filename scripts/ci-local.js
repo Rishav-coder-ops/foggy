@@ -58,7 +58,7 @@ function runCommand(command, args, extraEnv = {}) {
   const result = spawnSync(binName, args, {
     stdio: 'inherit',
     env: mergedEnv,
-    shell: isWindows
+    shell: true
   });
 
   if (result.error) {
@@ -85,13 +85,13 @@ try {
   });
 
   // 3. Step 2: Run Shuffled Test Suite with Coverage under TZ=UTC
-  runCommand('pnpm', ['vitest', 'run', '--coverage', '--sequence.shuffle'], {
+  runCommand('pnpm', ['exec', 'vitest', 'run', '--coverage', '--sequence.shuffle'], {
     CI: 'true',
     TZ: 'UTC'
   });
 
   // 4. Step 3: Run Shuffled Test Suite under TZ=Asia/Kolkata
-  runCommand('pnpm', ['vitest', 'run', '--sequence.shuffle'], {
+  runCommand('pnpm', ['exec', 'vitest', 'run', '--sequence.shuffle'], {
     CI: 'true',
     TZ: 'Asia/Kolkata'
   });
