@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     pool: 'threads',
-    isolate: false,
+    isolate: true,
     setupFiles: ['./tests/setup.js'],
     include: ['tests/**/*.{test,spec}.{js,jsx}'],
     testTimeout: 10000,

@@ -157,8 +157,29 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
     });
 
     it('attaches Authorization header when user is authenticated with Firebase', async () => {
-      auth.currentUser = {
+      const mockUser = {
         getIdToken: vi.fn().mockResolvedValue('mock-token-xyz-123')
+      };
+      auth.currentUser = mockUser;
+
+      let capturedHeaders = null;
+      vi.spyOn(global, 'fetch').mockImplementationOnce(async (_url, opts) => {
+        capturedHeaders = opts.headers;
+        return {
+          ok: true,
+          json: async () => ({ reply: 'Authenticated reply' })
+        };
+      });
+
+      await sendChatMessage({ message: 'Hello', history: [], user: mockUser });
+      const authHeader = new Headers(capturedHeaders).get('authorization');
+      expect(authHeader).toBe('Bearer mock-token-xyz-123');
+      auth.currentUser = null;
+    });
+
+    it('attaches Authorization header from auth.currentUser fallback when user param is omitted', async () => {
+      auth.currentUser = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token-fallback-456')
       };
 
       let capturedHeaders = null;
@@ -172,7 +193,7 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
 
       await sendChatMessage({ message: 'Hello', history: [] });
       const authHeader = new Headers(capturedHeaders).get('authorization');
-      expect(authHeader).toBe('Bearer mock-token-xyz-123');
+      expect(authHeader).toBe('Bearer mock-token-fallback-456');
       auth.currentUser = null;
     });
 

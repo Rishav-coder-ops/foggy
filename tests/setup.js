@@ -67,6 +67,8 @@ const mockFirebaseModule = {
 
 vi.mock('../src/firebase.js', () => mockFirebaseModule);
 vi.mock('../src/firebase', () => mockFirebaseModule);
+vi.mock('../firebase.js', () => mockFirebaseModule);
+vi.mock('../firebase', () => mockFirebaseModule);
 
 export function resetAllModuleState() {
   clearAqiRateLimits();

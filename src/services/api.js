@@ -478,9 +478,11 @@ export async function sendChatMessage({
 }) {
   try {
     let idToken = null;
-    if (auth && auth.currentUser && typeof auth.currentUser.getIdToken === 'function') {
+    const activeUser =
+      user && typeof user.getIdToken === 'function' ? user : auth && auth.currentUser;
+    if (activeUser && typeof activeUser.getIdToken === 'function') {
       try {
-        idToken = await auth.currentUser.getIdToken();
+        idToken = await activeUser.getIdToken();
       } catch (_err) {
         // Token retrieval failure defaults to anonymous rate limit
       }
