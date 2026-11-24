@@ -30,11 +30,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify Code Style & Lint
-        run: pnpm run lint
-
-      - name: Run Test Suite with Coverage
-        run: pnpm run test:coverage
+      - name: Run Local CI Suite (Lint, Shuffled Tests in UTC & Asia/Kolkata, Build)
+        run: pnpm run ci:local
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v7
@@ -42,6 +39,3 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
-
-      - name: Build Production Bundle
-        run: pnpm run build

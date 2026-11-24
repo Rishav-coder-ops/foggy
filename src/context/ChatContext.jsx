@@ -10,11 +10,66 @@ import {
 } from '../../shared/constants.js';
 import { formatGreetingName } from '../utils/nameFormatter';
 
+export function buildInitialGreetingMessage({
+  profile,
+  user,
+  familyMembers = [],
+  preferredName = '',
+  loadingProfile = false,
+  syncBlocked = false
+}) {
+  const firstName =
+    preferredName ||
+    profile?.preferredName ||
+    formatGreetingName(profile, user) ||
+    'Friend';
+
+  if (loadingProfile) {
+    return {
+      id: 'msg_initial',
+      sender: 'foggy',
+      text: `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\nLoading your household profile and local air quality context...`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isInitial: true
+    };
+  }
+
+  const hasProfile = Boolean(profile && (profile.city || profile.location || profile.latitude != null));
+  if (!hasProfile) {
+    return {
+      id: 'msg_initial',
+      sender: 'foggy',
+      text:
+        `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
+        `I couldn't load your saved profile and household context${syncBlocked ? ' (cloud sync appears to be blocked by your browser or an ad blocker)' : ''}. ` +
+        `Please check your connection or ad blocker settings so I can provide personalized advice without guessing. How can I help you today?`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isInitial: true
+    };
+  }
+
+  const count = Array.isArray(familyMembers) ? familyMembers.length : 0;
+  const famText = count === 1 ? '1 family member' : `${count} family members`;
+  const cityText = profile.city || profile.location || 'your city';
+
+  return {
+    id: 'msg_initial',
+    sender: 'foggy',
+    text:
+      `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
+      `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
+      `I have your household context in mind (${famText}, location: ${cityText}). How can I help you today?`,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    isInitial: true
+  };
+}
+
 const ChatContext = createContext();
 
 export function ChatProvider({ children }) {
   const { user } = useAuth();
-  const { profile, familyMembers, queuePendingFact } = useProfile();
+  const { profile, familyMembers, preferredName, loadingProfile, syncBlocked, queuePendingFact } =
+    useProfile();
   const userUid = user?.uid || user?.id || 'guest';
 
   const [isOpen, setIsOpen] = useState(false);
@@ -43,50 +98,59 @@ export function ChatProvider({ children }) {
       if (saved) return JSON.parse(saved);
     } catch {}
 
-    const firstName = formatGreetingName(profile, user);
     return [
-      {
-        id: 'msg_initial',
-        sender: 'foggy',
-        text:
-          `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
-          `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.city || profile?.location || 'your area'}). How can I help you today?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
+      buildInitialGreetingMessage({
+        profile,
+        user,
+        familyMembers,
+        preferredName,
+        loadingProfile,
+        syncBlocked
+      })
     ];
   });
 
-  // Switch chat history when active user changes
+  // Keep chat history synchronized and greeting up to date with profile state
   useEffect(() => {
     try {
       const saved = localStorage.getItem(`foggy_chat_history_${userUid}`);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setMessages(parsed);
-        const lastWithCity = [...parsed]
-          .reverse()
-          .find((m) => m.sender === 'foggy' && m.cityData?.name);
-        setChatCityData(lastWithCity?.cityData || null);
-        return;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasUserMessages = parsed.some((m) => m.sender === 'user');
+          if (hasUserMessages) {
+            setMessages(parsed);
+            const lastWithCity = [...parsed]
+              .reverse()
+              .find((m) => m.sender === 'foggy' && m.cityData?.name);
+            setChatCityData(lastWithCity?.cityData || null);
+            return;
+          }
+        }
       }
     } catch {}
 
-    const firstName = formatGreetingName(profile, user);
-    setMessages([
-      {
-        id: 'msg_initial_' + Date.now(),
-        sender: 'foggy',
-        text:
-          `Hello ${firstName}! I'm **Foggy**, your air quality and smog protection companion. 🌫️✨\n\n` +
-          `I'm here to give you practical, reassuring, and personalized advice to protect your household from severe winter pollution while lowering emissions.\n\n` +
-          `I have your household context in mind (${familyMembers.length} family members, location: ${profile?.city || profile?.location || 'your area'}). How can I help you today?`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
-    // Only reset chat messages when the active user ID changes
+    const freshGreeting = buildInitialGreetingMessage({
+      profile,
+      user,
+      familyMembers,
+      preferredName,
+      loadingProfile,
+      syncBlocked
+    });
+    setMessages([freshGreeting]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userUid]);
+  }, [
+    userUid,
+    profile?.city,
+    profile?.location,
+    profile?.latitude,
+    profile?.longitude,
+    familyMembers.length,
+    preferredName,
+    loadingProfile,
+    syncBlocked
+  ]);
 
   // Sync AQI context
   useEffect(() => {
@@ -176,6 +240,23 @@ export function ChatProvider({ children }) {
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage('');
     setIsTyping(true);
+
+    const hasProfile = Boolean(profile && (profile.city || profile.location || profile.latitude != null));
+    if (!hasProfile && (syncBlocked || (!loadingProfile && user && !user?.isDemo))) {
+      setIsTyping(false);
+      const profileUnavailableReply = {
+        id: 'msg_f_' + Date.now(),
+        sender: 'foggy',
+        text: "I couldn't load your saved profile and household context to personalize this advice. Please verify that your ad blocker or Brave Shields isn't blocking cloud sync, then tap Retry in the banner above.",
+        provider: FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE,
+        model: FOGGY_FALLBACK_MODEL,
+        isLive: false,
+        reason: 'Profile unavailable',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages((prev) => [...prev, profileUnavailableReply]);
+      return;
+    }
 
     try {
       const storedCity = getStoredCity();

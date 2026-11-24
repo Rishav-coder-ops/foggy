@@ -8,7 +8,8 @@ import {
   AlertTriangle,
   ShieldCheck,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import AQICard from '../components/AQICard';
 import HourlyTimeline from '../components/HourlyTimeline';
@@ -23,7 +24,7 @@ import { formatGreetingName } from '../utils/nameFormatter';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { profile, familyMembers } = useProfile();
+  const { profile, familyMembers, loadingProfile, syncBlocked, retrySync } = useProfile();
   const { openChat } = useChat();
 
   const [aqiData, setAqiData] = useState(null);
@@ -66,6 +67,32 @@ export default function DashboardPage() {
   }, [loadAQI]);
 
   const sensitiveMembers = familyMembers.filter((m) => m.condition && m.condition !== 'None');
+
+  if (!loadingProfile && !profile && syncBlocked) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-5">
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center shadow-inner">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white">
+            We couldn't load your profile
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            Your browser or an extension seems to be blocking cloud sync. Your saved data may not be up to date. Try turning off your ad blocker or Brave Shields for this site.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={retrySync}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm bg-sky-500 hover:bg-sky-600 text-white shadow-soft transition-all transform hover:-translate-y-0.5 cursor-pointer"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Retry</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

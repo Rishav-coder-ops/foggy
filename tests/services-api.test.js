@@ -1,24 +1,5 @@
 // tests/services-api.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-const { mockAuth } = vi.hoisted(() => ({
-  mockAuth: {
-    currentUser: null
-  }
-}));
-
-vi.mock('../src/firebase.js', () => ({
-  auth: mockAuth,
-  isFirebaseConfigured: true,
-  missingFirebaseVars: []
-}));
-
-vi.mock('../src/firebase', () => ({
-  auth: mockAuth,
-  isFirebaseConfigured: true,
-  missingFirebaseVars: []
-}));
-
 import {
   getStoredCity,
   setStoredCity,
@@ -39,14 +20,14 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
     clearClientAqiCache();
     clearClientLastGoodLiveCache();
     localStorage.clear();
-    mockAuth.currentUser = null;
+    auth.currentUser = null;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     clearClientAqiCache();
     clearClientLastGoodLiveCache();
-    mockAuth.currentUser = null;
+    auth.currentUser = null;
   });
 
   describe('Local Storage City Persistence', () => {
@@ -190,7 +171,8 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
       });
 
       await sendChatMessage({ message: 'Hello', history: [] });
-      expect(capturedHeaders['Authorization']).toBe('Bearer mock-token-xyz-123');
+      const authHeader = new Headers(capturedHeaders).get('authorization');
+      expect(authHeader).toBe('Bearer mock-token-xyz-123');
       auth.currentUser = null;
     });
 

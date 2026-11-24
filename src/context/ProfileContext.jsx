@@ -71,6 +71,26 @@ export async function ensureVerifiedCoordinates(profileObj) {
   return profileObj;
 }
 
+export function getProfileLocalStorageKey(uid) {
+  return `foggy_profile_${uid}`;
+}
+
+export function loadProfileFromLocalStorage(uid) {
+  if (!uid || typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getProfileLocalStorageKey(uid));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function saveProfileToLocalStorage(uid, data) {
+  if (!uid || !data || typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(getProfileLocalStorageKey(uid), JSON.stringify(data));
+  } catch {}
+}
+
 const ProfileContext = createContext();
 
 export function ProfileProvider({ children }) {
@@ -78,13 +98,51 @@ export function ProfileProvider({ children }) {
   const isDemo = !!user?.isDemo;
   const uid = user?.uid;
 
-  const [profileData, setProfileData] = useState(null);
-  const [preferredName, setPreferredName] = useState('');
-  const [onboarding, setOnboarding] = useState({ step: 'profile', completedAt: null });
-  const [familyMembers, setFamilyMembers] = useState([]);
-  const [savedMemories, setSavedMemories] = useState([]);
+  const [profileData, setProfileData] = useState(() => {
+    if (!isDemo && uid) {
+      const cached = loadProfileFromLocalStorage(uid);
+      if (cached?.profile) return cached.profile;
+    }
+    return null;
+  });
+  const [preferredName, setPreferredName] = useState(() => {
+    if (!isDemo && uid) {
+      const cached = loadProfileFromLocalStorage(uid);
+      if (cached?.preferredName) return cached.preferredName;
+    }
+    return '';
+  });
+  const [onboarding, setOnboarding] = useState(() => {
+    if (!isDemo && uid) {
+      const cached = loadProfileFromLocalStorage(uid);
+      if (cached?.onboarding) return cached.onboarding;
+    }
+    return { step: 'profile', completedAt: null };
+  });
+  const [familyMembers, setFamilyMembers] = useState(() => {
+    if (!isDemo && uid) {
+      const cached = loadProfileFromLocalStorage(uid);
+      if (Array.isArray(cached?.familyMembers)) return cached.familyMembers;
+    }
+    return [];
+  });
+  const [savedMemories, setSavedMemories] = useState(() => {
+    if (!isDemo && uid) {
+      const cached = loadProfileFromLocalStorage(uid);
+      if (Array.isArray(cached?.savedMemories)) return cached.savedMemories;
+    }
+    return [];
+  });
   const [pendingFacts, setPendingFacts] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [syncBlocked, setSyncBlocked] = useState(false);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+
+  const retrySync = () => {
+    setSyncBlocked(false);
+    setLoadingProfile(true);
+    setRetryTrigger((c) => c + 1);
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !uid) {
@@ -94,6 +152,7 @@ export function ProfileProvider({ children }) {
       setFamilyMembers([]);
       setSavedMemories([]);
       setLoadingProfile(false);
+      setSyncBlocked(false);
       return;
     }
 
@@ -116,31 +175,94 @@ export function ProfileProvider({ children }) {
       setFamilyMembers(demoState.familyMembers || []);
       setSavedMemories(demoState.savedMemories || []);
       setLoadingProfile(false);
+      setSyncBlocked(false);
+      return;
+    }
+
+    // Attempt to hydrate immediately from persistent local cache if available
+    const cachedBackup = loadProfileFromLocalStorage(uid);
+    if (cachedBackup) {
+      if (cachedBackup.profile) setProfileData(cachedBackup.profile);
+      if (cachedBackup.preferredName) setPreferredName(cachedBackup.preferredName);
+      if (cachedBackup.onboarding) setOnboarding(cachedBackup.onboarding);
+      if (Array.isArray(cachedBackup.familyMembers)) setFamilyMembers(cachedBackup.familyMembers);
+      if (Array.isArray(cachedBackup.savedMemories)) setSavedMemories(cachedBackup.savedMemories);
+      if (cachedBackup.profile?.latitude != null && cachedBackup.profile?.longitude != null) {
+        setStoredCity({
+          name: cachedBackup.profile.city,
+          admin1: cachedBackup.profile.state || '',
+          country: cachedBackup.profile.country || 'India',
+          lat: cachedBackup.profile.latitude,
+          lon: cachedBackup.profile.longitude
+        });
+      }
+    }
+
+    // Check navigator offline status
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setSyncBlocked(true);
+      setLoadingProfile(false);
       return;
     }
 
     if (!db) {
       console.warn('Firestore database instance not ready.');
+      setSyncBlocked(true);
       setLoadingProfile(false);
       return;
     }
 
     setLoadingProfile(true);
+    let syncDelivered = false;
+
+    // 8-second connection timeout guard
+    const timeoutTimer = setTimeout(() => {
+      if (!syncDelivered) {
+        console.warn('Firestore connection timeout after 8s - flagging sync as blocked');
+        setSyncBlocked(true);
+        setLoadingProfile(false);
+      }
+    }, 8000);
+
+    const handleSyncError = (error, source) => {
+      console.warn(`Firestore ${source} error:`, error);
+      const msg = String(error?.message || '').toLowerCase();
+      const code = String(error?.code || '').toLowerCase();
+      const isBlockedOrUnavailable =
+        (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+        code === 'unavailable' ||
+        code === 'permission-denied' ||
+        code === 'failed-precondition' ||
+        msg.includes('unavailable') ||
+        msg.includes('blocked') ||
+        msg.includes('client') ||
+        msg.includes('network');
+
+      if (isBlockedOrUnavailable || !syncDelivered) {
+        setSyncBlocked(true);
+      }
+      setLoadingProfile(false);
+    };
 
     const unsubUser = subscribeToUserDoc(
       db,
       uid,
       (snapshot) => {
+        syncDelivered = true;
+        clearTimeout(timeoutTimer);
+        setSyncBlocked(false);
+
         if (snapshot.exists()) {
           const data = snapshot.data();
           const rawProf = data.profile || null;
-          setPreferredName(
+          const pref =
             data.preferredName ||
-              data.profile?.fullName?.split(' ')[0] ||
-              user.displayName?.split(' ')[0] ||
-              'Friend'
-          );
-          setOnboarding(data.onboarding || { step: 'profile', completedAt: null });
+            data.profile?.fullName?.split(' ')[0] ||
+            user.displayName?.split(' ')[0] ||
+            'Friend';
+          setPreferredName(pref);
+          const nextOnb = data.onboarding || { step: 'profile', completedAt: null };
+          setOnboarding(nextOnb);
 
           if (rawProf && rawProf.city) {
             ensureVerifiedCoordinates(rawProf).then((verified) => {
@@ -154,6 +276,13 @@ export function ProfileProvider({ children }) {
                   lon: verified.longitude
                 });
               }
+              saveProfileToLocalStorage(uid, {
+                profile: verified,
+                preferredName: pref,
+                onboarding: nextOnb,
+                familyMembers,
+                savedMemories
+              });
               if (
                 verified?.latitude !== rawProf.latitude ||
                 verified?.longitude !== rawProf.longitude
@@ -165,48 +294,68 @@ export function ProfileProvider({ children }) {
             });
           } else {
             setProfileData(rawProf);
+            saveProfileToLocalStorage(uid, {
+              profile: rawProf,
+              preferredName: pref,
+              onboarding: nextOnb,
+              familyMembers,
+              savedMemories
+            });
           }
         } else {
-          setProfileData(null);
-          setPreferredName(user.displayName?.split(' ')[0] || '');
-          setOnboarding({ step: 'profile', completedAt: null });
+          // If no remote doc exists and we have no local cache, clear to empty
+          if (!cachedBackup) {
+            setProfileData(null);
+            setPreferredName(user.displayName?.split(' ')[0] || '');
+            setOnboarding({ step: 'profile', completedAt: null });
+          }
         }
         setLoadingProfile(false);
       },
-      (error) => {
-        console.error('Firestore user snapshot error:', error);
-        setLoadingProfile(false);
-      }
+      (error) => handleSyncError(error, 'userDoc')
     );
 
     const unsubFamily = subscribeToFamilyCollection(
       db,
       uid,
       (snapshot) => {
+        syncDelivered = true;
+        clearTimeout(timeoutTimer);
         const members = [];
         snapshot.forEach((d) => members.push({ id: d.id, ...d.data() }));
         setFamilyMembers(members);
+        saveProfileToLocalStorage(uid, {
+          profile: profileData || cachedBackup?.profile,
+          preferredName: preferredName || cachedBackup?.preferredName,
+          onboarding: onboarding || cachedBackup?.onboarding,
+          familyMembers: members,
+          savedMemories
+        });
       },
-      (error) => console.warn('Firestore family snapshot error:', error)
+      (error) => handleSyncError(error, 'familyCollection')
     );
 
     const unsubMemory = subscribeToMemoryCollection(
       db,
       uid,
       (snapshot) => {
+        syncDelivered = true;
+        clearTimeout(timeoutTimer);
         const memories = [];
         snapshot.forEach((d) => memories.push({ id: d.id, ...d.data() }));
         setSavedMemories(memories);
       },
-      (error) => console.warn('Firestore memory snapshot error:', error)
+      (error) => handleSyncError(error, 'memoryCollection')
     );
 
     return () => {
+      clearTimeout(timeoutTimer);
       unsubUser();
       unsubFamily();
       unsubMemory();
     };
-  }, [isAuthenticated, uid, isDemo, user?.displayName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, uid, isDemo, user?.displayName, retryTrigger]);
 
   const saveOnboardingProfile = async (sanitizedProfile) => {
     const clean = sanitizeObject(sanitizedProfile);
@@ -461,8 +610,11 @@ export function ProfileProvider({ children }) {
   return (
     <ProfileContext.Provider
       value={{
-        profile: normalizedProfile,
+        profile: profileData ? normalizedProfile : null,
         rawProfile: profileData,
+        hasProfile: Boolean(profileData),
+        syncBlocked,
+        retrySync,
         preferredName,
         updatePreferredName,
         onboarding,

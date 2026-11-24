@@ -75,7 +75,8 @@ if (firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('your_'))
       db = initializeFirestore(app, {
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager()
-        })
+        }),
+        experimentalAutoDetectLongPolling: true
       });
     } catch {
       db = getFirestore(app);

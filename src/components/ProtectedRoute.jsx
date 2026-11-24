@@ -6,7 +6,7 @@ import RouteGuardLoading from './RouteGuardLoading';
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { onboarding, loadingProfile } = useProfile();
+  const { profile, onboarding, loadingProfile, syncBlocked } = useProfile();
   const location = useLocation();
 
   if (authLoading || loadingProfile) {
@@ -15,6 +15,13 @@ export default function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // If sync is blocked and profile couldn't be loaded from cloud or cache,
+  // do not force the user into onboarding step 1; allow protected page to render
+  // the "We couldn't load your profile" state with a clear Retry button.
+  if (!profile && syncBlocked) {
+    return children;
   }
 
   // Route guard: Logged in with onboarding not finished -> redirect to user's active onboarding step

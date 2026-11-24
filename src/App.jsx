@@ -23,6 +23,7 @@ import SupportPage from './pages/SupportPage';
 import SearchAQIPage from './pages/SearchAQIPage';
 import OnboardingProfilePage from './pages/onboarding/OnboardingProfilePage';
 import OnboardingFamilyPage from './pages/onboarding/OnboardingFamilyPage';
+import CloudSyncBanner from './components/CloudSyncBanner';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
       <CursorAtmosphere />
 
       <Navbar />
+      <CloudSyncBanner />
 
       <main className="flex-1 relative z-20 pb-20 lg:pb-0">
         <Routes>

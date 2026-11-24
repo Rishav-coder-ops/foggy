@@ -7,6 +7,67 @@ import { clearTimelineRateLimits, clearTimelineCache } from '../shared/timeline/
 import { clearRateLimitStore } from '../shared/chat/rateLimiter.js';
 import { clearGeocodeCache } from '../functions/api/geocode.js';
 
+// Shared mutable Firebase Auth test double
+export const mockFirebaseAuth = {
+  currentUser: null,
+  onAuthStateChanged: vi.fn((cb) => {
+    if (typeof cb === 'function') cb(mockFirebaseAuth.currentUser);
+    return vi.fn();
+  }),
+  signInWithPopup: vi.fn(),
+  signInWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: vi.fn(),
+  sendPasswordResetEmail: vi.fn(),
+  signOut: vi.fn(),
+  updateProfile: vi.fn(),
+  reauthenticateWithPopup: vi.fn(),
+  reauthenticateWithCredential: vi.fn(),
+  deleteUser: vi.fn()
+};
+
+export const mockFirestoreDb = {};
+
+const mockFirebaseModule = {
+  app: {},
+  auth: mockFirebaseAuth,
+  db: mockFirestoreDb,
+  googleProvider: { setCustomParameters: vi.fn() },
+  isFirebaseConfigured: true,
+  missingFirebaseVars: [],
+  signInWithPopup: vi.fn(),
+  signInWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: vi.fn(),
+  sendPasswordResetEmail: vi.fn(),
+  signOut: vi.fn(),
+  onAuthStateChanged: vi.fn((_auth, cb) => {
+    if (typeof cb === 'function') cb(mockFirebaseAuth.currentUser);
+    return vi.fn();
+  }),
+  updateProfile: vi.fn(),
+  reauthenticateWithPopup: vi.fn(),
+  reauthenticateWithCredential: vi.fn(),
+  EmailAuthProvider: vi.fn(),
+  deleteUser: vi.fn(),
+  doc: vi.fn(() => ({})),
+  getDoc: vi.fn(async () => ({ exists: () => false, data: () => ({}) })),
+  setDoc: vi.fn(async () => {}),
+  updateDoc: vi.fn(async () => {}),
+  deleteDoc: vi.fn(async () => {}),
+  collection: vi.fn(() => ({})),
+  getDocs: vi.fn(async () => ({ docs: [] })),
+  onSnapshot: vi.fn((_ref, onData) => {
+    if (typeof onData === 'function') onData({ exists: () => false, data: () => ({}) });
+    return vi.fn();
+  }),
+  query: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  serverTimestamp: vi.fn(() => new Date().toISOString())
+};
+
+vi.mock('../src/firebase.js', () => mockFirebaseModule);
+vi.mock('../src/firebase', () => mockFirebaseModule);
+
 export function resetAllModuleState() {
   clearAqiRateLimits();
   clearAqiCache();
@@ -17,11 +78,23 @@ export function resetAllModuleState() {
   clearGeocodeCache();
 }
 
+export const defaultFetchStub = vi.fn((url) => {
+  const err = new Error(`Unmocked network fetch call: ${url}`);
+  err.name = 'UnmockedNetworkError';
+  return Promise.reject(err);
+});
+
 beforeEach(() => {
+  mockFirebaseAuth.currentUser = null;
+  global.fetch = defaultFetchStub;
   resetAllModuleState();
 });
 
 afterEach(() => {
+  mockFirebaseAuth.currentUser = null;
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
   resetAllModuleState();
 });
 
