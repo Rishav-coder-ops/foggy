@@ -14,22 +14,32 @@ export const TIMELINE_CACHE_TTL_MS = 15 * 60 * 1000;
 export const timelineCache = new Map();
 const ipRateLimitMap = new Map();
 
+export function clearTimelineRateLimits() {
+  ipRateLimitMap.clear();
+}
+
+export function clearTimelineCache() {
+  timelineCache.clear();
+}
+
 export function getTimelineCacheKey(lat, lon) {
   return `timeline_${Number(lat).toFixed(2)}_${Number(lon).toFixed(2)}`;
 }
 
-export function checkRateLimit(clientIp) {
+export function checkRateLimit(clientIp, customLimit = null) {
+  const limit =
+    customLimit != null && !isNaN(customLimit) ? Number(customLimit) : MAX_REQUESTS_PER_WINDOW;
   const now = Date.now();
   const entry = ipRateLimitMap.get(clientIp);
   if (!entry || now - entry.startTime > RATE_LIMIT_WINDOW_MS) {
     ipRateLimitMap.set(clientIp, { count: 1, startTime: now });
-    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
+    return { allowed: true, remaining: Math.max(0, limit - 1) };
   }
-  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+  if (entry.count >= limit) {
     return { allowed: false, remaining: 0 };
   }
   entry.count++;
-  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - entry.count };
+  return { allowed: true, remaining: Math.max(0, limit - entry.count) };
 }
 
 export const INDIAN_METROS = [

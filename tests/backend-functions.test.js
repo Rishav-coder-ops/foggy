@@ -6,6 +6,40 @@ import { onRequestGet as getTimeline } from '../functions/api/aqi-timeline.js';
 describe('tests/backend-functions.test.js - Backend Endpoints, Coordinate Caching & Fallbacks', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const urlStr = url.toString();
+      if (urlStr.includes('air-quality')) {
+        const isChennai = urlStr.includes('latitude=13.08') || urlStr.includes('latitude=13.0827');
+        const pm25 = isChennai ? 25 : 180;
+        const pm10 = isChennai ? 40 : 260;
+        const lat = isChennai ? 13.08 : 28.61;
+        const lon = isChennai ? 80.27 : 77.21;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            latitude: lat,
+            longitude: lon,
+            current: { time: '2026-11-24T12:00', pm2_5: pm25, pm10 },
+            hourly: {
+              time: Array.from({ length: 48 }, (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`),
+              pm2_5: Array(48).fill(pm25),
+              pm10: Array(48).fill(pm10)
+            }
+          })
+        };
+      }
+      if (urlStr.includes('forecast')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            current: { temperature_2m: 24, relative_humidity_2m: 55, wind_speed_10m: 3.5 }
+          })
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
   });
 
   afterEach(() => {

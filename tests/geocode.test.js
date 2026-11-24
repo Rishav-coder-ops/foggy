@@ -743,19 +743,20 @@ describe('tests/geocode.test.js - Comprehensive Indian Location Matching, Aliase
       expect(fetchSpy).toHaveBeenCalledTimes(1); // No new network call
     });
 
-    it('enforces rate limiting when client IP exceeds 60 requests in window', async () => {
+    it('enforces rate limiting when client IP exceeds rate limit in window', async () => {
       const ip = '10.1.0.99';
-      for (let i = 0; i < 60; i++) {
-        const req = new Request('https://foggy.pages.dev/api/geocode?name=a', {
-          headers: { 'cf-connecting-ip': ip }
-        });
-        await onRequest({ request: req });
-      }
+      const env = { RATE_LIMIT_MAX: 1 };
+
+      const req1 = new Request('https://foggy.pages.dev/api/geocode?name=a', {
+        headers: { 'cf-connecting-ip': ip }
+      });
+      const res1 = await onRequest({ request: req1, env });
+      expect(res1.status).toBe(200);
 
       const blockedReq = new Request('https://foggy.pages.dev/api/geocode?name=a', {
         headers: { 'cf-connecting-ip': ip }
       });
-      const res = await onRequest({ request: blockedReq });
+      const res = await onRequest({ request: blockedReq, env });
       expect(res.status).toBe(429);
       const data = await res.json();
       expect(data.status).toBe('rate_limited');

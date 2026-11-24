@@ -1,7 +1,29 @@
 // tests/setup.js
 import '@testing-library/jest-dom';
 import * as axeMatchers from 'vitest-axe/matchers';
-import { expect, vi } from 'vitest';
+import { expect, vi, beforeEach, afterEach } from 'vitest';
+import { clearRateLimits as clearAqiRateLimits, clearAqiCache, clearLastGoodLiveAqiCache } from '../shared/aqi/cache.js';
+import { clearTimelineRateLimits, clearTimelineCache } from '../shared/timeline/constants.js';
+import { clearRateLimitStore } from '../shared/chat/rateLimiter.js';
+import { clearGeocodeCache } from '../functions/api/geocode.js';
+
+export function resetAllModuleState() {
+  clearAqiRateLimits();
+  clearAqiCache();
+  clearLastGoodLiveAqiCache();
+  clearTimelineRateLimits();
+  clearTimelineCache();
+  clearRateLimitStore();
+  clearGeocodeCache();
+}
+
+beforeEach(() => {
+  resetAllModuleState();
+});
+
+afterEach(() => {
+  resetAllModuleState();
+});
 
 expect.extend(axeMatchers);
 

@@ -7,9 +7,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     pool: 'threads',
+    isolate: false,
     setupFiles: ['./tests/setup.js'],
     include: ['tests/**/*.{test,spec}.{js,jsx}'],
-    testTimeout: 25000,
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],

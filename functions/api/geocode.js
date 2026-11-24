@@ -118,7 +118,10 @@ export async function onRequest(context) {
   }
   ipRateLimitMap.set(clientIP, rateData);
 
-  if (rateData.count > MAX_REQUESTS_PER_WINDOW) {
+  const maxRequests =
+    context.env?.RATE_LIMIT_MAX != null ? Number(context.env.RATE_LIMIT_MAX) : MAX_REQUESTS_PER_WINDOW;
+
+  if (rateData.count > maxRequests) {
     return new Response(
       JSON.stringify({
         error: 'Too many requests. Please slow down.',

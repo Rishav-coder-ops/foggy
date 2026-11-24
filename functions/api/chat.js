@@ -198,7 +198,10 @@ export async function onRequestPost(context) {
   // 2. Dual rate limiting: anonymous vs verified signed-in users
   const isUserAuthenticated = Boolean(verifiedUid);
   const rateLimitKey = isUserAuthenticated ? `user:${verifiedUid}` : `ip:${clientIp}`;
-  const maxLimit = isUserAuthenticated ? MAX_USER_PER_HOUR : MAX_ANON_PER_HOUR;
+  const configuredMax = isUserAuthenticated
+    ? env?.RATE_LIMIT_USER_MAX != null ? Number(env.RATE_LIMIT_USER_MAX) : MAX_USER_PER_HOUR
+    : env?.RATE_LIMIT_ANON_MAX != null ? Number(env.RATE_LIMIT_ANON_MAX) : MAX_ANON_PER_HOUR;
+  const maxLimit = configuredMax;
 
   const rateCheck = checkRateLimit(rateLimitKey, maxLimit);
   headers['X-RateLimit-Limit'] = maxLimit.toString();

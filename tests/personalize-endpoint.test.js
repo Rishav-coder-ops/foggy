@@ -169,27 +169,34 @@ describe('Personalization & Chat Endpoints (/api/personalize & /api/chat)', () =
 
   it('enforces rate limit and returns 429 with RATE_LIMITED code when limit exceeded', async () => {
     const testIp = '10.0.99.1';
-    let lastRes;
+    const env = { RATE_LIMIT_ANON_MAX: 1 };
 
-    // Send 11 anonymous requests (max limit is 10)
-    for (let i = 0; i < 12; i++) {
-      const req = new Request('https://foggy.pages.dev/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'cf-connecting-ip': testIp
-        },
-        body: JSON.stringify({ message: `Test ping ${i}` })
-      });
-      lastRes = await handleChatPost({ request: req, env: {} });
-      if (lastRes.status === 429) break;
-    }
+    const req1 = new Request('https://foggy.pages.dev/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'cf-connecting-ip': testIp
+      },
+      body: JSON.stringify({ message: 'Test ping 1' })
+    });
+    const res1 = await handleChatPost({ request: req1, env });
+    expect(res1.status).toBe(200);
+
+    const req2 = new Request('https://foggy.pages.dev/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'cf-connecting-ip': testIp
+      },
+      body: JSON.stringify({ message: 'Test ping 2' })
+    });
+    const lastRes = await handleChatPost({ request: req2, env });
 
     expect(lastRes.status).toBe(429);
     const json = await lastRes.json();
     expect(json.code).toBe('RATE_LIMITED');
     expect(json.message).toContain('Rate limit exceeded');
-  }, 20000);
+  });
 
   it('falls back gracefully to intelligent deterministic core when Gemini fails', async () => {
     // Mock fetch to simulate Gemini API 500 failure

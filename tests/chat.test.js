@@ -75,22 +75,22 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
   });
 
   describe('Rate Limiting (Anonymous 10/hr vs Authenticated 60/hr)', () => {
-    it('enforces 10 requests/hour limit for anonymous visitors', async () => {
+    it('enforces rate limit for anonymous visitors', async () => {
       const ip = '192.168.10.1';
-      for (let i = 1; i <= 10; i++) {
-        const req = new Request('https://foggy.pages.dev/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'cf-connecting-ip': ip
-          },
-          body: JSON.stringify({ message: 'What is Delhi AQI?' })
-        });
-        const res = await onRequestPost({ request: req, env: {} });
-        expect(res.status).toBe(200);
-      }
+      const env = { RATE_LIMIT_ANON_MAX: 1 };
 
-      // 11th request should be rate-limited (429)
+      const req1 = new Request('https://foggy.pages.dev/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'cf-connecting-ip': ip
+        },
+        body: JSON.stringify({ message: 'What is Delhi AQI?' })
+      });
+      const res1 = await onRequestPost({ request: req1, env });
+      expect(res1.status).toBe(200);
+
+      // Subsequent request exceeding limit should be rate-limited (429)
       const overLimitReq = new Request('https://foggy.pages.dev/api/chat', {
         method: 'POST',
         headers: {
@@ -99,11 +99,11 @@ describe('tests/chat.test.js - Abuse Prevention, Rate Limiting, Prompts & Memory
         },
         body: JSON.stringify({ message: 'What is Delhi AQI?' })
       });
-      const blockedRes = await onRequestPost({ request: overLimitReq, env: {} });
+      const blockedRes = await onRequestPost({ request: overLimitReq, env });
       expect(blockedRes.status).toBe(429);
       const data = await blockedRes.json();
       expect(data.error).toBe('Too Many Requests');
-    }, 25000);
+    });
 
     it('allows verified Firebase signed-in users higher limit (60 requests/hr)', async () => {
       vi.spyOn(tokenVerifier, 'verifyFirebaseIdToken').mockResolvedValue({

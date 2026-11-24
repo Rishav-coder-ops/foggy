@@ -13,6 +13,10 @@ import {
   findBestAndWorstHours,
   computeDailyAverages
 } from '../shared/timeline/cpcbCalculation.js';
+import {
+  checkRateLimit,
+  clearTimelineRateLimits
+} from '../shared/timeline/constants.js';
 
 describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
   const originalFetch = global.fetch;
@@ -40,35 +44,61 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('returns 429 when client exceeds rate limit', async () => {
-      const ip = '192.168.1.99';
-      // Rate limiter allows 60 requests per window
-      for (let i = 0; i < 60; i++) {
-        const req = new Request('http://localhost/api/aqi-timeline?lat=28.61&lon=77.21', {
-          headers: { 'CF-Connecting-IP': ip }
-        });
-        // Mock fetch so valid requests don't hit real network
-        global.fetch = vi.fn().mockResolvedValue({
-          ok: true,
-          json: async () => ({
-            timezone: 'Asia/Kolkata',
-            hourly: {
-              time: Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`),
-              pm2_5: Array(48).fill(45),
-              pm10: Array(48).fill(85)
-            }
-          })
-        });
-        await onRequestGet({ request: req });
+    it('checkRateLimit unit tests: allows 60 requests and blocks 61st', () => {
+      vi.useFakeTimers();
+      clearTimelineRateLimits();
+      const ip = '192.168.1.50';
+
+      for (let i = 1; i <= 60; i++) {
+        const res = checkRateLimit(ip);
+        expect(res.allowed).toBe(true);
+        expect(res.remaining).toBe(60 - i);
       }
 
-      // 61st request from same IP should get 429
+      const blocked = checkRateLimit(ip);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.remaining).toBe(0);
+
+      // Fast-forward past 60-second window
+      vi.advanceTimersByTime(60001);
+      const resetRes = checkRateLimit(ip);
+      expect(resetRes.allowed).toBe(true);
+      expect(resetRes.remaining).toBe(59);
+
+      vi.useRealTimers();
+    });
+
+    it('returns 429 when client exceeds rate limit', async () => {
+      const ip = '192.168.1.99';
+      clearTimelineRateLimits();
+
+      // Mock fetch so valid requests don't hit real network
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          timezone: 'Asia/Kolkata',
+          hourly: {
+            time: Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`),
+            pm2_5: Array(48).fill(45),
+            pm10: Array(48).fill(85)
+          }
+        })
+      });
+
+      // Allowed under limit
+      const req1 = new Request('http://localhost/api/aqi-timeline?lat=28.61&lon=77.21', {
+        headers: { 'CF-Connecting-IP': ip }
+      });
+      const res1 = await onRequestGet({ request: req1, env: { RATE_LIMIT_MAX: 1 } });
+      expect(res1.status).toBe(200);
+
+      // Blocked when limit exceeded
       const blockedReq = new Request('http://localhost/api/aqi-timeline?lat=28.61&lon=77.21', {
         headers: { 'CF-Connecting-IP': ip }
       });
-      const res = await onRequestGet({ request: blockedReq });
-      expect(res.status).toBe(429);
-      const json = await res.json();
+      const res2 = await onRequestGet({ request: blockedReq, env: { RATE_LIMIT_MAX: 1 } });
+      expect(res2.status).toBe(429);
+      const json = await res2.json();
       expect(json.error).toBe('Too many requests');
     });
   });

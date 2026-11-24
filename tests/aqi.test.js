@@ -1,5 +1,5 @@
 // tests/aqi.test.js
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   calculatePM25SubIndex,
   calculatePM10SubIndex,
@@ -12,6 +12,12 @@ import {
   onRequestOptions,
   onRequestGet
 } from '../functions/api/aqi.js';
+import {
+  checkRateLimit,
+  clearRateLimits,
+  clearAqiCache,
+  clearLastGoodLiveAqiCache
+} from '../shared/aqi/cache.js';
 
 describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollutant & Categories', () => {
   describe('CPCB PM2.5 Sub-Index Breakpoint Boundaries', () => {
@@ -221,7 +227,121 @@ describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollu
     });
   });
 
+  describe('checkRateLimit Unit Tests (shared/aqi/cache.js)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      clearRateLimits();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      clearRateLimits();
+    });
+
+    it('allows 60 requests in window and blocks the 61st request', () => {
+      const ip = '10.8.0.99';
+      for (let i = 1; i <= 60; i++) {
+        const check = checkRateLimit(ip);
+        expect(check.allowed).toBe(true);
+        expect(check.count).toBe(i);
+        expect(check.remaining).toBe(60 - i);
+      }
+
+      // 61st request is blocked
+      const blocked = checkRateLimit(ip);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.count).toBe(61);
+      expect(blocked.remaining).toBe(0);
+    });
+
+    it('resets counter after rate limit window expires', () => {
+      const ip = '10.8.0.98';
+      for (let i = 1; i <= 60; i++) {
+        checkRateLimit(ip);
+      }
+      expect(checkRateLimit(ip).allowed).toBe(false);
+
+      // Fast-forward time past 1-hour window (3600000 ms + 1 ms)
+      vi.advanceTimersByTime(3600001);
+
+      const afterReset = checkRateLimit(ip);
+      expect(afterReset.allowed).toBe(true);
+      expect(afterReset.count).toBe(1);
+      expect(afterReset.remaining).toBe(59);
+    });
+
+    it('tracks separate client IPs independently', () => {
+      const ipA = '10.8.0.10';
+      const ipB = '10.8.0.20';
+
+      for (let i = 0; i < 60; i++) {
+        checkRateLimit(ipA);
+      }
+      expect(checkRateLimit(ipA).allowed).toBe(false);
+
+      // IP B is fresh and should be allowed
+      const checkB = checkRateLimit(ipB);
+      expect(checkB.allowed).toBe(true);
+      expect(checkB.count).toBe(1);
+    });
+
+    it('supports custom limit override', () => {
+      const ip = '10.8.0.50';
+      const customLimit = 3;
+
+      expect(checkRateLimit(ip, customLimit).allowed).toBe(true);
+      expect(checkRateLimit(ip, customLimit).allowed).toBe(true);
+      expect(checkRateLimit(ip, customLimit).allowed).toBe(true);
+
+      const blocked = checkRateLimit(ip, customLimit);
+      expect(blocked.allowed).toBe(false);
+      expect(blocked.count).toBe(4);
+    });
+  });
+
   describe('functions/api/aqi.js Endpoint & Method Routing', () => {
+    beforeEach(() => {
+      clearRateLimits();
+      clearAqiCache();
+      clearLastGoodLiveAqiCache();
+      vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+        const urlStr = url.toString();
+        if (urlStr.includes('air-quality')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              latitude: 28.61,
+              longitude: 77.21,
+              current: { time: '2026-11-24T12:00', pm2_5: 45, pm10: 85 },
+              hourly: {
+                time: Array.from({ length: 48 }, (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`),
+                pm2_5: Array(48).fill(45),
+                pm10: Array(48).fill(85)
+              }
+            })
+          };
+        }
+        if (urlStr.includes('forecast')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              current: { temperature_2m: 24, relative_humidity_2m: 55, wind_speed_10m: 3.5 }
+            })
+          };
+        }
+        return { ok: true, status: 200, json: async () => ({}) };
+      });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      clearRateLimits();
+      clearAqiCache();
+      clearLastGoodLiveAqiCache();
+    });
+
     it('onRequestOptions returns 204 with CORS preflight headers', async () => {
       const req = new Request('https://foggy.pages.dev/api/aqi', { method: 'OPTIONS' });
       const res = await onRequestOptions({ request: req });
@@ -253,22 +373,25 @@ describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollu
       expect(data.error).toBe('Method Not Allowed');
     });
 
-    it('onRequestGet enforces rate limiting when requests exceed 60 per minute', async () => {
+    it('onRequestGet enforces rate limiting and returns friendly 429 payload when limit is exceeded', async () => {
       const ip = '10.8.0.99';
-      for (let i = 0; i < 60; i++) {
-        const req = new Request('https://foggy.pages.dev/api/aqi?city=Delhi', {
-          headers: { 'cf-connecting-ip': ip }
-        });
-        await onRequestGet({ request: req });
-      }
+      const env = { RATE_LIMIT_MAX: 1 };
 
-      const blockedReq = new Request('https://foggy.pages.dev/api/aqi?city=Delhi', {
+      const req1 = new Request('https://foggy.pages.dev/api/aqi?city=Delhi&lat=28.61&lon=77.21', {
         headers: { 'cf-connecting-ip': ip }
       });
-      const res = await onRequestGet({ request: blockedReq });
-      expect(res.status).toBe(429);
-      const data = await res.json();
+      const res1 = await onRequestGet({ request: req1, env });
+      expect(res1.status).toBe(200);
+
+      const req2 = new Request('https://foggy.pages.dev/api/aqi?city=Delhi&lat=28.61&lon=77.21', {
+        headers: { 'cf-connecting-ip': ip }
+      });
+      const res2 = await onRequestGet({ request: req2, env });
+      expect(res2.status).toBe(429);
+      const data = await res2.json();
+      expect(data.error).toBe('Too Many Requests');
       expect(data.code).toBe('RATE_LIMITED');
+      expect(data.message).toContain('Rate limit exceeded');
     });
   });
 });

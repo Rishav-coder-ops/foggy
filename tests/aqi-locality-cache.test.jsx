@@ -12,7 +12,11 @@ import {
   onRequestGet,
   resolveCityCoordinates
 } from '../functions/api/aqi.js';
-import { fetchAQIData } from '../src/services/api.js';
+import {
+  fetchAQIData,
+  clearClientAqiCache,
+  clearClientLastGoodLiveCache
+} from '../src/services/api.js';
 import AQICard from '../src/components/AQICard.jsx';
 import SearchAQIPage from '../src/pages/SearchAQIPage.jsx';
 
@@ -20,12 +24,16 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
   beforeEach(() => {
     vi.restoreAllMocks();
     aqiCache.clear();
+    clearClientAqiCache();
+    clearClientLastGoodLiveCache();
     localStorage.clear();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     aqiCache.clear();
+    clearClientAqiCache();
+    clearClientLastGoodLiveCache();
   });
 
   describe('1. Cache Key Coordinate Isolation', () => {

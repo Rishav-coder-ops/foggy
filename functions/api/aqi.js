@@ -15,6 +15,9 @@ import {
   CACHE_TTL_MS,
   getAqiCacheKey,
   checkRateLimit,
+  clearRateLimits,
+  clearAqiCache,
+  clearLastGoodLiveAqiCache,
   getCorsHeaders
 } from '../../shared/aqi/cache.js';
 import {
@@ -38,6 +41,9 @@ export {
   CACHE_TTL_MS,
   getAqiCacheKey,
   checkRateLimit,
+  clearRateLimits,
+  clearAqiCache,
+  clearLastGoodLiveAqiCache,
   getCorsHeaders,
   INDIAN_CITY_SIMULATION_DB,
   getDeterministicMockCity,
@@ -63,7 +69,8 @@ export async function onRequestGet(context) {
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     '127.0.0.1';
 
-  const rateCheck = checkRateLimit(clientIp);
+  const maxRequests = env?.RATE_LIMIT_MAX != null ? Number(env.RATE_LIMIT_MAX) : undefined;
+  const rateCheck = checkRateLimit(clientIp, maxRequests);
   if (!rateCheck.allowed) {
     return new Response(
       JSON.stringify({

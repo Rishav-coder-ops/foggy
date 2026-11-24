@@ -27,19 +27,25 @@ import {
   searchCities,
   geocodeLocation,
   fetchAQITimeline,
-  DEFAULT_CITY
+  DEFAULT_CITY,
+  clearClientAqiCache,
+  clearClientLastGoodLiveCache
 } from '../src/services/api.js';
 import { auth } from '../src/firebase.js';
 
 describe('tests/services-api.test.js - Client API Services & Offline Fallbacks', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    clearClientAqiCache();
+    clearClientLastGoodLiveCache();
     localStorage.clear();
     mockAuth.currentUser = null;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    clearClientAqiCache();
+    clearClientLastGoodLiveCache();
     mockAuth.currentUser = null;
   });
 

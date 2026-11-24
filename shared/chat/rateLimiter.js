@@ -17,6 +17,10 @@ export const MAX_HISTORY_TURNS = CHAT_LIMITS.MAX_HISTORY_TURNS;
 
 export const rateLimitStore = new Map();
 
+export function clearRateLimitStore() {
+  rateLimitStore.clear();
+}
+
 export function cleanupRateLimitStore() {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {

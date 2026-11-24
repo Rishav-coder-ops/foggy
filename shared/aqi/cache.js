@@ -14,6 +14,14 @@ export const LIVE_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours (never replace l
 export const lastGoodLiveAqiCache = new Map();
 const ipRateLimitMap = new Map();
 
+export function clearRateLimits() {
+  ipRateLimitMap.clear();
+}
+
+export function clearAqiCache() {
+  aqiCache.clear();
+}
+
 export function saveLastGoodLiveAqi(lat, lon, data) {
   if (!data || data.isMock || data.error) return;
   const key = getAqiCacheKey(lat, lon, 'live');
@@ -45,7 +53,11 @@ export function getAqiCacheKey(lat, lon, type = 'aqi') {
   return `${type}_${roundedLat}_${roundedLon}`;
 }
 
-export function checkRateLimit(clientIp) {
+export function checkRateLimit(clientIp, customLimit = null) {
+  const limit =
+    customLimit != null && !isNaN(customLimit)
+      ? Number(customLimit)
+      : API_RATE_LIMITS.MAX_REQUESTS_PER_WINDOW;
   const now = Date.now();
   let clientRecord = ipRateLimitMap.get(clientIp);
 
@@ -55,15 +67,15 @@ export function checkRateLimit(clientIp) {
     return {
       allowed: true,
       count: 1,
-      remaining: API_RATE_LIMITS.MAX_REQUESTS_PER_WINDOW - 1,
+      remaining: Math.max(0, limit - 1),
       reset: clientRecord.resetTime
     };
   }
 
   clientRecord.count += 1;
-  const remaining = Math.max(0, API_RATE_LIMITS.MAX_REQUESTS_PER_WINDOW - clientRecord.count);
+  const remaining = Math.max(0, limit - clientRecord.count);
   return {
-    allowed: clientRecord.count <= API_RATE_LIMITS.MAX_REQUESTS_PER_WINDOW,
+    allowed: clientRecord.count <= limit,
     count: clientRecord.count,
     remaining,
     reset: clientRecord.resetTime
