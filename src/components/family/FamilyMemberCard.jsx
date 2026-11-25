@@ -21,12 +21,7 @@ export default function FamilyMemberCard({
 
   return (
     <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark transition-all hover:border-sky-300 dark:hover:border-sky-700">
-      <MemberCardHeader
-        member={member}
-        profile={profile}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <MemberCardHeader member={member} profile={profile} onEdit={onEdit} onDelete={onDelete} />
       <MemberCardDetails member={member} />
       <MemberCardActionBar
         member={member}
@@ -35,11 +30,7 @@ export default function FamilyMemberCard({
         onPersonalize={onPersonalize}
       />
       {isPlanOpen && (
-        <FamilyMemberCarePlan
-          member={member}
-          carePlan={carePlan}
-          memberAqiData={activeAqi}
-        />
+        <FamilyMemberCarePlan member={member} carePlan={carePlan} memberAqiData={activeAqi} />
       )}
     </div>
   );

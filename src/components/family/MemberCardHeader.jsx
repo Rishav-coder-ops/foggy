@@ -14,9 +14,7 @@ export default function MemberCardHeader({ member, profile, onEdit, onDelete }) 
         </span>
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              {member.name}
-            </h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{member.name}</h2>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-100 dark:bg-sky-950/70 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
               {member.relationship || 'Dependent'}
             </span>
@@ -40,12 +38,13 @@ export default function MemberCardHeader({ member, profile, onEdit, onDelete }) 
       {/* Actions & Sensitivity Badge */}
       <div className="flex items-center gap-2.5 self-end md:self-auto">
         <span
-          className={`text-xs font-bold px-3 py-1 rounded-full border ${isHigh
-            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300 dark:border-rose-800'
-            : isMod
-              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800'
-              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-            }`}
+          className={`text-xs font-bold px-3 py-1 rounded-full border ${
+            isHigh
+              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+              : isMod
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+          }`}
         >
           {member.sensitivity || 'Standard'} Sensitivity
         </span>

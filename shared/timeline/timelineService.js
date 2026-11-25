@@ -74,7 +74,9 @@ export async function geocodeIndianCity(cityName) {
         'ADM2',
         'ADM3'
       ];
-      const top = validResults.find((r) => !r.feature_code || validFeatureCodes.includes(r.feature_code)) || null;
+      const top =
+        validResults.find((r) => !r.feature_code || validFeatureCodes.includes(r.feature_code)) ||
+        null;
 
       if (top) {
         // Prevent fuzzy prefix false positives for short words (<= 4 chars)
@@ -102,7 +104,11 @@ function resolveCityTarget(cityNameOrObj) {
   if (typeof cityNameOrObj === 'string') {
     return null; // needs async geocoding
   }
-  if (cityNameOrObj && typeof cityNameOrObj.lat === 'number' && typeof cityNameOrObj.lon === 'number') {
+  if (
+    cityNameOrObj &&
+    typeof cityNameOrObj.lat === 'number' &&
+    typeof cityNameOrObj.lon === 'number'
+  ) {
     return {
       name: cityNameOrObj.name || 'Unknown City',
       latitude: cityNameOrObj.lat,
@@ -165,15 +171,26 @@ export async function fetchCityAqiReport(cityNameOrObj, timeframe = 'now') {
     const { best: bestHour24h, worst: worstHour24h } = findBestAndWorstHours(slice24);
 
     const validAqis = slice24.map((p) => p.aqi).filter((a) => a != null);
-    const avg24 = validAqis.length > 0 ? Math.round(validAqis.reduce((a, b) => a + b, 0) / validAqis.length) : currentPoint.aqi;
+    const avg24 =
+      validAqis.length > 0
+        ? Math.round(validAqis.reduce((a, b) => a + b, 0) / validAqis.length)
+        : currentPoint.aqi;
 
-    const tonightSlot = points.slice(currentIdx).find((p) => p.hour.startsWith('20:')) || currentPoint;
-    const tomorrowStr = new Date(now.getTime() + 86400 * 1000).toLocaleDateString('en-CA', { timeZone: tz });
+    const tonightSlot =
+      points.slice(currentIdx).find((p) => p.hour.startsWith('20:')) || currentPoint;
+    const tomorrowStr = new Date(now.getTime() + 86400 * 1000).toLocaleDateString('en-CA', {
+      timeZone: tz
+    });
     const tomorrowPoints = points.filter((p) => p.date === tomorrowStr);
     const tomorrowAqis = tomorrowPoints.map((p) => p.aqi).filter((a) => a != null);
-    const tomorrowAvg = tomorrowAqis.length > 0 ? Math.round(tomorrowAqis.reduce((a, b) => a + b, 0) / tomorrowAqis.length) : avg24;
+    const tomorrowAvg =
+      tomorrowAqis.length > 0
+        ? Math.round(tomorrowAqis.reduce((a, b) => a + b, 0) / tomorrowAqis.length)
+        : avg24;
     const tomorrowCat = getAQICategory(tomorrowAvg);
-    const { best: tomorrowBest, worst: tomorrowWorst } = findBestAndWorstHours(tomorrowPoints.length > 0 ? tomorrowPoints : [currentPoint]);
+    const { best: tomorrowBest, worst: tomorrowWorst } = findBestAndWorstHours(
+      tomorrowPoints.length > 0 ? tomorrowPoints : [currentPoint]
+    );
 
     return {
       found: true,
@@ -418,7 +435,16 @@ export async function fetchTimelineData(lat, lon, cityName) {
 
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const targetSlotHours = ['02:00', '05:00', '08:00', '11:00', '14:00', '17:00', '20:00', '23:00'];
+    const targetSlotHours = [
+      '02:00',
+      '05:00',
+      '08:00',
+      '11:00',
+      '14:00',
+      '17:00',
+      '20:00',
+      '23:00'
+    ];
 
     const forecast7Days = buildForecast7Days(points, weekdays, shortDays, targetSlotHours);
 

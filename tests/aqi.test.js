@@ -7,11 +7,7 @@ import {
   getAQICategory,
   calculateRollingAverages
 } from '../shared/aqi.js';
-import {
-  onRequest,
-  onRequestOptions,
-  onRequestGet
-} from '../functions/api/aqi.js';
+import { onRequest, onRequestOptions, onRequestGet } from '../functions/api/aqi.js';
 import {
   checkRateLimit,
   clearRateLimits,
@@ -315,7 +311,10 @@ describe('tests/aqi.test.js - CPCB NAQI Calculation, Breakpoints, Dominant Pollu
               longitude: 77.21,
               current: { time: '2026-11-24T12:00', pm2_5: 45, pm10: 85 },
               hourly: {
-                time: Array.from({ length: 48 }, (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`),
+                time: Array.from(
+                  { length: 48 },
+                  (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`
+                ),
                 pm2_5: Array(48).fill(45),
                 pm10: Array(48).fill(85)
               }

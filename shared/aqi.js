@@ -93,11 +93,21 @@ export function calculateCPCBNAQI(pm25, pm10) {
  */
 export function getAQICategory(input) {
   if (typeof input === 'string') {
-    const norm = input.trim().toLowerCase().replace(/[\s_-]+/g, '');
+    const norm = input
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '');
     for (const key of Object.keys(AQI_CATEGORIES)) {
       const cat = AQI_CATEGORIES[key];
       if (cat.name.toLowerCase().replace(/[\s_-]+/g, '') === norm) {
-        const severityMap = { GOOD: 1, SATISFACTORY: 2, MODERATE: 3, POOR: 4, VERY_POOR: 5, SEVERE: 6 };
+        const severityMap = {
+          GOOD: 1,
+          SATISFACTORY: 2,
+          MODERATE: 3,
+          POOR: 4,
+          VERY_POOR: 5,
+          SEVERE: 6
+        };
         return { ...cat, severity: severityMap[key] || 0 };
       }
     }
@@ -159,8 +169,10 @@ export function calculateRollingAverages(pm25Series = [], pm10Series = [], targe
     }
   }
 
-  const avgPm25 = count > 0 ? Math.round((pm25Sum / count) * 10) / 10 : pm25Series[currentIdx] || 60;
-  const avgPm10 = count > 0 ? Math.round((pm10Sum / count) * 10) / 10 : pm10Series?.[currentIdx] || 110;
+  const avgPm25 =
+    count > 0 ? Math.round((pm25Sum / count) * 10) / 10 : pm25Series[currentIdx] || 60;
+  const avgPm10 =
+    count > 0 ? Math.round((pm10Sum / count) * 10) / 10 : pm10Series?.[currentIdx] || 110;
 
   return {
     avgPm25,

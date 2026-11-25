@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
-import {
-  auth,
-  deleteUser
-} from '../firebase';
+import { auth, deleteUser } from '../firebase';
 import {
   User,
   Brain,

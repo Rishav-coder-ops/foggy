@@ -71,10 +71,26 @@ export default function ArchitectureDiagram() {
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
       >
         <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#0284c7" />
           </marker>
-          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <marker
+            id="arrow-green"
+            viewBox="0 0 10 10"
+            refX="6"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669" />
           </marker>
         </defs>
@@ -83,8 +99,20 @@ export default function ArchitectureDiagram() {
           <DiagramLayer key={layer.id} layer={layer} />
         ))}
 
-        <path d="M 240 180 L 310 180" stroke="#0284c7" strokeWidth="2.5" fill="none" markerEnd="url(#arrow)" />
-        <path d="M 550 180 L 610 180" stroke="#059669" strokeWidth="2.5" fill="none" markerEnd="url(#arrow-green)" />
+        <path
+          d="M 240 180 L 310 180"
+          stroke="#0284c7"
+          strokeWidth="2.5"
+          fill="none"
+          markerEnd="url(#arrow)"
+        />
+        <path
+          d="M 550 180 L 610 180"
+          stroke="#059669"
+          strokeWidth="2.5"
+          fill="none"
+          markerEnd="url(#arrow-green)"
+        />
       </svg>
     </div>
   );

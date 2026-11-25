@@ -9,8 +9,8 @@ export default function NoMembersEmptyState({ onAddMember }) {
         No family profiles added yet
       </h3>
       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 mb-4">
-        Add children, elders, pets, or anyone with asthma to receive deterministic care plans
-        and personalized smog alerts.
+        Add children, elders, pets, or anyone with asthma to receive deterministic care plans and
+        personalized smog alerts.
       </p>
       <button
         type="button"

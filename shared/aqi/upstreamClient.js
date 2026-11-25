@@ -5,7 +5,11 @@
 
 import { INDIAN_METROS, INDIAN_CITY_ALIASES } from '../timeline/constants.js';
 import { INDIAN_FALLBACK_CITIES } from '../geocode.js';
-import { INDIAN_CITY_SIMULATION_DB, getDeterministicMockCity, generateHourlyForecast } from './simulationDb.js';
+import {
+  INDIAN_CITY_SIMULATION_DB,
+  getDeterministicMockCity,
+  generateHourlyForecast
+} from './simulationDb.js';
 import { calculateCPCBNAQI, getAQICategory, calculateRollingAverages } from '../aqi.js';
 import { saveLastGoodLiveAqi, getLastGoodLiveAqi } from './cache.js';
 
@@ -127,7 +131,13 @@ export function resolveCityCoordinates(requestedCity, rawLat, rawLon) {
     return { lat: 22.5726, lon: 88.3639, displayCity: 'Kolkata, West Bengal' };
   }
 
-  return { notFound: true, requestedCity: queryClean, lat: null, lon: null, displayCity: queryClean };
+  return {
+    notFound: true,
+    requestedCity: queryClean,
+    lat: null,
+    lon: null,
+    displayCity: queryClean
+  };
 }
 
 export async function fetchWaqiReference(requestedCity, waqiToken) {
@@ -249,7 +259,10 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
         error: 'GRID_MISMATCH',
         message: `Returned atmospheric model grid point (${gridPoint.lat}°N, ${gridPoint.lon}°E) is ${gridDistance.toFixed(1)} km from requested location (${Number(lat).toFixed(2)}°N, ${Number(lon).toFixed(2)}°E), exceeding the 60 km accuracy boundary.`,
         city: displayCity,
-        requestedCoords: { lat: Number(Number(lat).toFixed(2)), lon: Number(Number(lon).toFixed(2)) },
+        requestedCoords: {
+          lat: Number(Number(lat).toFixed(2)),
+          lon: Number(Number(lon).toFixed(2))
+        },
         gridPoint,
         distanceKm: Math.round(gridDistance * 10) / 10
       };

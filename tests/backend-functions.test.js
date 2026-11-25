@@ -22,7 +22,10 @@ describe('tests/backend-functions.test.js - Backend Endpoints, Coordinate Cachin
             longitude: lon,
             current: { time: '2026-11-24T12:00', pm2_5: pm25, pm10 },
             hourly: {
-              time: Array.from({ length: 48 }, (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`),
+              time: Array.from(
+                { length: 48 },
+                (_, i) => `2026-11-24T${String(i % 24).padStart(2, '0')}:00`
+              ),
               pm2_5: Array(48).fill(pm25),
               pm10: Array(48).fill(pm10)
             }

@@ -29,4 +29,3 @@ export async function onRequestOptions(context) {
 export async function onRequest(context) {
   return handleChatRequest(context);
 }
-

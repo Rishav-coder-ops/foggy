@@ -109,13 +109,19 @@ export function validateAndAlignReplyWithAqi(replyText, targetAqi, targetCategor
 
   // 4. Align Category preceding AQI: "Moderate (278)" -> "Poor (278)", "Poor (NAQI 324)" -> "Very Poor (NAQI 324)"
   aligned = aligned.replace(
-    new RegExp(`\\b(${categoriesRegex})\\s*\\((?:(?:national\\s+aqi|naqi|aqi)\\s*)?${trueAqi}\\)`, 'gi'),
+    new RegExp(
+      `\\b(${categoriesRegex})\\s*\\((?:(?:national\\s+aqi|naqi|aqi)\\s*)?${trueAqi}\\)`,
+      'gi'
+    ),
     () => `${trueCat} (NAQI ${trueAqi})`
   );
 
   // 5. Align Category following AQI: "(NAQI 324, Poor)" -> "(NAQI 324, Very Poor)"
   aligned = aligned.replace(
-    new RegExp(`\\((?:(?:national\\s+aqi|naqi|aqi)\\s*)?${trueAqi}[,\\s]+(${categoriesRegex})\\)`, 'gi'),
+    new RegExp(
+      `\\((?:(?:national\\s+aqi|naqi|aqi)\\s*)?${trueAqi}[,\\s]+(${categoriesRegex})\\)`,
+      'gi'
+    ),
     () => `(NAQI ${trueAqi}, ${trueCat})`
   );
 

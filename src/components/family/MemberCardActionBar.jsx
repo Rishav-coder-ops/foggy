@@ -1,12 +1,7 @@
 // src/components/family/MemberCardActionBar.jsx
 import { Shield, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function MemberCardActionBar({
-  member,
-  isPlanOpen,
-  onTogglePlan,
-  onPersonalize
-}) {
+export default function MemberCardActionBar({ member, isPlanOpen, onTogglePlan, onPersonalize }) {
   return (
     <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
       <button

@@ -28,10 +28,7 @@ import {
   sanitizeMemberProfile,
   buildPersonalizationPrompt
 } from '../../shared/chat/profileSanitizer.js';
-import {
-  extractMemoryFact,
-  extractMemoryFacts
-} from '../../shared/chat/memoryExtractor.js';
+import { extractMemoryFact, extractMemoryFacts } from '../../shared/chat/memoryExtractor.js';
 import { extractIntentAndCities } from '../../shared/chat/cityExtractor.js';
 import {
   verifyModelAqiResponse,
@@ -104,12 +101,7 @@ export function buildGeminiContents(history = [], currentPayload = '') {
     const recent = history.slice(-MAX_HISTORY_TURNS);
     for (const item of recent) {
       if (item && typeof item === 'object') {
-        let textContent = (
-          item.text ||
-          item.content ||
-          item.parts?.[0]?.text ||
-          ''
-        )
+        let textContent = (item.text || item.content || item.parts?.[0]?.text || '')
           .toString()
           .slice(0, 1000);
         if (textContent.includes('USER QUESTION:')) {
@@ -199,8 +191,12 @@ export async function onRequestPost(context) {
   const isUserAuthenticated = Boolean(verifiedUid);
   const rateLimitKey = isUserAuthenticated ? `user:${verifiedUid}` : `ip:${clientIp}`;
   const configuredMax = isUserAuthenticated
-    ? env?.RATE_LIMIT_USER_MAX != null ? Number(env.RATE_LIMIT_USER_MAX) : MAX_USER_PER_HOUR
-    : env?.RATE_LIMIT_ANON_MAX != null ? Number(env.RATE_LIMIT_ANON_MAX) : MAX_ANON_PER_HOUR;
+    ? env?.RATE_LIMIT_USER_MAX != null
+      ? Number(env.RATE_LIMIT_USER_MAX)
+      : MAX_USER_PER_HOUR
+    : env?.RATE_LIMIT_ANON_MAX != null
+      ? Number(env.RATE_LIMIT_ANON_MAX)
+      : MAX_ANON_PER_HOUR;
   const maxLimit = configuredMax;
 
   const rateCheck = checkRateLimit(rateLimitKey, maxLimit);

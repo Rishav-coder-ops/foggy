@@ -175,4 +175,3 @@ export const FOGGY_PROVIDER_LABELS = Object.freeze({
   BUILT_IN_GUIDANCE: "Answered by Foggy's built-in guidance",
   RATE_LIMITER: 'System Rate Limiter'
 });
-

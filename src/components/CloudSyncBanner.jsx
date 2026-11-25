@@ -15,7 +15,8 @@ export default function CloudSyncBanner() {
       <div className="flex items-center gap-2 max-w-4xl">
         <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
         <span className="leading-relaxed">
-          Your browser or an extension seems to be blocking cloud sync. Your saved data may not be up to date. Try turning off your ad blocker or Brave Shields for this site.
+          Your browser or an extension seems to be blocking cloud sync. Your saved data may not be
+          up to date. Try turning off your ad blocker or Brave Shields for this site.
         </span>
       </div>
       <button

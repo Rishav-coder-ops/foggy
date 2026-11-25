@@ -382,7 +382,7 @@ export function validateFamilyMemberForm(data) {
     conditions: Array.isArray(data.conditions) ? data.conditions : [],
     otherCondition: sanitizeText(data.otherCondition, 100),
     sensitivity: data.sensitivity || 'Moderate',
-    commute: isPet ? [] : (Array.isArray(data.commute) ? data.commute : []),
+    commute: isPet ? [] : Array.isArray(data.commute) ? data.commute : [],
     lifestyle: Array.isArray(data.lifestyle) ? data.lifestyle : [],
     otherLifestyle: sanitizeText(data.otherLifestyle, 100)
   });

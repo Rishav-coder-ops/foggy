@@ -4,10 +4,7 @@
  */
 
 import { correctModelAqiResponse } from './responseValidator.js';
-import {
-  sanitizeModelReplyText,
-  checkMinimumResponseQuality
-} from './markdownSanitizer.js';
+import { sanitizeModelReplyText, checkMinimumResponseQuality } from './markdownSanitizer.js';
 import {
   GEMINI_PRIMARY_MODEL,
   GEMINI_CANDIDATE_MODELS,
@@ -86,19 +83,16 @@ export async function getAvailableGeminiModels(apiKey) {
       }
     }
   } catch (err) {
-    console.warn('Failed to retrieve Gemini ListModels, using default candidate list:', err.message);
+    console.warn(
+      'Failed to retrieve Gemini ListModels, using default candidate list:',
+      err.message
+    );
   }
 
   return fallbackList;
 }
 
-export async function callGeminiApi({
-  apiKey,
-  systemPrompt,
-  contents,
-  primaryReport,
-  timeframe
-}) {
+export async function callGeminiApi({ apiKey, systemPrompt, contents, primaryReport, timeframe }) {
   let candidateModels = [...GEMINI_CANDIDATE_MODELS];
   try {
     candidateModels = await getAvailableGeminiModels(apiKey);
@@ -267,7 +261,10 @@ export async function callGeminiApi({
         }
       } catch (err) {
         lastErrorReason = err.name === 'TimeoutError' ? 'AI request timed out' : err.message;
-        console.warn(`Gemini call failed for model ${modelName} (attempt ${attempt + 1}):`, err.message);
+        console.warn(
+          `Gemini call failed for model ${modelName} (attempt ${attempt + 1}):`,
+          err.message
+        );
         if (modelName === candidateModels[0]) {
           console.warn(
             `[Gemini Fallback] Primary model ${modelName} timed out or failed: ${err.message}. Falling back to next model.`

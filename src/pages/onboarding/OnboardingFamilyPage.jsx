@@ -6,10 +6,7 @@ import { useProfile } from '../../context/ProfileContext';
 import MascotAvatar from '../../components/MascotAvatar';
 import PersonDetailsForm from '../../components/forms/PersonDetailsForm';
 import confetti from 'canvas-confetti';
-import {
-  INDIAN_STATES_AND_UTS,
-  RELATIONSHIP_SUGGESTIONS
-} from '../../data/onboardingData';
+import { INDIAN_STATES_AND_UTS, RELATIONSHIP_SUGGESTIONS } from '../../data/onboardingData';
 import { validateFamilyMemberForm } from '../../utils/validation';
 import { geocodeLocation } from '../../services/api';
 import { statesMatch } from '../../../functions/api/geocode';
@@ -34,15 +31,18 @@ export default function OnboardingFamilyPage() {
   const defaultCountry = profile?.country || 'India';
   const defaultState = profile?.state || '';
   const defaultCity = profile?.city || '';
-  const defaultLocationObj = profile?.latitude && profile?.longitude ? {
-    name: defaultCity || 'Location',
-    latitude: Number(profile.latitude),
-    longitude: Number(profile.longitude),
-    timezone: profile?.timezone || 'Asia/Kolkata',
-    admin1: defaultState,
-    country: defaultCountry,
-    id: profile?.placeId || 1275004
-  } : null;
+  const defaultLocationObj =
+    profile?.latitude && profile?.longitude
+      ? {
+          name: defaultCity || 'Location',
+          latitude: Number(profile.latitude),
+          longitude: Number(profile.longitude),
+          timezone: profile?.timezone || 'Asia/Kolkata',
+          admin1: defaultState,
+          country: defaultCountry,
+          id: profile?.placeId || 1275004
+        }
+      : null;
 
   const [members, setMembers] = useState([]);
   const [livesAlone, setLivesAlone] = useState(false);

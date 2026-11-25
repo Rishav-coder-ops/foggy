@@ -3,9 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CloudSyncBanner from '../src/components/CloudSyncBanner.jsx';
 import DashboardPage from '../src/pages/DashboardPage.jsx';
-import {
-  buildInitialGreetingMessage
-} from '../src/context/ChatContext.jsx';
+import { buildInitialGreetingMessage } from '../src/context/ChatContext.jsx';
 import {
   loadProfileFromLocalStorage,
   saveProfileToLocalStorage,
@@ -77,9 +75,7 @@ describe('tests/firestore-resilience-chat.test.jsx - Firestore Resilience & Chat
           fullName: 'Rishav Nandi'
         },
         preferredName: 'Rishav',
-        familyMembers: [
-          { id: 'fam_1', name: 'Papa', condition: 'COPD' }
-        ],
+        familyMembers: [{ id: 'fam_1', name: 'Papa', condition: 'COPD' }],
         onboarding: { step: 'done', completedAt: '2026-11-20T10:00:00.000Z' }
       };
 
@@ -123,7 +119,9 @@ describe('tests/firestore-resilience-chat.test.jsx - Firestore Resilience & Chat
       );
 
       expect(screen.getByText("We couldn't load your profile")).toBeInTheDocument();
-      expect(screen.getByText(/Your browser or an extension seems to be blocking cloud sync/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Your browser or an extension seems to be blocking cloud sync/i)
+      ).toBeInTheDocument();
 
       const retryButton = screen.getByRole('button', { name: /retry/i });
       expect(retryButton).toBeInTheDocument();

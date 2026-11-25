@@ -5,14 +5,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  extractIntentAndCities,
-  PLACE_DETECTION_STOPLIST
-} from '../shared/chat/cityExtractor.js';
-import {
-  computeSafetyVerdict,
-  detectInvolvedPersonas
-} from '../shared/safety/safetyVerdict.js';
+import { extractIntentAndCities, PLACE_DETECTION_STOPLIST } from '../shared/chat/cityExtractor.js';
+import { computeSafetyVerdict, detectInvolvedPersonas } from '../shared/safety/safetyVerdict.js';
 import {
   validateReplySafety,
   buildCorrectivePrompt,
@@ -189,18 +183,14 @@ describe('1. Place Detection - Strict Location Intent vs General Conversation', 
 
 describe('2. Deterministic Safety Verdict Engine', () => {
   it('detects involved personas accurately from query and profile', () => {
-    const personas = detectInvolvedPersonas(
-      'is it safe for my kid to play outside',
-      { age: 35 },
-      [{ name: 'Aarav', role: 'Child', age: 7, condition: 'None' }]
-    );
+    const personas = detectInvolvedPersonas('is it safe for my kid to play outside', { age: 35 }, [
+      { name: 'Aarav', role: 'Child', age: 7, condition: 'None' }
+    ]);
     expect(personas).toContain('child');
 
-    const copdSenior = detectInvolvedPersonas(
-      'can my father with copd walk this evening',
-      {},
-      [{ name: 'Dad', role: 'Father', age: 68, condition: 'COPD' }]
-    );
+    const copdSenior = detectInvolvedPersonas('can my father with copd walk this evening', {}, [
+      { name: 'Dad', role: 'Father', age: 68, condition: 'COPD' }
+    ]);
     expect(copdSenior).toContain('senior');
     expect(copdSenior).toContain('copd');
 
@@ -287,7 +277,9 @@ describe('3. Safety Validator and Repair Pipeline', () => {
       'The air is currently at a clean NAQI of 324 (Very Poor). You can let your child go outside.';
     const validation = validateReplySafety(contradictoryReply, veryPoorVerdict, 324, 'Very Poor');
     expect(validation.isValid).toBe(false);
-    expect(validation.issues.some((i) => i.includes('Self-contradiction') || i.includes('safe'))).toBe(true);
+    expect(
+      validation.issues.some((i) => i.includes('Self-contradiction') || i.includes('safe'))
+    ).toBe(true);
   });
 
   it('forbids prescribing medication dosage alterations', () => {
@@ -309,7 +301,11 @@ describe('3. Safety Validator and Repair Pipeline', () => {
   });
 
   it('builds an authoritative deterministic safety fallback reply', () => {
-    const fallback = buildDeterministicSafetyReply(veryPoorVerdict, 'Noida', 'is it safe for my kid to play outside');
+    const fallback = buildDeterministicSafetyReply(
+      veryPoorVerdict,
+      'Noida',
+      'is it safe for my kid to play outside'
+    );
     expect(fallback).toMatch(/strictly unsafe|not safe/i);
     expect(fallback).toContain('Noida');
     expect(fallback).toContain('324 (Very Poor)');
@@ -659,11 +655,17 @@ describe('7. Targeted Sentence-Level Replacement for Unsafe Outdoor Claims', () 
 
     // Offending sentence is replaced by verdict warning
     expect(result.repairedText).not.toContain('Feel free to let your kids play outside');
-    expect(result.repairedText).toContain('No, it is not safe for your child to play outside today.');
+    expect(result.repairedText).toContain(
+      'No, it is not safe for your child to play outside today.'
+    );
 
     // Surrounding sentences remain intact!
-    expect(result.repairedText).toContain('Air quality in Noida is poor with high particulate matter today.');
-    expect(result.repairedText).toContain('Make sure to keep bedroom windows closed and run an air purifier indoors.');
+    expect(result.repairedText).toContain(
+      'Air quality in Noida is poor with high particulate matter today.'
+    );
+    expect(result.repairedText).toContain(
+      'Make sure to keep bedroom windows closed and run an air purifier indoors.'
+    );
   });
 });
 
@@ -700,8 +702,14 @@ describe('8. Model Order, Fallback Attribution, and Thoughts Tokens Metrics', ()
           status: 200,
           json: async () => ({
             models: [
-              { name: 'models/gemini-3.1-flash-lite', supportedGenerationMethods: ['generateContent'] },
-              { name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] }
+              {
+                name: 'models/gemini-3.1-flash-lite',
+                supportedGenerationMethods: ['generateContent']
+              },
+              {
+                name: 'models/gemini-flash-latest',
+                supportedGenerationMethods: ['generateContent']
+              }
             ]
           })
         };
@@ -777,7 +785,12 @@ describe('8. Model Order, Fallback Attribution, and Thoughts Tokens Metrics', ()
       const res = await callGeminiApi({
         apiKey: 'test-api-key-1234567890',
         systemPrompt: 'You are Foggy.',
-        contents: [{ role: 'user', parts: [{ text: 'is it safe for my father with COPD to walk this evening' }] }],
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'is it safe for my father with COPD to walk this evening' }]
+          }
+        ],
         primaryReport: { current: { aqi: 280, category: 'Poor' } }
       });
 

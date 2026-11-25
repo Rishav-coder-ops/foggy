@@ -171,7 +171,9 @@ export function ProfileProvider({ children }) {
         }
       });
       setPreferredName(demoState.preferredName || 'Demo User');
-      setOnboarding(demoState.onboarding || { step: 'done', completedAt: new Date().toISOString() });
+      setOnboarding(
+        demoState.onboarding || { step: 'done', completedAt: new Date().toISOString() }
+      );
       setFamilyMembers(demoState.familyMembers || []);
       setSavedMemories(demoState.savedMemories || []);
       setLoadingProfile(false);
@@ -390,7 +392,12 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       setFamilyMembers(finalMembers);
       setOnboarding(nextOnb);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers: finalMembers, onboarding: nextOnb });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers: finalMembers,
+        onboarding: nextOnb
+      });
       return;
     }
 
@@ -400,7 +407,8 @@ export function ProfileProvider({ children }) {
     if (!livesAlone && Array.isArray(membersList)) {
       for (const m of membersList) {
         const cleanMember = sanitizeObject(m);
-        const memberId = cleanMember.id || `fam_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const memberId =
+          cleanMember.id || `fam_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         await saveFamilyMemberDoc(db, uid, memberId, cleanMember);
       }
     }
@@ -413,7 +421,13 @@ export function ProfileProvider({ children }) {
 
     if (isDemo) {
       setProfileData(updated);
-      saveDemoProfile({ profile: updated, preferredName, familyMembers, savedMemories, onboarding });
+      saveDemoProfile({
+        profile: updated,
+        preferredName,
+        familyMembers,
+        savedMemories,
+        onboarding
+      });
       return;
     }
 
@@ -427,7 +441,13 @@ export function ProfileProvider({ children }) {
     setPreferredName(clean);
 
     if (isDemo) {
-      saveDemoProfile({ profile: profileData, preferredName: clean, familyMembers, savedMemories, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName: clean,
+        familyMembers,
+        savedMemories,
+        onboarding
+      });
       return;
     }
 
@@ -443,7 +463,13 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = [...familyMembers, fullMember];
       setFamilyMembers(next);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers: next, savedMemories, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers: next,
+        savedMemories,
+        onboarding
+      });
       return fullMember;
     }
 
@@ -457,7 +483,13 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = familyMembers.map((m) => (m.id === memberId ? { ...m, ...clean } : m));
       setFamilyMembers(next);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers: next, savedMemories, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers: next,
+        savedMemories,
+        onboarding
+      });
       return;
     }
     if (!db || !uid) return;
@@ -468,7 +500,13 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = familyMembers.filter((m) => m.id !== memberId);
       setFamilyMembers(next);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers: next, savedMemories, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers: next,
+        savedMemories,
+        onboarding
+      });
       return;
     }
     if (!db || !uid) return;
@@ -490,7 +528,13 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = [newMemory, ...savedMemories].slice(0, 50);
       setSavedMemories(next);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers, savedMemories: next, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers,
+        savedMemories: next,
+        onboarding
+      });
       return newMemory;
     }
 
@@ -503,7 +547,13 @@ export function ProfileProvider({ children }) {
     if (isDemo) {
       const next = savedMemories.filter((m) => m.id !== factId);
       setSavedMemories(next);
-      saveDemoProfile({ profile: profileData, preferredName, familyMembers, savedMemories: next, onboarding });
+      saveDemoProfile({
+        profile: profileData,
+        preferredName,
+        familyMembers,
+        savedMemories: next,
+        onboarding
+      });
       return;
     }
     if (!db || !uid) return;
@@ -594,8 +644,14 @@ export function ProfileProvider({ children }) {
     country: profileData?.country || 'India',
     fullName: profileData?.fullName || preferredName || user?.displayName || 'User',
     preferredName: preferredName || profileData?.fullName?.split(' ')[0] || 'Friend',
-    latitude: profileData?.latitude != null && !isNaN(Number(profileData.latitude)) ? Number(profileData.latitude) : null,
-    longitude: profileData?.longitude != null && !isNaN(Number(profileData.longitude)) ? Number(profileData.longitude) : null,
+    latitude:
+      profileData?.latitude != null && !isNaN(Number(profileData.latitude))
+        ? Number(profileData.latitude)
+        : null,
+    longitude:
+      profileData?.longitude != null && !isNaN(Number(profileData.longitude))
+        ? Number(profileData.longitude)
+        : null,
     timezone: profileData?.timezone || 'Asia/Kolkata',
     commute: Array.isArray(profileData?.commute)
       ? profileData.commute.join(', ')

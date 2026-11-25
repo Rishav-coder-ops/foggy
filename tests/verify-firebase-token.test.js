@@ -58,7 +58,11 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
     vi.restoreAllMocks();
   });
 
-  async function createSignedToken(headerOverrides = {}, payloadOverrides = {}, corruptSig = false) {
+  async function createSignedToken(
+    headerOverrides = {},
+    payloadOverrides = {},
+    corruptSig = false
+  ) {
     const nowSec = Math.floor(Date.now() / 1000);
     const header = {
       alg: 'RS256',
@@ -142,10 +146,13 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
 
   it('returns invalid if token is expired', async () => {
     const nowSec = Math.floor(Date.now() / 1000);
-    const expiredToken = await createSignedToken({}, {
-      exp: nowSec - 3600,
-      iat: nowSec - 7200
-    });
+    const expiredToken = await createSignedToken(
+      {},
+      {
+        exp: nowSec - 3600,
+        iat: nowSec - 7200
+      }
+    );
 
     const res = await verifyFirebaseIdToken(expiredToken, 'foggy-air');
     expect(res.valid).toBe(false);
@@ -154,9 +161,12 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
 
   it('returns invalid if token was issued in future beyond 300s clock drift', async () => {
     const nowSec = Math.floor(Date.now() / 1000);
-    const futureToken = await createSignedToken({}, {
-      iat: nowSec + 400
-    });
+    const futureToken = await createSignedToken(
+      {},
+      {
+        iat: nowSec + 400
+      }
+    );
 
     const res = await verifyFirebaseIdToken(futureToken, 'foggy-air');
     expect(res.valid).toBe(false);
@@ -165,9 +175,12 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
 
   it('accepts token issued in future within 300s clock drift tolerance', async () => {
     const nowSec = Math.floor(Date.now() / 1000);
-    const clockDriftToken = await createSignedToken({}, {
-      iat: nowSec + 60
-    });
+    const clockDriftToken = await createSignedToken(
+      {},
+      {
+        iat: nowSec + 60
+      }
+    );
 
     const res = await verifyFirebaseIdToken(clockDriftToken, 'foggy-air');
     expect(res.valid).toBe(true);
@@ -175,9 +188,12 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
   });
 
   it('returns invalid if issuer does not match project', async () => {
-    const wrongIssuerToken = await createSignedToken({}, {
-      iss: 'https://securetoken.google.com/wrong-project'
-    });
+    const wrongIssuerToken = await createSignedToken(
+      {},
+      {
+        iss: 'https://securetoken.google.com/wrong-project'
+      }
+    );
 
     const res = await verifyFirebaseIdToken(wrongIssuerToken, 'foggy-air');
     expect(res.valid).toBe(false);
@@ -185,9 +201,12 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
   });
 
   it('returns invalid if audience does not match project', async () => {
-    const wrongAudToken = await createSignedToken({}, {
-      aud: 'wrong-audience'
-    });
+    const wrongAudToken = await createSignedToken(
+      {},
+      {
+        aud: 'wrong-audience'
+      }
+    );
 
     const res = await verifyFirebaseIdToken(wrongAudToken, 'foggy-air');
     expect(res.valid).toBe(false);
@@ -209,9 +228,9 @@ describe('tests/verify-firebase-token.test.js - Firebase Token Cryptographic & C
   });
 
   it('handles Google JWKS upstream failure gracefully', async () => {
-    globalThis.fetch = vi.fn().mockImplementation(() =>
-      Promise.resolve(new Response('Internal Error', { status: 500 }))
-    );
+    globalThis.fetch = vi
+      .fn()
+      .mockImplementation(() => Promise.resolve(new Response('Internal Error', { status: 500 })));
 
     const token = await createSignedToken({ kid: 'new_fresh_kid' });
     const res = await verifyFirebaseIdToken(token, 'foggy-air');

@@ -20,9 +20,7 @@ describe('About Page Modular Components & Accessibility', () => {
       expect(
         screen.getByText(/Section 1: What is National AQI \(CPCB NAQI\)\?/i)
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(/CPCB Linear Interpolation Sub-Index Formula/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/CPCB Linear Interpolation Sub-Index Formula/i)).toBeInTheDocument();
       expect(screen.getByText('Satisfactory')).toBeInTheDocument();
       expect(screen.getByText('PM2.5')).toBeInTheDocument();
     });
@@ -65,7 +63,9 @@ describe('About Page Modular Components & Accessibility', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('National Air Quality Index (NAQI) Bulletins')).toBeInTheDocument();
       expect(
-        screen.getByRole('link', { name: /Central Pollution Control Board \(CPCB\) official portal/i })
+        screen.getByRole('link', {
+          name: /Central Pollution Control Board \(CPCB\) official portal/i
+        })
       ).toBeInTheDocument();
       expect(screen.getAllByText('Check the official page for live alerts').length).toBe(4);
     });
@@ -100,9 +100,7 @@ describe('About Page Modular Components & Accessibility', () => {
   describe('AboutDisclaimerSection & AboutDeveloperCard', () => {
     it('renders Section 5, architecture diagram, author card, and disclaimer', () => {
       render(<AboutDisclaimerSection />);
-      expect(
-        screen.getByText(/Section 5: System Architecture & Credits/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Section 5: System Architecture & Credits/i)).toBeInTheDocument();
       expect(screen.getByText('1. CLIENT LAYER')).toBeInTheDocument();
       expect(screen.getByText('2. SERVERLESS BACKEND')).toBeInTheDocument();
       expect(screen.getByText('3. CLOUD & AI APIS')).toBeInTheDocument();

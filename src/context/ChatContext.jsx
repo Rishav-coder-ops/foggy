@@ -19,10 +19,7 @@ export function buildInitialGreetingMessage({
   syncBlocked = false
 }) {
   const firstName =
-    preferredName ||
-    profile?.preferredName ||
-    formatGreetingName(profile, user) ||
-    'Friend';
+    preferredName || profile?.preferredName || formatGreetingName(profile, user) || 'Friend';
 
   if (loadingProfile) {
     return {
@@ -34,7 +31,9 @@ export function buildInitialGreetingMessage({
     };
   }
 
-  const hasProfile = Boolean(profile && (profile.city || profile.location || profile.latitude != null));
+  const hasProfile = Boolean(
+    profile && (profile.city || profile.location || profile.latitude != null)
+  );
   if (!hasProfile) {
     return {
       id: 'msg_initial',
@@ -241,7 +240,9 @@ export function ChatProvider({ children }) {
     setInputMessage('');
     setIsTyping(true);
 
-    const hasProfile = Boolean(profile && (profile.city || profile.location || profile.latitude != null));
+    const hasProfile = Boolean(
+      profile && (profile.city || profile.location || profile.latitude != null)
+    );
     if (!hasProfile && (syncBlocked || (!loadingProfile && user && !user?.isDemo))) {
       setIsTyping(false);
       const profileUnavailableReply = {
@@ -279,10 +280,10 @@ export function ChatProvider({ children }) {
         text: response.reply,
         provider:
           response.provider ||
-          (response.isLive ? FOGGY_PROVIDER_LABELS.LIVE_GEMINI : FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE),
-        model:
-          response.model ||
-          (response.isLive ? GEMINI_PRIMARY_MODEL : FOGGY_FALLBACK_MODEL),
+          (response.isLive
+            ? FOGGY_PROVIDER_LABELS.LIVE_GEMINI
+            : FOGGY_PROVIDER_LABELS.BUILT_IN_GUIDANCE),
+        model: response.model || (response.isLive ? GEMINI_PRIMARY_MODEL : FOGGY_FALLBACK_MODEL),
         isLive: Boolean(response.isLive),
         reason: response.reason || null,
         cityData: response.cityData,

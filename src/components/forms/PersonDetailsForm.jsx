@@ -1,5 +1,9 @@
 import { Lock, AlertCircle } from 'lucide-react';
-import { HEALTH_CONDITIONS, SENSITIVITY_LEVELS, LIFESTYLE_ACTIVITIES } from '../../data/onboardingData';
+import {
+  HEALTH_CONDITIONS,
+  SENSITIVITY_LEVELS,
+  LIFESTYLE_ACTIVITIES
+} from '../../data/onboardingData';
 import { COMMUTE_OPTIONS } from '../../context/ProfileContext';
 
 /**

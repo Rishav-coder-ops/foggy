@@ -114,10 +114,7 @@ export function validateReplySafety(replyText, verdict, aqi, category = null) {
   const numericAqi = Math.round(Number(aqi ?? verdict?.aqi ?? 0));
   const catName = category || verdict?.category || getAQICategory(numericAqi).name;
   const isModerateOrWorse =
-    catName === 'Moderate' ||
-    catName === 'Poor' ||
-    catName === 'Very Poor' ||
-    catName === 'Severe';
+    catName === 'Moderate' || catName === 'Poor' || catName === 'Very Poor' || catName === 'Severe';
 
   const issues = [];
   let totalLength = replyText.length;

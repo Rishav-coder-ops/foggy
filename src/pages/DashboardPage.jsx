@@ -79,7 +79,8 @@ export default function DashboardPage() {
             We couldn't load your profile
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            Your browser or an extension seems to be blocking cloud sync. Your saved data may not be up to date. Try turning off your ad blocker or Brave Shields for this site.
+            Your browser or an extension seems to be blocking cloud sync. Your saved data may not be
+            up to date. Try turning off your ad blocker or Brave Shields for this site.
           </p>
         </div>
         <button
@@ -221,7 +222,6 @@ export default function DashboardPage() {
       {/* Low-Emission Daily Routine Plan */}
       <div className="interactive-card rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-6 md:p-8 shadow-soft dark:shadow-soft-dark space-y-6">
         <DailyLowEmissionPlan cityName={locationTitle} locationTitle={locationTitle}>
-
           {/* Routine Card 3: Heating & Cooking */}
           <div className="interactive-card rounded-2xl p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
             <div className="flex items-center justify-between">

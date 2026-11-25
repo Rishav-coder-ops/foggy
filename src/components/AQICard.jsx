@@ -1,7 +1,17 @@
 // src/components/AQICard.jsx
 // Atmospheric Monitoring Station Card using CPCB National AQI Scale (0-500)
 import { useState } from 'react';
-import { Search, Wind, Thermometer, Droplets, Shield, RefreshCw, MapPin, AlertTriangle, Info } from 'lucide-react';
+import {
+  Search,
+  Wind,
+  Thermometer,
+  Droplets,
+  Shield,
+  RefreshCw,
+  MapPin,
+  AlertTriangle,
+  Info
+} from 'lucide-react';
 import { INDIAN_METROS } from '../services/api';
 import { getAQICategory } from '../../shared/aqi.js';
 import { AQI_CATEGORIES } from '../../shared/constants.js';
@@ -50,7 +60,8 @@ export default function AQICard({
               </p>
               {aqiData.distanceKm && (
                 <p className="text-[11px] font-mono text-amber-900 dark:text-amber-200 mt-1">
-                  Measured distance: <strong>{aqiData.distanceKm} km</strong> (exceeds 60 km sanity threshold)
+                  Measured distance: <strong>{aqiData.distanceKm} km</strong> (exceeds 60 km sanity
+                  threshold)
                 </p>
               )}
             </div>
@@ -186,7 +197,10 @@ export default function AQICard({
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
             <div>
               <span className="font-bold">Simulation Mode (Sample Data): </span>
-              <span>{aqiData.simulationReason || 'Live telemetry temporarily unavailable from upstream.'}</span>
+              <span>
+                {aqiData.simulationReason ||
+                  'Live telemetry temporarily unavailable from upstream.'}
+              </span>
             </div>
           </div>
           <button
@@ -251,9 +265,7 @@ export default function AQICard({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               National AQI (CPCB Scale)
             </span>
-            <span
-              className={`text-xs px-2.5 py-1 rounded-full font-bold border ${cat.badgeClass}`}
-            >
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${cat.badgeClass}`}>
               {cat.label}
             </span>
           </div>

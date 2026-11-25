@@ -59,8 +59,7 @@ export default function FamilyMemberFormModal({
                 onChange((prev) => ({
                   ...prev,
                   relationship: val,
-                  sensitivity:
-                    val.toLowerCase().trim() === 'pet' ? 'Standard' : prev.sensitivity
+                  sensitivity: val.toLowerCase().trim() === 'pet' ? 'Standard' : prev.sensitivity
                 }));
               }}
               placeholder="e.g. Son, Daughter, Dadi, Nani, Pet, Spouse"
@@ -107,9 +106,7 @@ export default function FamilyMemberFormModal({
                 placeholder="e.g. 7 or 74"
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100"
               />
-              {formErrors.age && (
-                <p className="text-rose-500 text-[10px] mt-1">{formErrors.age}</p>
-              )}
+              {formErrors.age && <p className="text-rose-500 text-[10px] mt-1">{formErrors.age}</p>}
             </div>
           </div>
 
@@ -224,16 +221,12 @@ export default function FamilyMemberFormModal({
             <select
               value={formData.sensitivity}
               disabled={formData.conditions.length === 1 && formData.conditions[0] === 'None'}
-              onChange={(e) =>
-                onChange((prev) => ({ ...prev, sensitivity: e.target.value }))
-              }
+              onChange={(e) => onChange((prev) => ({ ...prev, sensitivity: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 disabled:opacity-60"
             >
               <option value="Low">Low Sensitivity (No pre-existing conditions)</option>
               <option value="Moderate">Moderate Sensitivity</option>
-              <option value="High">
-                High Sensitivity (Asthma / Cardiac / Senior / Infant)
-              </option>
+              <option value="High">High Sensitivity (Asthma / Cardiac / Senior / Infant)</option>
             </select>
             {formErrors.sensitivity && (
               <p className="text-rose-500 text-[10px] mt-1">{formErrors.sensitivity}</p>

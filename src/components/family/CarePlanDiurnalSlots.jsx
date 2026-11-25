@@ -15,9 +15,7 @@ export default function CarePlanDiurnalSlots({ timeSlots = [] }) {
             className="p-3.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 text-xs flex flex-col justify-between space-y-2"
           >
             <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {ts.slot}
-              </span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">{ts.slot}</span>
               <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-300">
                 {ts.forecastBadge}
               </span>

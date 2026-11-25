@@ -146,7 +146,9 @@ describe('User Interaction Flows & Accessibility Audits', () => {
       const signUpTab = screen.getByRole('button', { name: /^Sign Up$/i });
       fireEvent.click(signUpTab);
 
-      expect(screen.getByRole('heading', { name: /Create your Foggy account/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Create your Foggy account/i })
+      ).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/e\.g\. Rajesh Sharma/i)).toBeInTheDocument();
     });
 
@@ -177,7 +179,9 @@ describe('User Interaction Flows & Accessibility Audits', () => {
         </ThemeProvider>
       );
 
-      expect(screen.getByRole('heading', { name: /Tell Foggy about yourself/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Tell Foggy about yourself/i })
+      ).toBeInTheDocument();
       const saveBtn = screen.getByRole('button', { name: /Next: Family & Household/i });
       expect(saveBtn).toBeInTheDocument();
       fireEvent.click(saveBtn);
@@ -197,7 +201,9 @@ describe('User Interaction Flows & Accessibility Audits', () => {
         </ThemeProvider>
       );
 
-      expect(screen.getByRole('heading', { name: /Your family and household/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', { name: /Your family and household/i })
+      ).toBeInTheDocument();
       const livesAloneCheckbox = screen.getByRole('checkbox', { name: /I live alone/i });
       expect(livesAloneCheckbox).toBeInTheDocument();
 

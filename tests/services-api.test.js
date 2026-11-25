@@ -75,7 +75,12 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
         json: async () => mockResult
       });
 
-      const data = await fetchAQIData({ cityName: 'Delhi', stateName: 'Delhi', lat: 28.61, lon: 77.2 });
+      const data = await fetchAQIData({
+        cityName: 'Delhi',
+        stateName: 'Delhi',
+        lat: 28.61,
+        lon: 77.2
+      });
       expect(data.aqi).toBe(240);
       expect(data.category).toBe('Poor');
     });
@@ -292,7 +297,9 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
         status: 503
       });
 
-      await expect(geocodeLocation({ name: 'Varanasi' })).rejects.toThrow('Geocoding failed with status 503');
+      await expect(geocodeLocation({ name: 'Varanasi' })).rejects.toThrow(
+        'Geocoding failed with status 503'
+      );
     });
   });
 

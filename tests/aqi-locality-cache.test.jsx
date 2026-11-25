@@ -108,7 +108,10 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
                 longitude: 77.2,
                 current: { time: '2026-11-21T14:30', pm2_5: 68.7, pm10: 73.3 },
                 hourly: {
-                  time: Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`),
+                  time: Array.from(
+                    { length: 48 },
+                    (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`
+                  ),
                   pm2_5: Array(48).fill(68.7),
                   pm10: Array(48).fill(73.3)
                 }
@@ -132,7 +135,10 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
                 longitude: 80.3,
                 current: { time: '2026-11-21T14:30', pm2_5: 22.5, pm10: 35.0 },
                 hourly: {
-                  time: Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`),
+                  time: Array.from(
+                    { length: 48 },
+                    (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`
+                  ),
                   pm2_5: Array(48).fill(22.5),
                   pm10: Array(48).fill(35.0)
                 }
@@ -272,7 +278,9 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
       await waitFor(() => {
         // Must show canonical geocoded place name "Varanasi, Uttar Pradesh, India (25.32°N, 82.97°E)"
         // and NOT raw unselected input "varanasi, India"
-        const elements = screen.getAllByText(/Varanasi, Uttar Pradesh, India \(25.32°N, 82.97°E\)/i);
+        const elements = screen.getAllByText(
+          /Varanasi, Uttar Pradesh, India \(25.32°N, 82.97°E\)/i
+        );
         expect(elements.length).toBeGreaterThan(0);
         expect(elements[0]).toBeInTheDocument();
       });
@@ -292,7 +300,14 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
               ok: true,
               json: async () => ({
                 results: [
-                  { id: 1260086, name: 'Patna', admin1: 'Bihar', country: 'India', latitude: 25.5941, longitude: 85.1376 }
+                  {
+                    id: 1260086,
+                    name: 'Patna',
+                    admin1: 'Bihar',
+                    country: 'India',
+                    latitude: 25.5941,
+                    longitude: 85.1376
+                  }
                 ]
               })
             };
@@ -301,7 +316,14 @@ describe('tests/aqi-locality-cache.test.js - Coordinate Locality & Cache Isolati
             ok: true,
             json: async () => ({
               results: [
-                { id: 1253405, name: 'Varanasi', admin1: 'Uttar Pradesh', country: 'India', latitude: 25.3176, longitude: 82.9739 }
+                {
+                  id: 1253405,
+                  name: 'Varanasi',
+                  admin1: 'Uttar Pradesh',
+                  country: 'India',
+                  latitude: 25.3176,
+                  longitude: 82.9739
+                }
               ]
             })
           };

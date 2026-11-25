@@ -6,10 +6,7 @@ import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
 import MascotAvatar from '../../components/MascotAvatar';
 import PersonDetailsForm from '../../components/forms/PersonDetailsForm';
-import {
-  COUNTRIES,
-  INDIAN_STATES_AND_UTS
-} from '../../data/onboardingData';
+import { COUNTRIES, INDIAN_STATES_AND_UTS } from '../../data/onboardingData';
 import {
   validateProfileForm,
   validateFullName,

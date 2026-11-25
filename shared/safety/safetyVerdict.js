@@ -21,11 +21,13 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
   const q = (query || '').toLowerCase();
 
   // 1. Child / Infant / Toddler
-  const childTerms = /\b(kid|kids|child|children|baby|babies|infant|infants|toddler|toddlers|son|daughter|beta|beti|baccha|bachhe|bacche)\b/i;
+  const childTerms =
+    /\b(kid|kids|child|children|baby|babies|infant|infants|toddler|toddlers|son|daughter|beta|beti|baccha|bachhe|bacche)\b/i;
   if (childTerms.test(q)) personas.add('child');
 
   // 2. Senior / Elderly
-  const seniorTerms = /\b(senior|seniors|elder|elders|elderly|grandpa|grandma|grandfather|grandmother|dada|dadi|nana|nani|father|mother|dad|mom|papa|mummy|parent|parents|bua|chacha)\b/i;
+  const seniorTerms =
+    /\b(senior|seniors|elder|elders|elderly|grandpa|grandma|grandfather|grandmother|dada|dadi|nana|nani|father|mother|dad|mom|papa|mummy|parent|parents|bua|chacha)\b/i;
   if (seniorTerms.test(q)) personas.add('senior');
 
   // 3. Asthma / Respiratory
@@ -45,7 +47,8 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
   if (pregnancyTerms.test(q)) personas.add('pregnancy');
 
   // 7. Athlete / Heavy outdoor cardio
-  const athleteTerms = /\b(run|running|runner|jog|jogging|workout|exercise|exercising|marathon|cycling|cycle|biking|football|cricket|sports|training)\b/i;
+  const athleteTerms =
+    /\b(run|running|runner|jog|jogging|workout|exercise|exercising|marathon|cycling|cycle|biking|football|cricket|sports|training)\b/i;
   if (athleteTerms.test(q)) personas.add('athlete');
 
   // 8. Outdoor worker
@@ -56,7 +59,11 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
   if (Array.isArray(familyMembers)) {
     for (const m of familyMembers) {
       const rel = (m.relationship || m.tag || m.role || '').toLowerCase();
-      const cond = (m.condition || (Array.isArray(m.conditions) ? m.conditions.join(' ') : '') || '').toLowerCase();
+      const cond = (
+        m.condition ||
+        (Array.isArray(m.conditions) ? m.conditions.join(' ') : '') ||
+        ''
+      ).toLowerCase();
       const age = parseInt(m.age, 10);
 
       if (
@@ -85,7 +92,8 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
 
       if (cond.includes('asthma')) personas.add('asthma');
       if (cond.includes('copd') || cond.includes('bronchitis')) personas.add('copd');
-      if (cond.includes('heart') || cond.includes('cardiac') || cond.includes('hypertension')) personas.add('heartDisease');
+      if (cond.includes('heart') || cond.includes('cardiac') || cond.includes('hypertension'))
+        personas.add('heartDisease');
       if (cond.includes('pregnant')) personas.add('pregnancy');
     }
   }
@@ -151,7 +159,8 @@ export function computeSafetyVerdict({
   const hasCopd = involved.includes('copd');
   const hasHeart = involved.includes('heartDisease');
   const hasPregnancy = involved.includes('pregnancy');
-  const isVulnerable = hasChildren || hasSeniors || hasAsthma || hasCopd || hasHeart || hasPregnancy;
+  const isVulnerable =
+    hasChildren || hasSeniors || hasAsthma || hasCopd || hasHeart || hasPregnancy;
 
   let isOutdoorSafe = false;
   let verdictLabel = 'UNSAFE_AVOID';
@@ -181,7 +190,8 @@ export function computeSafetyVerdict({
       verdictLabel = 'SAFE';
       recommendedMask = isVulnerable ? 'Optional (keep handy near dusty roads)' : 'Not required';
       if (isVulnerable) {
-        directAnswerPhrase = 'Yes, outdoor activity is generally safe today, but monitor for any minor coughing or fatigue.';
+        directAnswerPhrase =
+          'Yes, outdoor activity is generally safe today, but monitor for any minor coughing or fatigue.';
         verdictSummary = `Air quality is Satisfactory (NAQI ${numericAqi}). Outdoor play is permitted, but sensitive individuals should watch for minor symptoms during prolonged exertion.`;
       } else {
         directAnswerPhrase = 'Yes, outdoor activities and exercise are safe today.';
@@ -193,7 +203,9 @@ export function computeSafetyVerdict({
           ? 'Children and individuals with asthma or COPD should avoid very prolonged heavy exertion during morning hours.'
           : 'Normal outdoor routines can continue as scheduled.'
       ];
-      indoorRecommendations = ['Open windows during sunny afternoon hours for fresh air circulation.'];
+      indoorRecommendations = [
+        'Open windows during sunny afternoon hours for fresh air circulation.'
+      ];
       break;
     }
 
@@ -212,7 +224,8 @@ export function computeSafetyVerdict({
             : 'Wear a well-fitted N95 mask if spending more than 30 minutes outdoors.'
         ];
       } else {
-        directAnswerPhrase = 'Conditionally yes: outdoor activity is acceptable, but reduce prolonged strenuous cardio.';
+        directAnswerPhrase =
+          'Conditionally yes: outdoor activity is acceptable, but reduce prolonged strenuous cardio.';
         verdictSummary = `Air quality is Moderate (NAQI ${numericAqi}). Healthy adults can exercise, but avoid peak rush-hour roadside exposure.`;
         actionableGuidance = [
           'Choose parks away from heavy vehicular traffic.',
@@ -263,7 +276,8 @@ export function computeSafetyVerdict({
       if (hasChildren) {
         directAnswerPhrase = 'No, it is strictly unsafe for your child to play outside today.';
       } else if (hasCopd || hasAsthma) {
-        directAnswerPhrase = 'No, outdoor walks and any outdoor exposure are strictly unsafe today.';
+        directAnswerPhrase =
+          'No, outdoor walks and any outdoor exposure are strictly unsafe today.';
       } else {
         directAnswerPhrase = 'No, outdoor running, walks, and sports are strictly unsafe today.';
       }

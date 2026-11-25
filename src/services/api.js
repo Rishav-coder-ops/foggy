@@ -399,9 +399,16 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
       clientSafeReason = 'Upstream request timeout';
     } else if (err?.message?.includes('429')) {
       clientSafeReason = 'Upstream rate limit (HTTP 429)';
-    } else if (err?.message?.includes('500') || err?.message?.includes('502') || err?.message?.includes('503')) {
+    } else if (
+      err?.message?.includes('500') ||
+      err?.message?.includes('502') ||
+      err?.message?.includes('503')
+    ) {
       clientSafeReason = 'Upstream server error (HTTP 5xx)';
-    } else if (err?.message?.toLowerCase().includes('network') || err?.message?.toLowerCase().includes('failed to fetch')) {
+    } else if (
+      err?.message?.toLowerCase().includes('network') ||
+      err?.message?.toLowerCase().includes('failed to fetch')
+    ) {
       clientSafeReason = 'Upstream network connection error';
     }
 

@@ -7,10 +7,7 @@ import { useChat } from '../context/ChatContext';
 import { useProfile } from '../context/ProfileContext';
 import { getStoredCity } from '../services/api';
 import { getAQICategory } from '../../shared/aqi.js';
-import {
-  GEMINI_PRIMARY_MODEL,
-  FOGGY_PROVIDER_LABELS
-} from '../../shared/constants.js';
+import { GEMINI_PRIMARY_MODEL, FOGGY_PROVIDER_LABELS } from '../../shared/constants.js';
 
 function getCategoryBadge(cat) {
   return getAQICategory(cat).badgeClass;
@@ -63,23 +60,27 @@ export default function CompactChatModal({ isEmbedded = false }) {
 
   // If chat city matches dashboard city, prefer dashboard aqiData directly (single source of truth)
   const isSameAsDashboard =
-    !normChatCity ||
-    normDashCity.includes(normChatCity) ||
-    normChatCity.includes(normDashCity);
+    !normChatCity || normDashCity.includes(normChatCity) || normChatCity.includes(normDashCity);
 
-  const activeCityName = isSameAsDashboard ? (aqiData?.city || dashboardCityName) : chatCityData.name;
+  const activeCityName = isSameAsDashboard ? aqiData?.city || dashboardCityName : chatCityData.name;
   const activeCityAqi = isSameAsDashboard
-    ? (aqiData?.aqi != null ? aqiData.aqi : (chatCityData?.aqi != null ? chatCityData.aqi : 165))
-    : (chatCityData?.aqi != null ? chatCityData.aqi : (aqiData?.aqi != null ? aqiData.aqi : 165));
+    ? aqiData?.aqi != null
+      ? aqiData.aqi
+      : chatCityData?.aqi != null
+        ? chatCityData.aqi
+        : 165
+    : chatCityData?.aqi != null
+      ? chatCityData.aqi
+      : aqiData?.aqi != null
+        ? aqiData.aqi
+        : 165;
   const activeCategoryObj = getAQICategory(activeCityAqi);
   const activeCityCat = activeCategoryObj.label;
 
   const isSampleData = isSameAsDashboard ? Boolean(aqiData?.isMock) : Boolean(chatCityData?.isMock);
 
   const isDifferentFromDashboard = Boolean(
-    !isSameAsDashboard &&
-    normChatCity &&
-    !normDashCity.includes(normChatCity)
+    !isSameAsDashboard && normChatCity && !normDashCity.includes(normChatCity)
   );
 
   const handleSwitch = () => {

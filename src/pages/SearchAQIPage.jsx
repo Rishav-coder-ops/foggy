@@ -168,7 +168,9 @@ export default function SearchAQIPage() {
       if (results && results.length > 0) {
         handleSelectSuggestion(results[0]);
       } else {
-        setSearchError(`No matching Indian location found for "${clean}". Please check the spelling or pick from suggestions.`);
+        setSearchError(
+          `No matching Indian location found for "${clean}". Please check the spelling or pick from suggestions.`
+        );
       }
     } catch (err) {
       console.warn('Geocode manual submit failed:', err);

@@ -75,7 +75,10 @@ export function statesMatch(state1, state2) {
  */
 export function extractCityAndState(query) {
   if (!query || typeof query !== 'string') return { city: '', state: '' };
-  const parts = query.split(/[,–—|-]/).map((p) => p.trim()).filter(Boolean);
+  const parts = query
+    .split(/[,–—|-]/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (parts.length >= 2) {
     return { city: parts[0], state: parts.slice(1).join(', ') };
   }

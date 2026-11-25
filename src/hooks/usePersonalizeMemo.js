@@ -3,7 +3,18 @@ import { useState } from 'react';
 import { sanitizeText } from '../utils/validation';
 import { auth } from '../firebase';
 
-function buildPersonalizePrompt({ sanitizedName, sanitizedRel, ageStr, cityLoc, aqiNum, aqiCat, condsStr, member, commuteStr, lifeStr }) {
+function buildPersonalizePrompt({
+  sanitizedName,
+  sanitizedRel,
+  ageStr,
+  cityLoc,
+  aqiNum,
+  aqiCat,
+  condsStr,
+  member,
+  commuteStr,
+  lifeStr
+}) {
   return `Please create a friendly, structured personalized air quality care memo for ${sanitizedName} (${sanitizedRel}, ${ageStr}).
 Location: ${cityLoc}.
 Current CPCB National AQI: ${aqiNum} (${aqiCat}).
@@ -23,16 +34,40 @@ Please include:
 
 function parsePersonalizeError(err) {
   const msg = err.message || '';
-  if (msg.includes('busy') || msg.includes('minute') || msg.includes('limit') || msg.includes('429')) {
+  if (
+    msg.includes('busy') ||
+    msg.includes('minute') ||
+    msg.includes('limit') ||
+    msg.includes('429')
+  ) {
     return 'Foggy is busy, try again in a minute.';
   }
-  if (msg.includes('Sign-in') || msg.includes('sign in') || msg.includes('auth') || msg.includes('401') || msg.includes('403')) {
+  if (
+    msg.includes('Sign-in') ||
+    msg.includes('sign in') ||
+    msg.includes('auth') ||
+    msg.includes('401') ||
+    msg.includes('403')
+  ) {
     return 'Sign-in problem: please sign in or refresh your session.';
   }
-  if (msg.includes('Server') || msg.includes('server') || msg.includes('500') || msg.includes('502') || msg.includes('503')) {
+  if (
+    msg.includes('Server') ||
+    msg.includes('server') ||
+    msg.includes('500') ||
+    msg.includes('502') ||
+    msg.includes('503')
+  ) {
     return 'Server problem: Foggy is temporarily unavailable. Please try again.';
   }
-  if (err.name === 'TypeError' || msg.includes('fetch') || msg.includes('Network') || msg.includes('network') || msg.includes('offline') || msg.includes('connection')) {
+  if (
+    err.name === 'TypeError' ||
+    msg.includes('fetch') ||
+    msg.includes('Network') ||
+    msg.includes('network') ||
+    msg.includes('offline') ||
+    msg.includes('connection')
+  ) {
     return 'Network problem: Please check your internet connection.';
   }
   return msg || 'Unable to connect with Foggy right now.';
@@ -58,14 +93,29 @@ export function usePersonalizeMemo() {
       const condsStr = Array.isArray(member.conditions)
         ? member.conditions.join(', ')
         : member.condition || 'None';
-      const commuteStr = Array.isArray(member.commute) ? member.commute.join(', ') : 'Not specified';
-      const lifeStr = Array.isArray(member.lifestyle) ? member.lifestyle.join(', ') : 'Not specified';
+      const commuteStr = Array.isArray(member.commute)
+        ? member.commute.join(', ')
+        : 'Not specified';
+      const lifeStr = Array.isArray(member.lifestyle)
+        ? member.lifestyle.join(', ')
+        : 'Not specified';
       const aqiNum = memberAqiData?.aqi || 165;
       const aqiCat = memberAqiData?.category || 'Moderate';
-      const cityLoc = member.city ? `${member.city}, ${member.state || 'India'}` : profile?.city || 'Kolkata';
+      const cityLoc = member.city
+        ? `${member.city}, ${member.state || 'India'}`
+        : profile?.city || 'Kolkata';
 
       const prompt = buildPersonalizePrompt({
-        sanitizedName, sanitizedRel, ageStr, cityLoc, aqiNum, aqiCat, condsStr, member, commuteStr, lifeStr
+        sanitizedName,
+        sanitizedRel,
+        ageStr,
+        cityLoc,
+        aqiNum,
+        aqiCat,
+        condsStr,
+        member,
+        commuteStr,
+        lifeStr
       });
 
       let idToken = null;
@@ -118,7 +168,9 @@ export function usePersonalizeMemo() {
 
       if (!res.ok) {
         let errJson = {};
-        try { errJson = await res.json(); } catch { }
+        try {
+          errJson = await res.json();
+        } catch {}
         if (res.status === 429 || errJson.isRateLimited || errJson.code === 'RATE_LIMITED') {
           throw new Error('Foggy is busy, try again in a minute.');
         } else if (res.status === 401 || res.status === 403) {
@@ -131,7 +183,9 @@ export function usePersonalizeMemo() {
       }
 
       const json = await res.json();
-      setAiMemo(json.memo || json.reply || json.message || 'Foggy personalized precautions generated.');
+      setAiMemo(
+        json.memo || json.reply || json.message || 'Foggy personalized precautions generated.'
+      );
     } catch (err) {
       console.error('Personalization failed with error:', err);
       setAiError(parsePersonalizeError(err));

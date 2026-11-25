@@ -145,22 +145,21 @@ describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity G
     it('renders error UI card with Retry and Update my location link when sanity guard fails', () => {
       const errorData = {
         error: 'GRID_MISMATCH',
-        message: 'Atmospheric model grid point is 1300 km from Noida, exceeding 60 km accuracy boundary.',
+        message:
+          'Atmospheric model grid point is 1300 km from Noida, exceeding 60 km accuracy boundary.',
         distanceKm: 1300,
         city: 'Noida, Uttar Pradesh'
       };
 
       render(
         <BrowserRouter>
-          <AQICard
-            aqiData={errorData}
-            onRefresh={vi.fn()}
-            locationTitle="Noida, Uttar Pradesh"
-          />
+          <AQICard aqiData={errorData} onRefresh={vi.fn()} locationTitle="Noida, Uttar Pradesh" />
         </BrowserRouter>
       );
 
-      expect(screen.getByText(/Unable to verify air data for Noida, Uttar Pradesh/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Unable to verify air data for Noida, Uttar Pradesh/i)
+      ).toBeInTheDocument();
       expect(screen.getByText(/Measured distance:/i)).toBeInTheDocument();
       expect(screen.getAllByText(/1300 km/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
@@ -366,7 +365,9 @@ describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity G
         </BrowserRouter>
       );
 
-      expect(screen.getAllByText(/Simulation Mode \(Sample Data\)/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Simulation Mode \(Sample Data\)/i).length).toBeGreaterThanOrEqual(
+        1
+      );
       expect(screen.getByText(/Upstream rate limit \(HTTP 429\)/i)).toBeInTheDocument();
 
       const retryBtn = screen.getByRole('button', { name: /Retry Live Data/i });
@@ -404,7 +405,8 @@ describe('tests/dashboard-location-sanity.test.jsx - Location Accuracy, Sanity G
 
   describe('8. Chat & Dashboard Single Source of Truth Alignment', () => {
     it('validateAndAlignReplyWithAqi aligns mismatched AQI and category in AI reply', () => {
-      const mismatchedText = 'Currently, the AQI in Noida is 149 (Moderate), with PM2.5 being the primary pollutant.';
+      const mismatchedText =
+        'Currently, the AQI in Noida is 149 (Moderate), with PM2.5 being the primary pollutant.';
       const aligned = validateAndAlignReplyWithAqi(mismatchedText, 278, 'Poor');
 
       expect(aligned).toContain('278');

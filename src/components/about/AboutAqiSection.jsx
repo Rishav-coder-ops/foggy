@@ -16,10 +16,10 @@ export default function AboutAqiSection() {
           How the Central Pollution Control Board Calculates Air Quality
         </h2>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-          The <strong>National Air Quality Index (NAQI)</strong> is a standardized &ldquo;One Number-One
-          Colour-One Description&rdquo; index introduced by the Ministry of Environment, Forest and
-          Climate Change (MoEFCC) and the Central Pollution Control Board (CPCB) in 2014. It
-          transforms complex atmospheric concentration data of multiple pollutants into a simple{' '}
+          The <strong>National Air Quality Index (NAQI)</strong> is a standardized &ldquo;One
+          Number-One Colour-One Description&rdquo; index introduced by the Ministry of Environment,
+          Forest and Climate Change (MoEFCC) and the Central Pollution Control Board (CPCB) in 2014.
+          It transforms complex atmospheric concentration data of multiple pollutants into a simple{' '}
           <strong>0 to 500</strong> integer scale.
         </p>
 
@@ -61,10 +61,10 @@ export default function AboutAqiSection() {
             <em>
               I<sub>high</sub>
             </em>
-            ] are the index breakpoints. The overall <strong>National AQI</strong> is determined
-            by the <strong>maximum sub-index</strong> among all monitored pollutants (the
-            &ldquo;dominant pollutant&rdquo;), provided at least three pollutants are recorded including
-            either PM2.5 or PM10.
+            ] are the index breakpoints. The overall <strong>National AQI</strong> is determined by
+            the <strong>maximum sub-index</strong> among all monitored pollutants (the
+            &ldquo;dominant pollutant&rdquo;), provided at least three pollutants are recorded
+            including either PM2.5 or PM10.
           </p>
         </div>
 

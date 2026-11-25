@@ -136,7 +136,13 @@ export async function onRequestGet(context) {
     });
   }
 
-  const payload = await fetchUpstreamAqiData(lat, lon, requestedCity, displayCity, env?.AQI_API_KEY);
+  const payload = await fetchUpstreamAqiData(
+    lat,
+    lon,
+    requestedCity,
+    displayCity,
+    env?.AQI_API_KEY
+  );
 
   if (payload.error) {
     return new Response(JSON.stringify(payload), {

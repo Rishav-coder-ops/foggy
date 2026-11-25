@@ -53,7 +53,8 @@ export async function onRequestGet(context) {
     request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() ||
     '127.0.0.1';
 
-  const maxRequests = context.env?.RATE_LIMIT_MAX != null ? Number(context.env.RATE_LIMIT_MAX) : undefined;
+  const maxRequests =
+    context.env?.RATE_LIMIT_MAX != null ? Number(context.env.RATE_LIMIT_MAX) : undefined;
   const rateLimit = checkRateLimit(clientIp, maxRequests);
   if (!rateLimit.allowed) {
     return new Response(

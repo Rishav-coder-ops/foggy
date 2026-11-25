@@ -97,9 +97,7 @@ export function computeDailyAverages(points) {
     const validPoints = dayPoints.filter((p) => typeof p.aqi === 'number' && !isNaN(p.aqi));
     if (validPoints.length === 0) continue;
 
-    const avgAqi = Math.round(
-      validPoints.reduce((acc, p) => acc + p.aqi, 0) / validPoints.length
-    );
+    const avgAqi = Math.round(validPoints.reduce((acc, p) => acc + p.aqi, 0) / validPoints.length);
     const cat = getAQICategory(avgAqi);
     days.push({
       date,

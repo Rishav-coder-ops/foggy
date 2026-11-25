@@ -9,14 +9,8 @@ import {
   calculatePM25SubIndex,
   calculatePM10SubIndex
 } from '../functions/api/aqi-timeline.js';
-import {
-  findBestAndWorstHours,
-  computeDailyAverages
-} from '../shared/timeline/cpcbCalculation.js';
-import {
-  checkRateLimit,
-  clearTimelineRateLimits
-} from '../shared/timeline/constants.js';
+import { findBestAndWorstHours, computeDailyAverages } from '../shared/timeline/cpcbCalculation.js';
+import { checkRateLimit, clearTimelineRateLimits } from '../shared/timeline/constants.js';
 
 describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
   const originalFetch = global.fetch;
@@ -78,7 +72,10 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
         json: async () => ({
           timezone: 'Asia/Kolkata',
           hourly: {
-            time: Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`),
+            time: Array.from(
+              { length: 48 },
+              (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`
+            ),
             pm2_5: Array(48).fill(45),
             pm10: Array(48).fill(85)
           }
@@ -117,8 +114,22 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
         ok: true,
         json: async () => ({
           results: [
-            { name: 'Kolkata', country_code: 'IN', admin1: 'West Bengal', latitude: 22.57, longitude: 88.36, population: 4500000 },
-            { name: 'Kolkata Foreign', country_code: 'US', admin1: 'Other', latitude: 10, longitude: 20, population: 100 }
+            {
+              name: 'Kolkata',
+              country_code: 'IN',
+              admin1: 'West Bengal',
+              latitude: 22.57,
+              longitude: 88.36,
+              population: 4500000
+            },
+            {
+              name: 'Kolkata Foreign',
+              country_code: 'US',
+              admin1: 'Other',
+              latitude: 10,
+              longitude: 20,
+              population: 100
+            }
           ]
         })
       });
@@ -174,7 +185,10 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
     });
 
     it('fetches live timeline data, caches it, and isolates distinct coordinates', async () => {
-      const mockTimes = Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`);
+      const mockTimes = Array.from(
+        { length: 48 },
+        (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`
+      );
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -213,7 +227,9 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
     it('falls back to deterministic sample data when upstream atmospheric API fails', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Open-Meteo down'));
 
-      const req = new Request('http://localhost/api/aqi-timeline?lat=25.31&lon=82.97&city=Varanasi');
+      const req = new Request(
+        'http://localhost/api/aqi-timeline?lat=25.31&lon=82.97&city=Varanasi'
+      );
       const res = await onRequestGet({ request: req });
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -248,7 +264,10 @@ describe('aqi-timeline.js Backend Endpoint & Domain Services', () => {
     });
 
     it('fetchCityAqiReport returns structured report for a city name or coordinates object', async () => {
-      const mockTimes = Array.from({ length: 48 }, (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`);
+      const mockTimes = Array.from(
+        { length: 48 },
+        (_, i) => `2026-11-21T${String(i % 24).padStart(2, '0')}:00`
+      );
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({

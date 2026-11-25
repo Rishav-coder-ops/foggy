@@ -13,7 +13,11 @@ import FamilyMemberCarePlan from '../src/components/family/FamilyMemberCarePlan'
 import FamilyAiPersonalizationModal from '../src/components/family/FamilyAiPersonalizationModal';
 import FamilyMemberFormModal from '../src/components/family/FamilyMemberFormModal';
 import FamilyProfilesPage from '../src/pages/FamilyProfilesPage';
-import { getRoleIcon, buildDefaultFormData, buildEditFormData } from '../src/constants/family/familyConstants';
+import {
+  getRoleIcon,
+  buildDefaultFormData,
+  buildEditFormData
+} from '../src/constants/family/familyConstants';
 
 const mockMember = {
   id: 'm-1',
@@ -183,7 +187,12 @@ describe('Family Profiles Components & Accessibility', () => {
         aqi: 220,
         category: 'Poor',
         timeSlots: [
-          { slot: '6:00 AM – 9:00 AM', forecastBadge: 'Hazardous', guidance: 'Avoid outdoors', lifestyleAdjustment: 'Stay indoors' }
+          {
+            slot: '6:00 AM – 9:00 AM',
+            forecastBadge: 'Hazardous',
+            guidance: 'Avoid outdoors',
+            lifestyleAdjustment: 'Stay indoors'
+          }
         ],
         doList: ['Wear N95'],
         avoidList: ['Morning jogging'],
@@ -192,13 +201,22 @@ describe('Family Profiles Components & Accessibility', () => {
         conditionReminders: ['Carry rescue inhaler'],
         hydrationAdvice: 'Drink 2.5L water'
       };
-      render(<FamilyMemberCarePlan member={mockMember} carePlan={carePlan} memberAqiData={{ aqi: 220 }} />);
+      render(
+        <FamilyMemberCarePlan
+          member={mockMember}
+          carePlan={carePlan}
+          memberAqiData={{ aqi: 220 }}
+        />
+      );
       expect(screen.getByText(/Today's Care Plan for Aarav/i)).toBeInTheDocument();
       expect(screen.getByText('Morning jogging')).toBeInTheDocument();
     });
 
     it('FamilyMemberList renders multiple members', () => {
-      const members = [mockMember, { ...mockMember, id: 'm-2', name: 'Ananya', relationship: 'Daughter' }];
+      const members = [
+        mockMember,
+        { ...mockMember, id: 'm-2', name: 'Ananya', relationship: 'Daughter' }
+      ];
       render(
         <FamilyMemberList
           familyMembers={members}

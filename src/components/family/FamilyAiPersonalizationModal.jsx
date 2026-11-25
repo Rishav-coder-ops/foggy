@@ -167,10 +167,9 @@ export default function FamilyAiPersonalizationModal({
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant,
-                not a doctor. Never change prescribed medications without consulting your
-                doctor. In case of severe breathlessness or emergency, call{' '}
-                <strong>112</strong> immediately.
+                <strong>Medical Disclaimer:</strong> Foggy is an educational AI assistant, not a
+                doctor. Never change prescribed medications without consulting your doctor. In case
+                of severe breathlessness or emergency, call <strong>112</strong> immediately.
               </div>
             </div>
           </div>

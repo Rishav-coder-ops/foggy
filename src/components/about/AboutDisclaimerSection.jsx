@@ -48,8 +48,8 @@ export default function AboutDisclaimerSection() {
         <Shield className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
         <p className="leading-relaxed">
           <strong>Medical Disclaimer:</strong> Foggy is an AI-powered atmospheric health companion
-          and educational resource, not a certified healthcare professional. Advice is intended
-          for exposure reduction, schedule optimization, and low-emission guidance. In any medical
+          and educational resource, not a certified healthcare professional. Advice is intended for
+          exposure reduction, schedule optimization, and low-emission guidance. In any medical
           emergency or acute respiratory difficulty, dial <strong>112</strong> or{' '}
           <strong>108</strong>, or proceed to the nearest emergency hospital immediately.
         </p>

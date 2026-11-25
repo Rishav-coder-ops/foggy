@@ -32,7 +32,11 @@ export function formatGreetingName(profile, user) {
       ? profile.preferredName.trim()
       : '';
 
-  if (explicitPref && explicitPref.toLowerCase() !== 'friend' && explicitPref.toLowerCase() !== 'user') {
+  if (
+    explicitPref &&
+    explicitPref.toLowerCase() !== 'friend' &&
+    explicitPref.toLowerCase() !== 'user'
+  ) {
     return explicitPref;
   }
 

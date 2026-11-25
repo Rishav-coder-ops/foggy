@@ -119,7 +119,9 @@ export async function onRequest(context) {
   ipRateLimitMap.set(clientIP, rateData);
 
   const maxRequests =
-    context.env?.RATE_LIMIT_MAX != null ? Number(context.env.RATE_LIMIT_MAX) : MAX_REQUESTS_PER_WINDOW;
+    context.env?.RATE_LIMIT_MAX != null
+      ? Number(context.env.RATE_LIMIT_MAX)
+      : MAX_REQUESTS_PER_WINDOW;
 
   if (rateData.count > maxRequests) {
     return new Response(
@@ -144,7 +146,8 @@ export async function onRequest(context) {
     url.searchParams.get('q') ||
     '';
   const query = rawQuery.trim().slice(0, 80);
-  const rawCountryCode = url.searchParams.get('countryCode') || url.searchParams.get('country') || 'IN';
+  const rawCountryCode =
+    url.searchParams.get('countryCode') || url.searchParams.get('country') || 'IN';
   const countryCode = normalizeCountryCode(rawCountryCode);
   const count = Math.min(Math.max(parseInt(url.searchParams.get('count') || '10', 10), 1), 20);
 
@@ -195,7 +198,11 @@ export async function onRequest(context) {
   }
 
   // Pass 2: If no results and canonicalCity differs from raw city, try raw city
-  if (upstreamResults.length === 0 && !upstreamFailed && canonicalCity.toLowerCase() !== city.toLowerCase()) {
+  if (
+    upstreamResults.length === 0 &&
+    !upstreamFailed &&
+    canonicalCity.toLowerCase() !== city.toLowerCase()
+  ) {
     try {
       const params2 = new URLSearchParams({
         name: city,

@@ -16,11 +16,15 @@ export default function DailyLowEmissionPlan({
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-indigo-500" />
           <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white mt-0.5">
-            {isSimulated ? `Daily Low-Emission Plan for ${cityName}` : "Today's Low-Emission Daily Routine"}
+            {isSimulated
+              ? `Daily Low-Emission Plan for ${cityName}`
+              : "Today's Low-Emission Daily Routine"}
           </h2>
         </div>
         <span className="text-xs text-slate-500 dark:text-slate-400">
-          {isSimulated ? `Simulated for ${locationTitle || cityName} • Live CAMS data` : `Tailored for ${locationTitle || cityName} • Updated hourly`}
+          {isSimulated
+            ? `Simulated for ${locationTitle || cityName} • Live CAMS data`
+            : `Tailored for ${locationTitle || cityName} • Updated hourly`}
         </span>
       </div>
 
@@ -71,8 +75,9 @@ export default function DailyLowEmissionPlan({
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Solar radiation breaks the morning ground thermal inversion lid between 1:00 PM and 3:30 PM,
-            providing the cleanest dispersion window for essential errands and outdoor activities.
+            Solar radiation breaks the morning ground thermal inversion lid between 1:00 PM and 3:30
+            PM, providing the cleanest dispersion window for essential errands and outdoor
+            activities.
           </p>
 
           <ImpactBadge healthBenefit="Avoids ground smog spike" pmReduced="-35% ground PM2.5" />

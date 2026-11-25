@@ -643,7 +643,8 @@ describe('tests/geocode.test.js - Comprehensive Indian Location Matching, Aliase
     });
 
     it('retries transient 500 error once before serving offline index', async () => {
-      const fetchSpy = vi.spyOn(global, 'fetch')
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
         .mockResolvedValueOnce({ ok: false, status: 500 })
         .mockResolvedValueOnce({
           ok: true,
