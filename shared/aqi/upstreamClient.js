@@ -12,6 +12,7 @@ import {
 } from './simulationDb.js';
 import { calculateCPCBNAQI, getAQICategory, calculateRollingAverages } from '../aqi.js';
 import { saveLastGoodLiveAqi, getLastGoodLiveAqi } from './cache.js';
+import { logger } from '../logger.js';
 
 export { calculateRollingAverages };
 
@@ -173,10 +174,8 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
     const openMeteoUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10&current=pm2_5,pm10&past_days=1&forecast_days=1&timezone=auto`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=auto`;
 
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
-      console.log('[API /api/aqi] Outbound Open-Meteo Air Quality URL:', openMeteoUrl);
-      console.log('[API /api/aqi] Outbound Open-Meteo Weather URL:', weatherUrl);
-    }
+    logger.debug('[API /api/aqi] Outbound Open-Meteo Air Quality URL:', openMeteoUrl);
+    logger.debug('[API /api/aqi] Outbound Open-Meteo Weather URL:', weatherUrl);
 
     const [openMeteoRes, weatherRes] = await Promise.allSettled([
       fetch(openMeteoUrl, {
@@ -363,7 +362,7 @@ export async function fetchUpstreamAqiData(lat, lon, requestedCity, displayCity,
     // 3-Hour Last Good Live Cache: Never replace good live data with simulation samples
     const cachedLive = getLastGoodLiveAqi(lat, lon);
     if (cachedLive) {
-      console.log(
+      logger.debug(
         `[AQI Upstream Cache] Serving 3-hour cached live reading for ${displayCity} (last updated at ${cachedLive.updatedAt})`
       );
       return {

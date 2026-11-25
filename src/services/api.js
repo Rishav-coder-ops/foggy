@@ -238,25 +238,12 @@ export async function fetchAQIData(params = {}, legacyLat = null, legacyLon = nu
     }
   }
 
-  if (import.meta.env?.DEV) {
-    console.log('[AQI Service] Requesting AQI with coordinates:', {
-      cityName: resolvedCity,
-      stateName: resolvedState,
-      lat,
-      lon
-    });
-  }
-
   try {
     let url = `/api/aqi?city=${encodeURIComponent(cleanCity)}`;
     if (lat !== null && lon !== null && !isNaN(Number(lat)) && !isNaN(Number(lon))) {
       const numLat = Number(lat);
       const numLon = Number(lon);
       url += `&lat=${encodeURIComponent(numLat)}&lon=${encodeURIComponent(numLon)}`;
-    }
-
-    if (import.meta.env?.DEV) {
-      console.log('[AQI Service] Outbound API URL:', url);
     }
 
     const fetchOptions = {};

@@ -6,6 +6,7 @@
 
 import { fetchCityAqiReport } from './aqi-timeline.js';
 import { verifyFirebaseIdToken } from './verifyFirebaseToken.js';
+import { logger } from '../../shared/logger.js';
 import {
   INTENT_TYPES,
   classifyIntent,
@@ -555,7 +556,7 @@ export async function onRequestPost(context) {
         }
 
         // Safe structured diagnostics logging (never secrets)
-        console.log(
+        logger.debug(
           '[Chat Diagnostic]',
           JSON.stringify({
             model: finalModelName,

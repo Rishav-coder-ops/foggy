@@ -13,6 +13,7 @@ import aqiTimelineRouter from './routes/aqiTimeline.js';
 import geocodeRouter from './routes/geocode.js';
 import alertsRouter from './routes/alerts.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
+import { logger } from '../shared/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,13 +78,13 @@ app.listen(PORT, () => {
     process.env.AQI_API_KEY && process.env.AQI_API_KEY !== 'your_waqi_token_here'
   );
 
-  console.log(`\n======================================================`);
-  console.log(`🌫️  Foggy API Proxy running at: http://localhost:${PORT}`);
-  console.log(
+  logger.info(`\n======================================================`);
+  logger.info(`🌫️  Foggy API Proxy running at: http://localhost:${PORT}`);
+  logger.info(
     `   - Gemini AI:  ${isGeminiSet ? '✅ Live Key Loaded' : '💡 Using Intelligent Fallback Core'}`
   );
-  console.log(
+  logger.info(
     `   - WAQI Data:  ${isAqiSet ? '✅ Live Token Loaded' : '💡 Using Atmospheric Simulation Fallback'}`
   );
-  console.log(`======================================================\n`);
+  logger.info(`======================================================\n`);
 });

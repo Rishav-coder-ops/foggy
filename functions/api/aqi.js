@@ -10,6 +10,7 @@ import {
   getAQICategory,
   INDIAN_METROS
 } from './aqi-timeline.js';
+import { logger } from '../../shared/logger.js';
 import {
   aqiCache,
   CACHE_TTL_MS,
@@ -87,9 +88,7 @@ export async function onRequestGet(context) {
   const rawLat = parseFloat(url.searchParams.get('lat') || '');
   const rawLon = parseFloat(url.searchParams.get('lon') || '');
 
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
-    console.log('[API /api/aqi] Incoming coordinates:', { rawCity, rawLat, rawLon });
-  }
+  logger.debug('[API /api/aqi] Incoming coordinates:', { rawCity, rawLat, rawLon });
 
   const requestedCity = rawCity
     .trim()
@@ -111,21 +110,17 @@ export async function onRequestGet(context) {
   const { lat, lon, displayCity } = resolved;
   const cacheKey = getAqiCacheKey(lat, lon, 'aqi');
 
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
-    console.log('[API /api/aqi] Resolved coordinates:', {
-      displayCity,
-      lat,
-      lon,
-      cacheKey
-    });
-  }
+  logger.debug('[API /api/aqi] Resolved coordinates:', {
+    displayCity,
+    lat,
+    lon,
+    cacheKey
+  });
 
   const now = Date.now();
   const cached = aqiCache.get(cacheKey);
   if (cached && cached.expiry > now) {
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
-      console.log('[API /api/aqi] Cache HIT for key:', cacheKey);
-    }
+    logger.debug('[API /api/aqi] Cache HIT for key:', cacheKey);
     return new Response(JSON.stringify(cached.data), {
       status: 200,
       headers: {

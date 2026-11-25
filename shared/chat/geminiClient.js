@@ -10,6 +10,7 @@ import {
   GEMINI_CANDIDATE_MODELS,
   GEMINI_GENERATION_CONFIG
 } from '../constants.js';
+import { logger } from '../logger.js';
 
 let cachedModels = null;
 let cachedModelsExpiresAt = 0;
@@ -177,7 +178,7 @@ export async function callGeminiApi({ apiKey, systemPrompt, contents, primaryRep
         const rawLength = rawReply.length;
 
         // Structured diagnostics logging (safe, no secrets)
-        console.log(
+        logger.debug(
           '[Gemini Response Diagnostics]',
           JSON.stringify({
             model: modelName,

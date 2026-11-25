@@ -57,10 +57,6 @@ export default function SearchAQIPage() {
     setAqiData(null);
     setLoading(true);
 
-    if (import.meta.env?.DEV) {
-      console.log('[SearchAQIPage] Initiating AQI fetch for canonical city:', cityObj);
-    }
-
     try {
       const data = await fetchAQIData({
         lat: cityObj.lat,
@@ -140,9 +136,6 @@ export default function SearchAQIPage() {
       lat: place.latitude,
       lon: place.longitude
     };
-    if (import.meta.env?.DEV) {
-      console.log('[SearchAQIPage] Selected canonical place:', newCity);
-    }
     setSelectedCity(newCity);
     setSearchInput('');
     setSuggestions([]);
