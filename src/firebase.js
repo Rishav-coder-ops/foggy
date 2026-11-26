@@ -10,9 +10,6 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  reauthenticateWithPopup,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
   deleteUser
 } from 'firebase/auth';
 import {
@@ -21,17 +18,11 @@ import {
   persistentMultipleTabManager,
   getFirestore,
   doc,
-  getDoc,
   setDoc,
-  updateDoc,
   deleteDoc,
   collection,
   getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  serverTimestamp
+  onSnapshot
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -87,7 +78,6 @@ if (firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('your_'))
 }
 
 export {
-  app,
   auth,
   db,
   googleProvider,
@@ -98,20 +88,11 @@ export {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  reauthenticateWithPopup,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
   deleteUser,
   doc,
-  getDoc,
   setDoc,
-  updateDoc,
   deleteDoc,
   collection,
   getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  serverTimestamp
+  onSnapshot
 };

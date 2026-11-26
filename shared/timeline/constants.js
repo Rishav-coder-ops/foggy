@@ -7,8 +7,8 @@ import { getCorsHeaders } from '../cors.js';
 
 export { getCorsHeaders };
 
-export const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-export const MAX_REQUESTS_PER_WINDOW = 60;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 60;
 export const TIMELINE_CACHE_TTL_MS = 15 * 60 * 1000;
 
 export const timelineCache = new Map();

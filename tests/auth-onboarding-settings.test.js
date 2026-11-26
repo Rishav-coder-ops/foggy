@@ -7,7 +7,10 @@ import {
   validateConsent,
   validateCity,
   validateProfileForm,
-  validateFamilyMemberForm
+  validateFamilyMemberForm,
+  validateEmail,
+  validatePassword,
+  validateAuthForm
 } from '../src/utils/validation.js';
 
 describe('tests/auth-onboarding-settings.test.js - Onboarding, Route Guards & Settings Logic', () => {
@@ -210,6 +213,33 @@ describe('tests/auth-onboarding-settings.test.js - Onboarding, Route Guards & Se
       expect(jsonStr).toContain('Foggy Air Quality Assistant');
       expect(jsonStr).toContain('Ananya Roy');
       expect(jsonStr).toContain('Kolkata');
+    });
+
+    it('validates auth fields (email, password, and signup form)', () => {
+      expect(validateEmail('')).toBe('Email is required.');
+      expect(validateEmail('invalid-email')).toContain('valid email');
+      expect(validateEmail('test@example.com')).toBeNull();
+
+      expect(validatePassword('')).toBe('Password is required.');
+      expect(validatePassword('123')).toContain('at least 6 characters');
+      expect(validatePassword('secret123')).toBeNull();
+
+      const invalidLogin = validateAuthForm({ email: 'bad', password: '123' });
+      expect(invalidLogin.isValid).toBe(false);
+      expect(invalidLogin.errors.email).toBeDefined();
+      expect(invalidLogin.errors.password).toBeDefined();
+
+      const validLogin = validateAuthForm({ email: 'user@example.com', password: 'password123' });
+      expect(validLogin.isValid).toBe(true);
+
+      const invalidSignup = validateAuthForm({
+        email: 'user@example.com',
+        password: 'password123',
+        name: 'A',
+        isSignUp: true
+      });
+      expect(invalidSignup.isValid).toBe(false);
+      expect(invalidSignup.errors.name).toContain('at least 2 characters');
     });
   });
 });

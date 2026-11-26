@@ -132,20 +132,6 @@ export const CHAT_LIMITS = Object.freeze({
 });
 
 /**
- * Standard Indian Metros with coordinates and fallback telemetry.
- */
-export const INDIAN_METROS = Object.freeze({
-  delhi: { name: 'Delhi', state: 'Delhi', lat: 28.6139, lon: 77.209 },
-  kolkata: { name: 'Kolkata', state: 'West Bengal', lat: 22.5726, lon: 88.3639 },
-  mumbai: { name: 'Mumbai', state: 'Maharashtra', lat: 19.076, lon: 72.8777 },
-  chennai: { name: 'Chennai', state: 'Tamil Nadu', lat: 13.0827, lon: 80.2707 },
-  bengaluru: { name: 'Bengaluru', state: 'Karnataka', lat: 12.9716, lon: 77.5946 },
-  hyderabad: { name: 'Hyderabad', state: 'Telangana', lat: 17.385, lon: 78.4867 },
-  ahmedabad: { name: 'Ahmedabad', state: 'Gujarat', lat: 23.0225, lon: 72.5714 },
-  pune: { name: 'Pune', state: 'Maharashtra', lat: 18.5204, lon: 73.8567 }
-});
-
-/**
  * Model identifiers, generation settings, and provider labels.
  */
 export const GEMINI_PRIMARY_MODEL = 'gemini-3.1-flash-lite';

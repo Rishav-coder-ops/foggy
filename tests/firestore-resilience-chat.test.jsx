@@ -5,6 +5,16 @@ import CloudSyncBanner from '../src/components/CloudSyncBanner.jsx';
 import DashboardPage from '../src/pages/DashboardPage.jsx';
 import { buildInitialGreetingMessage } from '../src/context/ChatContext.jsx';
 import {
+  loadSavedChatHistory,
+  saveChatHistory,
+  clearStoredChatHistory,
+  findLastCityInMessages,
+  formatUserMessage,
+  formatFoggyReply,
+  formatErrorReply,
+  formatProfileUnavailableReply
+} from '../src/utils/chatHelpers.js';
+import {
   loadProfileFromLocalStorage,
   saveProfileToLocalStorage,
   getProfileLocalStorageKey
@@ -202,6 +212,43 @@ describe('tests/firestore-resilience-chat.test.jsx - Firestore Resilience & Chat
       });
 
       expect(greeting.text).toContain('Loading your household profile');
+    });
+
+    it('manages chat history storage and message formatting helpers', () => {
+      const testUser = 'user_test_999';
+      expect(loadSavedChatHistory(testUser)).toBeNull();
+
+      const userMsg = formatUserMessage('How is the AQI in Delhi?');
+      expect(userMsg.sender).toBe('user');
+      expect(userMsg.text).toBe('How is the AQI in Delhi?');
+
+      const foggyReply = formatFoggyReply({
+        reply: 'The AQI is currently Moderate.',
+        provider: 'Gemini Live',
+        model: 'gemini-3.1-flash-lite',
+        isLive: true,
+        cityData: { name: 'Delhi', lat: 28.61, lon: 77.2 }
+      });
+      expect(foggyReply.sender).toBe('foggy');
+      expect(foggyReply.isLive).toBe(true);
+
+      const msgs = [userMsg, foggyReply];
+      saveChatHistory(testUser, msgs);
+
+      const loaded = loadSavedChatHistory(testUser);
+      expect(loaded).toHaveLength(2);
+
+      const lastCity = findLastCityInMessages(loaded);
+      expect(lastCity?.name).toBe('Delhi');
+
+      clearStoredChatHistory(testUser);
+      expect(loadSavedChatHistory(testUser)).toBeNull();
+
+      const errReply = formatErrorReply();
+      expect(errReply.text).toContain('hiccup');
+
+      const blockedReply = formatProfileUnavailableReply();
+      expect(blockedReply.text).toContain("couldn't load your saved profile");
     });
   });
 });

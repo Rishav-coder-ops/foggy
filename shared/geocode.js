@@ -11,7 +11,7 @@ import {
   INDIAN_FALLBACK_CITIES
 } from './geocodeData.js';
 
-export { STATE_ALIASES, CITY_ALIASES, CITY_TO_STATE_MAP, INDIAN_FALLBACK_CITIES };
+export { INDIAN_FALLBACK_CITIES };
 
 /**
  * Normalizes an Indian country code to 2-letter ISO ('IN').

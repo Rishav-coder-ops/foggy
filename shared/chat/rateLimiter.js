@@ -8,20 +8,20 @@ import { getCorsHeaders } from '../cors.js';
 
 export { getCorsHeaders };
 
-export const RATE_LIMIT_WINDOW_MS = API_RATE_LIMITS.RATE_LIMIT_WINDOW_MS;
+const RATE_LIMIT_WINDOW_MS = API_RATE_LIMITS.RATE_LIMIT_WINDOW_MS;
 export const MAX_ANON_PER_HOUR = API_RATE_LIMITS.ANONYMOUS_CHAT_PER_HOUR;
 export const MAX_USER_PER_HOUR = API_RATE_LIMITS.AUTHENTICATED_CHAT_PER_HOUR;
 export const MAX_PAYLOAD_BYTES = CHAT_LIMITS.MAX_PAYLOAD_BYTES;
 export const MAX_MESSAGE_LENGTH = CHAT_LIMITS.MAX_MESSAGE_LENGTH;
 export const MAX_HISTORY_TURNS = CHAT_LIMITS.MAX_HISTORY_TURNS;
 
-export const rateLimitStore = new Map();
+const rateLimitStore = new Map();
 
 export function clearRateLimitStore() {
   rateLimitStore.clear();
 }
 
-export function cleanupRateLimitStore() {
+function cleanupRateLimitStore() {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
     if (now > record.resetTime) {

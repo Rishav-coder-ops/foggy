@@ -5,7 +5,7 @@
 
 import { INTENT_TYPES } from './intentTypes.js';
 
-export function extractUserContextEntities(message = '', profile = {}) {
+function extractUserContextEntities(message = '', profile = {}) {
   const text = (message || '').toLowerCase();
 
   // Person

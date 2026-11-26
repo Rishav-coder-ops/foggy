@@ -79,5 +79,3 @@ export const logger = {
     output('error', ...args);
   }
 };
-
-export default logger;

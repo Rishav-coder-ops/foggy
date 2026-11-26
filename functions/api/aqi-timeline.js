@@ -12,12 +12,7 @@ import {
   checkRateLimit,
   getCorsHeaders
 } from '../../shared/timeline/constants.js';
-import {
-  calculatePM25SubIndex,
-  calculatePM10SubIndex,
-  calculateCPCBNAQI,
-  getAQICategory
-} from '../../shared/aqi.js';
+import { calculatePM25SubIndex, calculatePM10SubIndex, getAQICategory } from '../../shared/aqi.js';
 import {
   geocodeIndianCity,
   fetchCityAqiReport,
@@ -26,15 +21,11 @@ import {
 
 export {
   timelineCache,
-  TIMELINE_CACHE_TTL_MS,
   getTimelineCacheKey,
-  INDIAN_METROS,
-  INDIAN_CITY_ALIASES,
   geocodeIndianCity,
   fetchCityAqiReport,
   calculatePM25SubIndex,
   calculatePM10SubIndex,
-  calculateCPCBNAQI,
   getAQICategory
 };
 

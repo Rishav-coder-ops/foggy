@@ -3,7 +3,7 @@
  * @fileoverview Profile sanitization and personalization prompt constructor.
  */
 
-export function sanitizeMemberProfile(member) {
+function sanitizeMemberProfile(member) {
   if (!member || typeof member !== 'object') return null;
 
   const sanitizeStr = (val, maxLen = 100, def = '') => {

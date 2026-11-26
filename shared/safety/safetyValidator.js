@@ -41,7 +41,7 @@ const CLEAN_HIGH_AQI_REGEX =
  * @param {boolean} isModerateOrWorse - True if active AQI category is Moderate or worse.
  * @returns {{ isUnsafe: boolean, reason: string | null }}
  */
-export function isSentenceUnsafe(sentence, isModerateOrWorse) {
+function isSentenceUnsafe(sentence, isModerateOrWorse) {
   if (!sentence || typeof sentence !== 'string' || !isModerateOrWorse) {
     return { isUnsafe: false, reason: null };
   }

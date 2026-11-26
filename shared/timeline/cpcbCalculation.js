@@ -11,7 +11,7 @@ import { calculateCPCBNAQI, getAQICategory } from '../aqi.js';
  * @param {number} idx - Current index.
  * @returns {number}
  */
-export function calculateRollingAverage(arr, idx) {
+function calculateRollingAverage(arr, idx) {
   if (!Array.isArray(arr) || idx < 0 || idx >= arr.length) return 0;
   const start = Math.max(0, idx - 23);
   let sum = 0;

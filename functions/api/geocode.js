@@ -9,8 +9,6 @@ const geocodeCache = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 import {
-  STATE_ALIASES,
-  CITY_ALIASES,
   INDIAN_FALLBACK_CITIES,
   normalizeCountryCode,
   normalizeLocationQuery,
@@ -20,19 +18,6 @@ import {
   resolveCityAlias,
   rankAndDeduplicateLocations
 } from '../../shared/geocode.js';
-
-export {
-  STATE_ALIASES,
-  CITY_ALIASES,
-  INDIAN_FALLBACK_CITIES,
-  normalizeCountryCode,
-  normalizeLocationQuery,
-  normalizeStateName,
-  statesMatch,
-  extractCityAndState,
-  resolveCityAlias,
-  rankAndDeduplicateLocations
-};
 
 /**
  * Resets cache and rate limiter state (used in testing).

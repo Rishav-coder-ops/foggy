@@ -6,8 +6,15 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowJs": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"]
   },
-  "include": ["shared/**/*", "src/utils/**/*", "src/services/**/*", "server/**/*"],
+  "include": [
+    "shared/**/*",
+    "src/utils/**/*",
+    "src/services/**/*",
+    "server/**/*",
+    "src/vite-env.d.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

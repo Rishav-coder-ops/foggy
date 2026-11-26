@@ -10,8 +10,8 @@ export { getCorsHeaders };
 
 export const aqiCache = new Map();
 export const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-export const LIVE_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours (never replace live with samples)
-export const lastGoodLiveAqiCache = new Map();
+const LIVE_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours (never replace live with samples)
+const lastGoodLiveAqiCache = new Map();
 const ipRateLimitMap = new Map();
 
 export function clearRateLimits() {

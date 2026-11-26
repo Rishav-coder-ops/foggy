@@ -9,7 +9,7 @@
  * @param {string} str
  * @returns {string}
  */
-export function capitalizeWord(str) {
+function capitalizeWord(str) {
   if (!str || typeof str !== 'string') return '';
   const trimmed = str.trim();
   if (!trimmed) return '';

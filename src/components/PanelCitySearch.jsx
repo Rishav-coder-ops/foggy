@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Navigation, Loader2, AlertCircle, X } from 'lucide-react';
 import { searchCities, INDIAN_METROS, setStoredCity } from '../services/api';
 
-export const INDIAN_METRO_PICKS = INDIAN_METROS;
+const INDIAN_METRO_PICKS = INDIAN_METROS;
 
 export default function PanelCitySearch({
   currentLocation,

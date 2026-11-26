@@ -38,12 +38,3 @@ export function saveDemoProfile(state) {
     console.warn('Error saving demo profile to localStorage:', err);
   }
 }
-
-export function clearDemoProfile() {
-  try {
-    localStorage.removeItem(DEMO_STORAGE_KEY);
-    localStorage.removeItem('foggy_demo_session');
-  } catch (err) {
-    console.warn('Error clearing demo profile from localStorage:', err);
-  }
-}

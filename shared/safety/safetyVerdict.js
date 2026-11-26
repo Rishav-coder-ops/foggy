@@ -123,7 +123,7 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
  * @param {string} query
  * @returns {boolean}
  */
-export function isOutdoorActivityQuery(query = '') {
+function isOutdoorActivityQuery(query = '') {
   return /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
     query
   );

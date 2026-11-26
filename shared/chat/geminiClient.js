@@ -22,7 +22,7 @@ let cachedModelsExpiresAt = 0;
  * @param {string} apiKey
  * @returns {Promise<Array<string>>}
  */
-export async function getAvailableGeminiModels(apiKey) {
+async function getAvailableGeminiModels(apiKey) {
   const now = Date.now();
   if (cachedModels && Array.isArray(cachedModels) && now < cachedModelsExpiresAt) {
     return cachedModels;

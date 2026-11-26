@@ -34,14 +34,6 @@
     "start": "wrangler pages dev dist",
     "prepare": "husky"
   },
-  "lint-staged": {
-    "*.{js,jsx}": [
-      "eslint --fix"
-    ],
-    "*.{json,md,css,html}": [
-      "prettier --write"
-    ]
-  },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
     "cors": "^2.8.5",
@@ -55,7 +47,6 @@
     "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^8.0.0",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^18.3.12",
@@ -71,9 +62,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.14.0",
     "husky": "^9.1.7",
-    "jscpd": "^5.4.3",
     "jsdom": "^31.0.1",
-    "lint-staged": "^17.6.1",
     "postcss": "^8.4.49",
     "prettier": "^3.10.1",
     "tailwindcss": "^3.4.15",

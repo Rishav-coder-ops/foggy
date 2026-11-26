@@ -49,7 +49,7 @@ export async function deleteMemoryDoc(db, uid, memoryId) {
   await deleteDoc(memoryDocRef);
 }
 
-export async function deleteUserSubcollections(db, uid) {
+async function deleteUserSubcollections(db, uid) {
   const [famSnapshot, memSnapshot] = await Promise.all([
     getDocs(collection(db, 'users', uid, 'family')),
     getDocs(collection(db, 'users', uid, 'memory'))

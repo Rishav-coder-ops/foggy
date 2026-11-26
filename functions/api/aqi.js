@@ -3,55 +3,18 @@
  * @fileoverview Cloudflare Pages Function & Local Server Handler for Indian National AQI (CPCB NAQI).
  */
 
-import {
-  calculatePM25SubIndex,
-  calculatePM10SubIndex,
-  calculateCPCBNAQI,
-  getAQICategory,
-  INDIAN_METROS
-} from './aqi-timeline.js';
 import { logger } from '../../shared/logger.js';
 import {
   aqiCache,
   CACHE_TTL_MS,
   getAqiCacheKey,
   checkRateLimit,
-  clearRateLimits,
-  clearAqiCache,
-  clearLastGoodLiveAqiCache,
   getCorsHeaders
 } from '../../shared/aqi/cache.js';
-import {
-  INDIAN_CITY_SIMULATION_DB,
-  getDeterministicMockCity,
-  generateHourlyForecast
-} from '../../shared/aqi/simulationDb.js';
-import {
-  calculateRollingAverages,
-  resolveCityCoordinates,
-  fetchUpstreamAqiData
-} from '../../shared/aqi/upstreamClient.js';
+import { getDeterministicMockCity } from '../../shared/aqi/simulationDb.js';
+import { resolveCityCoordinates, fetchUpstreamAqiData } from '../../shared/aqi/upstreamClient.js';
 
-export {
-  calculatePM25SubIndex,
-  calculatePM10SubIndex,
-  calculateCPCBNAQI,
-  getAQICategory,
-  INDIAN_METROS,
-  aqiCache,
-  CACHE_TTL_MS,
-  getAqiCacheKey,
-  checkRateLimit,
-  clearRateLimits,
-  clearAqiCache,
-  clearLastGoodLiveAqiCache,
-  getCorsHeaders,
-  INDIAN_CITY_SIMULATION_DB,
-  getDeterministicMockCity,
-  generateHourlyForecast,
-  calculateRollingAverages,
-  resolveCityCoordinates
-};
+export { aqiCache, getAqiCacheKey, getDeterministicMockCity, resolveCityCoordinates };
 
 export async function onRequestOptions(context) {
   return new Response(null, {

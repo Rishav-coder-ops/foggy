@@ -12,6 +12,8 @@ import {
   clearClientAqiCache,
   clearClientLastGoodLiveCache
 } from '../src/services/api.js';
+import { requestJson } from '../src/services/httpClient.js';
+import { requestPersonalizeMemo } from '../src/services/profileApi.js';
 import { auth } from '../src/firebase.js';
 
 describe('tests/services-api.test.js - Client API Services & Offline Fallbacks', () => {
@@ -329,6 +331,77 @@ describe('tests/services-api.test.js - Client API Services & Offline Fallbacks',
       expect(data.last24Hours.length).toBe(24);
       expect(data.forecast7Days.length).toBe(7);
       expect(data.isSample).toBe(true);
+    });
+  });
+
+  describe('Shared HTTP Client (requestJson)', () => {
+    it('returns parsed json on successful request', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ success: true, count: 42 })
+      });
+
+      const res = await requestJson('/api/test');
+      expect(res.ok).toBe(true);
+      expect(res.status).toBe(200);
+      expect(res.data).toEqual({ success: true, count: 42 });
+    });
+
+    it('returns null data when json parsing fails', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => {
+          throw new Error('Invalid JSON');
+        }
+      });
+
+      const res = await requestJson('/api/broken');
+      expect(res.ok).toBe(false);
+      expect(res.status).toBe(500);
+      expect(res.data).toBeNull();
+    });
+  });
+
+  describe('Profile API (requestPersonalizeMemo)', () => {
+    it('sends personalization payload with Authorization token when available', async () => {
+      auth.currentUser = {
+        getIdToken: vi.fn().mockResolvedValue('test-token-123')
+      };
+
+      let capturedUrl = '';
+      let capturedOptions = {};
+      vi.spyOn(global, 'fetch').mockImplementationOnce(async (url, opts) => {
+        capturedUrl = url;
+        capturedOptions = opts;
+        return {
+          ok: true,
+          json: async () => ({ reply: 'Personalized guidance', memo: 'Personalized guidance' })
+        };
+      });
+
+      const res = await requestPersonalizeMemo({
+        member: { name: 'Aarav' },
+        prompt: 'Give advice',
+        context: { aqi: 250 }
+      });
+
+      expect(capturedUrl).toBe('/api/personalize');
+      expect(capturedOptions.headers['Authorization']).toBe('Bearer test-token-123');
+      expect(res.reply).toBe('Personalized guidance');
+    });
+
+    it('throws error when personalize endpoint returns non-ok status', async () => {
+      vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'AI processing failed' })
+      });
+
+      await expect(
+        requestPersonalizeMemo({ member: { name: 'Aarav' }, prompt: 'test' })
+      ).rejects.toThrow('AI processing failed');
     });
   });
 });

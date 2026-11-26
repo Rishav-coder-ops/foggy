@@ -10,8 +10,6 @@ import Sparkline24h from './Sparkline24h';
 import CurveDataTable from './CurveDataTable';
 import CurveChartSVG from './CurveChartSVG';
 
-export { Sparkline24h };
-
 export default function Curve24hPanel({
   timelineData,
   _loading = false,

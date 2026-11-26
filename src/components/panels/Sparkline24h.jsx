@@ -66,5 +66,3 @@ export default function Sparkline24h({ data = [], currentAqi = 165, height = 36,
     </div>
   );
 }
-
-export { Sparkline24h };
