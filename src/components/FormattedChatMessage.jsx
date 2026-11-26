@@ -45,6 +45,22 @@ export function cleanAndExtractMarkdown(text) {
   // Strip stray unclosed lone asterisks
   cleaned = cleaned.replace(/(?<=\s)\*(?=\s|$)/g, '');
 
+  // Separate inline section headers (e.g. "...road exposure. Afternoon (Solar Window):" or "...exposure. **Afternoon...")
+  cleaned = cleaned.replace(
+    /([.!?])\s+((?:\*\*)?(?:Morning|Afternoon|Evening|Night|Midday|Cleanest|Peak|Step \d+|Tip \d+)\b)/gi,
+    '$1\n\n$2'
+  );
+
+  // Ensure un-bulleted time of day routine headers starting a line are bolded (e.g. 'Morning (High Smog):' -> '**Morning (High Smog):**')
+  cleaned = cleaned.replace(
+    /^(\s*)(Morning|Afternoon|Evening|Night|Midday)([^:\n]*:)/gim,
+    '$1**$2$3**'
+  );
+
+  // Ensure clean paragraph separation before bold section headers and list items
+  cleaned = cleaned.replace(/([^\n])\n(\*\*[A-Za-z0-9])/g, '$1\n\n$2');
+  cleaned = cleaned.replace(/([^\n])\n([\*\-]\s+)/g, '$1\n\n$2');
+
   // Balance markdown markers (**, *, `) and strip trailing dangling tokens
   cleaned = balanceMarkdownMarkers(cleaned);
 
@@ -96,7 +112,7 @@ export default function FormattedChatMessage({ content, sender = 'foggy' }) {
     ),
     p: ({ children, ...props }) => (
       <p
-        className="my-1.5 leading-relaxed text-xs text-slate-800 dark:text-slate-100 break-words"
+        className="my-1.5 leading-relaxed text-xs text-slate-800 dark:text-slate-100 break-words whitespace-pre-line"
         {...props}
       >
         {children}

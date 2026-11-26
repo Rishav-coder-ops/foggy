@@ -36,10 +36,11 @@ export function getIntentInstruction(intentType, aqiReport) {
 
     case INTENT_TYPES.PLAN_MY_DAY:
       return `INTENT INSTRUCTION (PLAN MY DAY):
-- Directly provide a structured daily routine grouped into Morning, Afternoon, and Evening, tailored to diurnal inversion curves and the user's profile:
-  * Morning (early): High inversion smog peak — keep windows closed, avoid strenuous outdoor cardio, commute in enclosed transit (metro/bus).
-  * Afternoon (1:00 PM – 3:30 PM): Solar dispersal window — cleanest air window of the day; safest time for outdoor errands, light walks, or brief airing if AQI allows.
-  * Evening & Night: Rising ground-level smoke — seal windows, damp-mop floors, use air filtration in bedroom.
+- Directly provide a structured daily routine grouped into Morning, Afternoon, and Evening, tailored to diurnal inversion curves and the user's profile.
+- Format each time period as a distinct bullet point or separated section:
+  * **Morning (High Smog Peak):** Keep windows closed, avoid strenuous outdoor cardio, commute in enclosed transit (metro/bus).
+  * **Afternoon (Solar Dispersal Window):** Cleanest air window of the day; safest time for essential errands or brief airing if AQI allows.
+  * **Evening & Night (Rising Smog):** Seal windows, damp-mop floors, use air filtration in bedroom.
 - Mention today's estimated NAQI in at most one line as context.`;
 
     case INTENT_TYPES.MASK_ADVICE:

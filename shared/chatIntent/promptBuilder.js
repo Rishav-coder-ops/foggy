@@ -44,12 +44,22 @@ export function buildUserMessageWithContext({
 }) {
   let verdictBlock = '';
   if (safetyVerdict) {
+    const isOutdoorQuestion =
+      safetyVerdict.isOutdoorQuery ||
+      /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
+        message || ''
+      );
+
+    const directAnswerDirective = isOutdoorQuestion
+      ? `- Mandatory Direct Answer: You MUST open with "${safetyVerdict.directAnswerPhrase}" or equivalent direct statement.`
+      : `- Safety Directive: Outdoor activity is strictly restricted/unsafe (NAQI ${safetyVerdict.aqi}, ${safetyVerdict.category}). Recommendations must strictly reflect this without claiming outdoor air is clean or unrestricted. Directly answer the user's specific request.`;
+
     verdictBlock = `
 ### 🚨 MANDATORY HEALTH & ACTIVITY VERDICT (STRICT ADHERENCE REQUIRED):
 - Active City Ground Truth: ${compactContext?.city || 'Selected City'} — NAQI ${safetyVerdict.aqi} (${safetyVerdict.category})
 - People Involved: ${safetyVerdict.peopleInvolved?.join(', ') || 'Household'}
 - Verdict: ${safetyVerdict.verdictLabel} (${safetyVerdict.isOutdoorSafe ? 'Outdoor activity safe/acceptable' : 'Outdoor activity strictly restricted or prohibited'})
-- Mandatory Direct Answer: You MUST open with "${safetyVerdict.directAnswerPhrase}" or equivalent direct statement.
+${directAnswerDirective}
 - Safety Directive: NEVER contradict this verdict. NEVER claim that outdoor play, running, or walks are "safe", "unrestricted", or "clean" when AQI is Moderate, Poor, Very Poor, or Severe.
 `;
   }
