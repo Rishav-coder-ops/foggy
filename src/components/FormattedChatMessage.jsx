@@ -47,13 +47,19 @@ export function cleanAndExtractMarkdown(text) {
 
   // Separate inline section headers (e.g. "...road exposure. Afternoon (Solar Window):" or "...exposure. **Afternoon...")
   cleaned = cleaned.replace(
-    /([.!?])\s+((?:\*\*)?(?:Morning|Afternoon|Evening|Night|Midday|Cleanest|Peak|Step \d+|Tip \d+)\b)/gi,
+    /([.!?])\s+((?:\*\*)?(?:Morning|Afternoon|Evening(?:\s*&\s*Night)?|Night|Midday|Cleanest|Peak|Step \d+|Tip \d+)\b)/gi,
+    '$1\n\n$2'
+  );
+
+  // Ensure any bold time-of-day header not preceded by a newline is split into its own paragraph
+  cleaned = cleaned.replace(
+    /([^\n])\s+(\*\*(?:Morning|Afternoon|Evening(?:\s*&\s*Night)?|Night|Midday)\b)/gi,
     '$1\n\n$2'
   );
 
   // Ensure un-bulleted time of day routine headers starting a line are bolded (e.g. 'Morning (High Smog):' -> '**Morning (High Smog):**')
   cleaned = cleaned.replace(
-    /^(\s*)(Morning|Afternoon|Evening|Night|Midday)([^:\n]*:)/gim,
+    /^(\s*)(Morning|Afternoon|Evening(?:\s*&\s*Night)?|Night|Midday)([^:\n]*:)/gim,
     '$1**$2$3**'
   );
 

@@ -97,7 +97,9 @@ export function buildCompactContext(
     contextObj.safetyVerdict = {
       isOutdoorSafe: safetyVerdict.isOutdoorSafe,
       verdictLabel: safetyVerdict.verdictLabel,
-      directAnswerPhrase: safetyVerdict.directAnswerPhrase
+      ...(safetyVerdict.isDirectSafetyQuestion !== false && safetyVerdict.directAnswerPhrase
+        ? { directAnswerPhrase: safetyVerdict.directAnswerPhrase }
+        : {})
     };
   }
 

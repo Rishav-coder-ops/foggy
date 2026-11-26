@@ -20,40 +20,34 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
   const personas = new Set();
   const q = (query || '').toLowerCase();
 
-  // 1. Child / Infant / Toddler
-  const childTerms =
-    /\b(kid|kids|child|children|baby|babies|infant|infants|toddler|toddlers|son|daughter|beta|beti|baccha|bachhe|bacche)\b/i;
-  if (childTerms.test(q)) personas.add('child');
-
-  // 2. Senior / Elderly
-  const seniorTerms =
-    /\b(senior|seniors|elder|elders|elderly|grandpa|grandma|grandfather|grandmother|dada|dadi|nana|nani|father|mother|dad|mom|papa|mummy|parent|parents|bua|chacha)\b/i;
-  if (seniorTerms.test(q)) personas.add('senior');
-
-  // 3. Asthma / Respiratory
-  const asthmaTerms = /\b(asthma|asthmatic|wheeze|wheezing|inhaler|asthalin|respiratory)\b/i;
-  if (asthmaTerms.test(q)) personas.add('asthma');
-
-  // 4. COPD / Chronic Lung Condition
-  const copdTerms = /\b(copd|emphysema|chronic bronchitis|lung disease|pulmonary)\b/i;
-  if (copdTerms.test(q)) personas.add('copd');
-
-  // 5. Heart / Cardiac / Hypertension
-  const heartTerms = /\b(heart|cardiac|cardiovascular|hypertension|bp|blood pressure)\b/i;
-  if (heartTerms.test(q)) personas.add('heartDisease');
-
-  // 6. Pregnancy
-  const pregnancyTerms = /\b(pregnant|pregnancy|expecting|trimester)\b/i;
-  if (pregnancyTerms.test(q)) personas.add('pregnancy');
-
-  // 7. Athlete / Heavy outdoor cardio
-  const athleteTerms =
-    /\b(run|running|runner|jog|jogging|workout|exercise|exercising|marathon|cycling|cycle|biking|football|cricket|sports|training)\b/i;
-  if (athleteTerms.test(q)) personas.add('athlete');
-
-  // 8. Outdoor worker
-  const workerTerms = /\b(delivery|traffic|street|vendor|construction|outdoor work|field work)\b/i;
-  if (workerTerms.test(q)) personas.add('outdoorWorker');
+  // Detect terms in user query
+  if (
+    /\b(kid|kids|child|children|baby|babies|infant|infants|toddler|toddlers|son|daughter|beta|beti|baccha|bachhe|bacche)\b/i.test(
+      q
+    )
+  )
+    personas.add('child');
+  if (
+    /\b(senior|seniors|elder|elders|elderly|grandpa|grandma|grandfather|grandmother|dada|dadi|nana|nani|father|mother|dad|mom|papa|mummy|parent|parents|bua|chacha)\b/i.test(
+      q
+    )
+  )
+    personas.add('senior');
+  if (/\b(asthma|asthmatic|wheeze|wheezing|inhaler|asthalin|respiratory)\b/i.test(q))
+    personas.add('asthma');
+  if (/\b(copd|emphysema|chronic bronchitis|lung disease|pulmonary)\b/i.test(q))
+    personas.add('copd');
+  if (/\b(heart|cardiac|cardiovascular|hypertension|bp|blood pressure)\b/i.test(q))
+    personas.add('heartDisease');
+  if (/\b(pregnant|pregnancy|expecting|trimester)\b/i.test(q)) personas.add('pregnancy');
+  if (
+    /\b(run|running|runner|jog|jogging|workout|exercise|exercising|marathon|cycling|cycle|biking|football|cricket|sports|training)\b/i.test(
+      q
+    )
+  )
+    personas.add('athlete');
+  if (/\b(delivery|traffic|street|vendor|construction|outdoor work|field work)\b/i.test(q))
+    personas.add('outdoorWorker');
 
   // Inspect saved family members
   if (Array.isArray(familyMembers)) {
@@ -67,24 +61,14 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
       const age = parseInt(m.age, 10);
 
       if (
-        rel.includes('child') ||
-        rel.includes('son') ||
-        rel.includes('daughter') ||
-        rel.includes('kid') ||
-        rel.includes('baby') ||
+        /child|son|daughter|kid|baby/i.test(rel) ||
         (Number.isFinite(age) && age <= 14)
       ) {
         personas.add('child');
       }
 
       if (
-        rel.includes('senior') ||
-        rel.includes('elder') ||
-        rel.includes('grand') ||
-        rel.includes('dada') ||
-        rel.includes('dadi') ||
-        rel.includes('nana') ||
-        rel.includes('nani') ||
+        /senior|elder|grand|dada|dadi|nana|nani/i.test(rel) ||
         (Number.isFinite(age) && age >= 60)
       ) {
         personas.add('senior');
@@ -118,11 +102,24 @@ export function detectInvolvedPersonas(query = '', profile = {}, familyMembers =
 }
 
 /**
- * Checks if the query relates to outdoor activity, exercise, walks, or sports.
- *
+ * Checks if query asks a direct yes/no outdoor activity safety question.
  * @param {string} query
  * @returns {boolean}
  */
+function isDirectOutdoorSafetyQuestion(query = '') {
+  const q = (query || '').toLowerCase().trim();
+  if (!q) return false;
+  const isQ =
+    /\b(can|could|should|is it safe|is it okay|is it ok|are we safe|may i|allowed to|safe to|safe for|okay to|ok to)\b/i.test(
+      q
+    ) || q.endsWith('?');
+  const hasAct =
+    /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
+      q
+    );
+  return isQ && hasAct;
+}
+
 function isOutdoorActivityQuery(query = '') {
   return /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
     query
@@ -152,6 +149,7 @@ export function computeSafetyVerdict({
   const catName = catObj.name;
   const involved = detectInvolvedPersonas(query, profile, familyMembers);
   const isOutdoor = isOutdoorActivityQuery(query);
+  const isDirectSafety = query ? isDirectOutdoorSafetyQuestion(query) : true;
 
   const hasChildren = involved.includes('child');
   const hasSeniors = involved.includes('senior');
@@ -332,6 +330,7 @@ export function computeSafetyVerdict({
     peopleInvolved: involved,
     recommendedMask,
     indoorRecommendations,
-    isOutdoorQuery: isOutdoor
+    isOutdoorQuery: isOutdoor,
+    isDirectSafetyQuestion: isDirectSafety
   };
 }

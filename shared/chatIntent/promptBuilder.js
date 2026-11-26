@@ -44,15 +44,18 @@ export function buildUserMessageWithContext({
 }) {
   let verdictBlock = '';
   if (safetyVerdict) {
-    const isOutdoorQuestion =
-      safetyVerdict.isOutdoorQuery ||
-      /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
+    const isDirectSafety =
+      safetyVerdict.isDirectSafetyQuestion ??
+      (/\b(can|could|should|is it safe|is it okay|is it ok|are we safe|may i|allowed to|safe to|safe for|okay to|ok to)\b/i.test(
         message || ''
-      );
+      ) &&
+        /\b(play|playing|run|running|jog|jogging|walk|walking|walks|exercise|workout|cycling|cycle|bike|biking|sports|match|cricket|football|outside|outdoors|step out|go out|stroll)\b/i.test(
+          message || ''
+        ));
 
-    const directAnswerDirective = isOutdoorQuestion
-      ? `- Mandatory Direct Answer: You MUST open with "${safetyVerdict.directAnswerPhrase}" or equivalent direct statement.`
-      : `- Safety Directive: Outdoor activity is strictly restricted/unsafe (NAQI ${safetyVerdict.aqi}, ${safetyVerdict.category}). Recommendations must strictly reflect this without claiming outdoor air is clean or unrestricted. Directly answer the user's specific request.`;
+    const directAnswerDirective = isDirectSafety
+      ? `- Mandatory Direct Answer: You MUST open directly with "${safetyVerdict.directAnswerPhrase}" or equivalent direct statement.`
+      : `- Context-Appropriate Opening Directive: Do NOT start with "No," or an unprompted safety negation. Directly begin with a helpful, natural, and encouraging schedule or advice tailored to ${compactContext?.city || 'the selected city'}'s air quality (NAQI ${safetyVerdict.aqi}, ${safetyVerdict.category}) and family health profile, keeping all outdoor activities restricted.`;
 
     verdictBlock = `
 ### 🚨 MANDATORY HEALTH & ACTIVITY VERDICT (STRICT ADHERENCE REQUIRED):
