@@ -1,5 +1,5 @@
 // src/components/Footer.jsx
-import { ShieldAlert, Heart, Wind, Github } from 'lucide-react';
+import { ShieldAlert, Heart, Wind } from 'lucide-react';
 import MascotAvatar from './MascotAvatar';
 
 export default function Footer() {
@@ -145,16 +145,6 @@ export default function Footer() {
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span> India-First • CPCB NAQI
               Standard
             </span>
-            <a
-              href="https://github.com/Rishav-coder-ops/foggy"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Foggy on GitHub (opens in a new tab)"
-              className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors"
-            >
-              <Github className="w-3.5 h-3.5" />
-              <span>GitHub</span>
-            </a>
           </div>
         </div>
       </div>
